@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Запуск musslop. Использование: ./run.sh [порт]
+# Запуск musslop. Использование: ./run.sh [порт]  (или PORT=8801 ./run.sh)
 set -e
 cd "$(dirname "$0")"
-PORT="${1:-8765}"
+PORT="${1:-${PORT:-8801}}"
 
 # Освободить порт, если занят старым процессом
 OLD=$(lsof -ti tcp:"$PORT" 2>/dev/null || ss -tlnp 2>/dev/null | grep ":$PORT " | grep -o 'pid=[0-9]*' | cut -d= -f2 | head -1)

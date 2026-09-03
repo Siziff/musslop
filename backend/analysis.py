@@ -229,6 +229,13 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         for i in range(len(bounds) - 1)
     ]
 
+    # --- Автолейблы: кластеризация похожих секций (A/B/A/C -> куплет/припев) -
+    _label_segments(segments, feats, sync_times)
+
+    # --- Качество лупа: насколько бесшовно зациклится каждая часть ----------
+    for s in segments:
+        s["loopability"] = _loopability(y, sr, s["start"], s["end"])
+
     return {
         "duration": duration,
         "tempo": tempo,
@@ -237,3 +244,77 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         "segments": segments,
         "fallback": False,
     }
+
+
+def _label_segments(segments: list, feats: np.ndarray,
+                    sync_times: np.ndarray) -> None:
+    """Помечает похожие секции одной буквой (A, B, C...) через агломеративную
+    кластеризацию усреднённых beat-признаков сегмента."""
+    n = len(segments)
+    if n == 0:
+        return
+    vecs = []
+    for s in segments:
+        mask = (sync_times >= s["start"]) & (sync_times < s["end"])
+        v = feats[:, mask].mean(axis=1) if mask.any() else feats.mean(axis=1)
+        nrm = np.linalg.norm(v)
+        vecs.append(v / max(nrm, 1e-8))
+    vecs = np.array(vecs)
+
+    if n == 1:
+        segments[0]["group"] = "A"
+        segments[0]["label"] = "A1"
+        return
+
+    from scipy.cluster.hierarchy import linkage, fcluster
+    from scipy.spatial.distance import pdist
+    d = pdist(vecs, metric="cosine")
+    z = linkage(d, method="average")
+    # порог: близкие по звучанию секции считаем «той же» частью
+    labels = fcluster(z, t=0.45, criterion="distance")
+
+    # буквы в порядке первого появления
+    order: dict[int, str] = {}
+    letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    counts: dict[str, int] = {}
+    for seg, lab in zip(segments, labels):
+        if lab not in order:
+            order[lab] = letters[len(order) % len(letters)]
+        g = order[lab]
+        counts[g] = counts.get(g, 0) + 1
+        seg["group"] = g
+        seg["label"] = f"{g}{counts[g]}"
+
+
+def loop_quality(path: str, segments: list) -> list:
+    """Качество лупа для готового списка границ (для ручного редактирования)."""
+    y, sr = librosa.load(path, sr=SR, mono=True)
+    return [_loopability(y, sr, float(s["start"]), float(s["end"]))
+            for s in segments]
+
+
+def _loopability(y: np.ndarray, sr: int, start: float, end: float,
+                 win: float = 0.5) -> float:
+    """Оценка бесшовности лупа 0..1: похожи ли крайние полсекунды по спектру
+    и нет ли резкого разрыва громкости на стыке конец->начало."""
+    i0, i1 = int(start * sr), int(end * sr)
+    w = int(win * sr)
+    if i1 - i0 < 4 * w:
+        return 0.5
+    head = y[i0:i0 + w]
+    tail = y[i1 - w:i1]
+
+    # спектральная похожесть хвоста и головы (mel-спектр, косинус)
+    def _spec(x):
+        s = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=48, hop_length=HOP)
+        v = np.log1p(s).mean(axis=1)
+        return v / max(np.linalg.norm(v), 1e-8)
+
+    sim = float(np.dot(_spec(head), _spec(tail)))  # 0..1
+
+    # разрыв громкости на стыке
+    rh = float(np.sqrt(np.mean(head ** 2)) + 1e-8)
+    rt = float(np.sqrt(np.mean(tail ** 2)) + 1e-8)
+    level = min(rh, rt) / max(rh, rt)  # 1 = уровни равны
+
+    return float(np.clip(0.7 * sim + 0.3 * level, 0.0, 1.0))

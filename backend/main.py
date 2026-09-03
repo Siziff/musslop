@@ -8,11 +8,11 @@ import shutil
 import subprocess
 import uuid
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .analysis import analyze
+from .analysis import analyze, loop_quality
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
@@ -20,6 +20,18 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI(title="Musslop")
+
+APP_VERSION = "0.3.0"
+
+
+@app.middleware("http")
+async def no_html_cache(request, call_next):
+    """HTML не кэшируем никогда: иначе браузер может показывать старый UI."""
+    response = await call_next(request)
+    ct = response.headers.get("content-type", "")
+    if "text/html" in ct:
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+    return response
 
 # id -> {"orig": path, "wav": path, "name": str, "mime": str}
 TRACKS: dict[str, dict] = {}
@@ -117,6 +129,52 @@ def get_audio(track_id: str):
     if not track:
         raise HTTPException(404, "Трек не найден")
     return FileResponse(track["orig"], media_type=track["mime"])
+
+
+@app.post("/api/loopability/{track_id}")
+def loopability(track_id: str, segments: list[dict] = Body(...)):
+    """Пересчитать качество лупа для отредактированных вручную границ."""
+    track = TRACKS.get(track_id)
+    if not track:
+        raise HTTPException(404, "Трек не найден")
+    return {"loopability": loop_quality(track["wav"], segments)}
+
+
+@app.post("/api/export/{track_id}")
+def export_loops(track_id: str, segments: list[dict] = Body(...)):
+    """Нарезать трек на лупы по границам и вернуть zip с WAV-файлами."""
+    track = TRACKS.get(track_id)
+    if not track:
+        raise HTTPException(404, "Трек не найден")
+    if not segments:
+        raise HTTPException(400, "Пустой список сегментов")
+
+    import io
+    import re
+    import zipfile
+    import soundfile as sf
+
+    y, sr = sf.read(track["orig"] if track["orig"].endswith(".wav")
+                    else track["wav"], always_2d=True)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for i, s in enumerate(segments):
+            a, b = int(float(s["start"]) * sr), int(float(s["end"]) * sr)
+            a, b = max(0, a), min(len(y), b)
+            if b - a < sr // 10:
+                continue
+            wav_io = io.BytesIO()
+            sf.write(wav_io, y[a:b], sr, format="WAV")
+            label = re.sub(r"[^\w\-]+", "_", str(s.get("label", f"part{i+1}")))
+            zf.writestr(f"{i+1:02d}_{label}.wav", wav_io.getvalue())
+    buf.seek(0)
+
+    base = os.path.splitext(track["name"] or "loops")[0]
+    from fastapi.responses import Response
+    return Response(
+        buf.read(), media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{base}_loops.zip"'},
+    )
 
 
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

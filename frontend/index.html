@@ -242,7 +242,18 @@ const STR = {
     import_markup: '⤒ Разметка',
     export_tip: 'Скачать разметку частей в JSON',
     import_tip: 'Загрузить разметку из JSON',
-    wave_hint: <span>Клик — перемотка · Зелёный ползунок — перетащить позицию · Белая граница — перетащить · Двойной клик — разрезать · Штрихи снизу: короткие — биты, длинные — такты</span>,
+    export_loops: '⤓ Лупы (zip)',
+    export_loops_tip: 'Скачать все части отдельными WAV-файлами',
+    exporting: 'Формирование zip с лупами…',
+    err_export: 'Ошибка экспорта',
+    loop_quality_tip: 'Качество лупа: насколько бесшовно эта часть зациклится',
+    trans_mode: 'Переход:',
+    mode_loop: 'конец лупа',
+    mode_bar: 'ближайший такт',
+    mode_loop_tip: 'Дождаться конца текущего лупа и перейти бесшовно',
+    mode_bar_tip: 'Перейти на ближайшей сильной доле, не дожидаясь конца лупа',
+    crossfade: 'Кроссфейд:',
+    wave_hint: <span>Клик — перемотка · Зелёный ползунок — позиция · Белая граница — перетащить · Двойной клик — разрезать · Колесо — зум, Shift+колесо — прокрутка · ⟳% — качество лупа</span>,
     del_seg: 'Удалить границу (слить с предыдущей)',
     player_title: 'Плеер',
     play: '▶ Играть (зациклить часть)',
@@ -284,7 +295,18 @@ const STR = {
     import_markup: '⤒ Markup',
     export_tip: 'Download segment markup as JSON',
     import_tip: 'Load segment markup from JSON',
-    wave_hint: <span>Click — seek · Green handle — drag position · White boundary — drag to move · Double click — split · Ticks at the bottom: short — beats, long — bars</span>,
+    export_loops: '⤓ Loops (zip)',
+    export_loops_tip: 'Download all parts as separate WAV files',
+    exporting: 'Building zip with loops…',
+    err_export: 'Export failed',
+    loop_quality_tip: 'Loop quality: how seamlessly this part will loop',
+    trans_mode: 'Transition:',
+    mode_loop: 'loop end',
+    mode_bar: 'next bar',
+    mode_loop_tip: 'Wait for the current loop to finish, then advance seamlessly',
+    mode_bar_tip: 'Advance on the next downbeat without waiting for the loop end',
+    crossfade: 'Crossfade:',
+    wave_hint: <span>Click — seek · Green handle — position · White boundary — drag · Double click — split · Wheel — zoom, Shift+wheel — pan · ⟳% — loop quality</span>,
     del_seg: 'Remove boundary (merge with previous)',
     player_title: 'Player',
     play: '▶ Play (loop part)',
@@ -315,13 +337,16 @@ class LoopPlayer {
   constructor() {
     this.ctx = null; this.buffer = null;
     this.segments = [];
+    this.downbeats = [];
     this.playing = false;
     this.segIndex = 0;
     this.advanceArmed = false;
     this.loopEnabled = true;
+    this.crossfade = 0;         // сек, 0 = стык по границе с микро-фейдом
+    this.transitionMode = 'loop'; // 'loop' = в конце лупа, 'bar' = ближайший такт
     this.nextTime = 0;          // ctx time of the next chunk start
     this.queue = [];            // [{t0, t1, segIndex, trackStart}]
-    this.sources = [];
+    this.sources = [];          // [{src, g}]
     this.timer = null;
     this.loopCount = 0;
     this.pendingPos = null;     // позиция, выбранная кликом до запуска
@@ -353,25 +378,59 @@ class LoopPlayer {
     if (idx < 0) idx = this.segments.length - 1;
     return idx;
   }
-  _scheduleChunkRange(from, to, when) {
+  // Кусок аудио [from, to) на ctx-времени when.
+  // fadeIn/fadeOut — длительности фейдов (equal-power при кроссфейде).
+  _scheduleChunkRange(from, to, when, fadeIn = null, fadeOut = null) {
     const dur = to - from;
+    if (dur <= 0.01) return 0;
     const src = this.ctx.createBufferSource();
     src.buffer = this.buffer;
     const g = this.ctx.createGain();
-    const f = Math.min(this.FADE, dur / 4);
+    const fi = Math.min(fadeIn != null ? fadeIn : this.FADE, dur / 2);
+    const fo = Math.min(fadeOut != null ? fadeOut : this.FADE, dur / 2);
     g.gain.setValueAtTime(0, when);
-    g.gain.linearRampToValueAtTime(1, when + f);
-    g.gain.setValueAtTime(1, when + dur - f);
-    g.gain.linearRampToValueAtTime(0, when + dur);
+    if (fi > 0.02) { // equal-power вход
+      const N = 8;
+      for (let k = 1; k <= N; k++)
+        g.gain.linearRampToValueAtTime(Math.sin((k / N) * Math.PI / 2), when + fi * k / N);
+    } else {
+      g.gain.linearRampToValueAtTime(1, when + fi);
+    }
+    g.gain.setValueAtTime(1, when + dur - fo);
+    if (fo > 0.02) {
+      const N = 8;
+      for (let k = 1; k <= N; k++)
+        g.gain.linearRampToValueAtTime(Math.cos((k / N) * Math.PI / 2), when + dur - fo + fo * k / N);
+    } else {
+      g.gain.linearRampToValueAtTime(0, when + dur);
+    }
     src.connect(g); g.connect(this.ctx.destination);
     src.start(when, from, dur);
-    this.sources.push(src);
-    src.onended = () => { this.sources = this.sources.filter(s => s !== src); };
+    const rec = { src, g };
+    this.sources.push(rec);
+    src.onended = () => { this.sources = this.sources.filter(s => s !== rec); };
     return dur;
+  }
+  // Хвост предыдущей части, затухающий поверх начала новой (кроссфейд)
+  _scheduleTail(from, when, xf) {
+    const end = Math.min(from + xf, this.buffer.duration);
+    if (end - from <= 0.02) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.buffer;
+    const g = this.ctx.createGain();
+    const N = 8, dur = end - from;
+    g.gain.setValueAtTime(1, when);
+    for (let k = 1; k <= N; k++)
+      g.gain.linearRampToValueAtTime(Math.cos((k / N) * Math.PI / 2), when + dur * k / N);
+    src.connect(g); g.connect(this.ctx.destination);
+    src.start(when, from, dur);
+    const rec = { src, g };
+    this.sources.push(rec);
+    src.onended = () => { this.sources = this.sources.filter(s => s !== rec); };
   }
   // Перезапуск с произвольной позиции трека (не сбрасывает playing)
   _restartAt(pos) {
-    this.sources.forEach(s => { try { s.stop(); } catch (e) {} });
+    this.sources.forEach(s => { try { s.src.stop(); } catch (e) {} });
     this.sources = [];
     if (!this.segments.length || !this.buffer) return;
     const idx = this._segAt(pos);
@@ -408,7 +467,14 @@ class LoopPlayer {
         this.onState();
       }
       const seg = this.segments[idx];
-      const dur = this._scheduleChunkRange(seg.start, seg.end, this.nextTime);
+      const xf = (!isRepeat && this.crossfade > 0.02) ? this.crossfade : 0;
+      if (xf > 0) {
+        // хвост прошлой части затухает поверх новой
+        const prev = this.segments[this.lastPlannedIndex];
+        this._scheduleTail(prev.end, this.nextTime, xf);
+      }
+      const dur = this._scheduleChunkRange(seg.start, seg.end, this.nextTime,
+                                           xf > 0 ? xf : null, null);
       this.queue.push({ t0: this.nextTime, t1: this.nextTime + dur,
                         segIndex: idx, trackStart: seg.start,
                         isLoopRepeat: isRepeat && this.lastPlannedIndex === idx });
@@ -443,13 +509,61 @@ class LoopPlayer {
       this.onState();
     }
   }
-  advance() { if (this.playing) { this.advanceArmed = true; this.onState(); } }
+  advance() {
+    if (!this.playing) return;
+    if (this.transitionMode === 'bar' && this.downbeats.length) {
+      this._advanceAtNextBar();
+    } else {
+      this.advanceArmed = true;
+    }
+    this.onState();
+  }
+  // Переход на ближайшем downbeat, не дожидаясь конца лупа
+  _advanceAtNextBar() {
+    const pos = this.position();
+    if (pos == null) return;
+    if (this.segIndex + 1 >= this.segments.length) { this.advanceArmed = true; return; }
+    const margin = 0.12; // мс на планирование
+    const nb = this.downbeats.find(b => b > pos + margin);
+    const seg = this.segments[this.segIndex];
+    // если следующий такт уже за границей сегмента — обычный переход в конце лупа
+    if (nb == null || nb >= seg.end - 0.05) { this.advanceArmed = true; return; }
+    const now = this.ctx.currentTime;
+    const Tt = now + (nb - pos);
+    const nextSeg = this.segments[this.segIndex + 1];
+    const xf = Math.max(this.crossfade, 0.03);
+    // погасить всё текущее к моменту Tt (+xf хвост)
+    this.sources.forEach(({ g }) => {
+      try {
+        g.gain.cancelScheduledValues(Tt);
+        g.gain.setValueAtTime(g.gain.value, Tt);
+        const N = 6;
+        for (let k = 1; k <= N; k++)
+          g.gain.linearRampToValueAtTime(Math.cos((k / N) * Math.PI / 2), Tt + xf * k / N);
+      } catch (e) {}
+    });
+    const olds = this.sources.slice();
+    setTimeout(() => olds.forEach(s => { try { s.src.stop(); } catch (e) {} }),
+               (Tt - now + xf + 0.1) * 1000);
+    this.sources = [];
+    // новая часть с её начала
+    this.nextTime = Tt;
+    const dur = this._scheduleChunkRange(nextSeg.start, nextSeg.end, Tt,
+                                         this.crossfade > 0.02 ? xf : null, null);
+    this.queue = [
+      { t0: now, t1: Tt, segIndex: this.segIndex, trackStart: pos, isLoopRepeat: false },
+      { t0: Tt, t1: Tt + dur, segIndex: this.segIndex + 1,
+        trackStart: nextSeg.start, isLoopRepeat: false },
+    ];
+    this.lastPlannedIndex = this.segIndex + 1;
+    this.nextTime = Tt + dur;
+  }
   stop(notify = true) {
     this.playing = false;
     this.advanceArmed = false;
     clearTimeout(this._reschedT);
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
-    this.sources.forEach(s => { try { s.stop(); } catch (e) {} });
+    this.sources.forEach(s => { try { s.src.stop(); } catch (e) {} });
     this.sources = [];
     this.queue = [];
     if (notify) this.onState();
@@ -470,24 +584,39 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
   const canvasRef = useRef(null);
   const peaksRef = useRef(null);
   const dragRef = useRef(null);
+  const viewRef = useRef({ t0: 0, t1: 0 }); // видимое окно (сек); t1=0 -> весь трек
   const [, force] = useState(0);
   const H = 190;
 
   useEffect(() => {
     if (!buffer) { peaksRef.current = null; return; }
-    const W = 2400;
+    const W = 8192; // достаточно для зума
     const data = buffer.getChannelData(0);
     const step = Math.max(1, Math.floor(data.length / W));
     const peaks = new Float32Array(W * 2);
     for (let i = 0; i < W; i++) {
       let mn = 1, mx = -1;
       const s = i * step, e = Math.min(s + step, data.length);
-      for (let j = s; j < e; j += 4) { const v = data[j]; if (v < mn) mn = v; if (v > mx) mx = v; }
+      for (let j = s; j < e; j += 2) { const v = data[j]; if (v < mn) mn = v; if (v > mx) mx = v; }
       peaks[i * 2] = mn; peaks[i * 2 + 1] = mx;
     }
     peaksRef.current = { peaks, W };
+    viewRef.current = { t0: 0, t1: 0 };
     force(x => x + 1);
   }, [buffer]);
+
+  const view = () => {
+    const v = viewRef.current;
+    return (v.t1 > v.t0) ? v : { t0: 0, t1: duration || 1 };
+  };
+
+  const segColor = (s, i) => {
+    if (s.group) {
+      const gi = s.group.charCodeAt(0) - 65;
+      return SEG_COLORS[gi % SEG_COLORS.length];
+    }
+    return SEG_COLORS[i % SEG_COLORS.length];
+  };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -500,24 +629,27 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     const W = rect.width;
     ctx.fillStyle = '#10141d'; ctx.fillRect(0, 0, W, H);
     if (!duration) return;
-    const tx = tt => (tt / duration) * W;
+    const { t0, t1 } = view();
+    const span = t1 - t0;
+    const tx = tt => ((tt - t0) / span) * W;
 
     // segment backgrounds
     segments.forEach((s, i) => {
-      const c = SEG_COLORS[i % SEG_COLORS.length];
+      if (s.end < t0 || s.start > t1) return;
+      const c = segColor(s, i);
       ctx.fillStyle = c + (i === playingSeg ? '40' : '1c');
       ctx.fillRect(tx(s.start), 0, tx(s.end) - tx(s.start), H);
     });
 
-    // beats / downbeats
-    if (beats) {
-      ctx.strokeStyle = '#ffffff10'; ctx.beginPath();
-      for (const b of beats) { ctx.moveTo(tx(b), H - 14); ctx.lineTo(tx(b), H); }
+    // beats / downbeats (биты рисуем только при достаточном зуме)
+    if (beats && span < duration * 0.6) {
+      ctx.strokeStyle = '#ffffff14'; ctx.beginPath();
+      for (const b of beats) { if (b < t0 || b > t1) continue; ctx.moveTo(tx(b), H - 14); ctx.lineTo(tx(b), H); }
       ctx.stroke();
     }
     if (downbeats) {
       ctx.strokeStyle = '#ffffff30'; ctx.beginPath();
-      for (const b of downbeats) { ctx.moveTo(tx(b), H - 26); ctx.lineTo(tx(b), H); }
+      for (const b of downbeats) { if (b < t0 || b > t1) continue; ctx.moveTo(tx(b), H - 26); ctx.lineTo(tx(b), H); }
       ctx.stroke();
     }
 
@@ -528,7 +660,8 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.beginPath();
       const mid = H / 2, amp = H / 2 - 10;
       for (let x = 0; x < W; x++) {
-        const pi = Math.min(PW - 1, Math.floor((x / W) * PW));
+        const tt = t0 + (x / W) * span;
+        const pi = Math.min(PW - 1, Math.floor((tt / duration) * PW));
         ctx.moveTo(x + .5, mid + peaks[pi * 2] * amp);
         ctx.lineTo(x + .5, mid + peaks[pi * 2 + 1] * amp);
       }
@@ -537,7 +670,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
 
     // boundaries
     segments.forEach((s, i) => {
-      if (i === 0) return;
+      if (i === 0 || s.start < t0 || s.start > t1) return;
       const x = tx(s.start);
       ctx.strokeStyle = '#ffffffcc'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
@@ -547,20 +680,36 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.moveTo(x - 5, 0); ctx.lineTo(x + 5, 0); ctx.lineTo(x, 8); ctx.fill();
     });
 
-    // labels
+    // labels + качество лупа
     segments.forEach((s, i) => {
-      const c = SEG_COLORS[i % SEG_COLORS.length];
+      if (s.end < t0 || s.start > t1) return;
+      const c = segColor(s, i);
       ctx.fillStyle = c;
       ctx.font = '600 11px Manrope, sans-serif';
-      ctx.fillText(s.label, tx(s.start) + 6, 15);
+      const lx = Math.max(tx(s.start) + 6, 6);
+      ctx.fillText(s.label, lx, 15);
+      if (s.loopability != null) {
+        const q = s.loopability;
+        ctx.fillStyle = q > 0.75 ? '#34d399' : q > 0.55 ? '#ffb84f' : '#fb6a6a';
+        ctx.font = '600 10px "JetBrains Mono", monospace';
+        ctx.fillText('\u27F3' + Math.round(q * 100) + '%', lx, 28);
+      }
     });
+
+    // мини-карта при зуме
+    if (span < duration * 0.999) {
+      ctx.fillStyle = '#ffffff18';
+      ctx.fillRect(0, H - 4, W, 4);
+      ctx.fillStyle = '#6a8dff';
+      ctx.fillRect((t0 / duration) * W, H - 4, Math.max(6, (span / duration) * W), 4);
+    }
 
     // playhead (или позиция, выбранная до запуска / при перетаскивании)
     let pos = dragRef.current && dragRef.current.type === 'playhead'
       ? dragRef.current.pos
       : (player && player.position());
     if (pos == null && player && player.pendingPos != null) pos = player.pendingPos;
-    if (pos != null) {
+    if (pos != null && pos >= t0 && pos <= t1) {
       const x = tx(pos);
       const grad = ctx.createLinearGradient(x - 8, 0, x + 8, 0);
       grad.addColorStop(0, 'rgba(52,211,153,0)');
@@ -585,20 +734,51 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
 
   const timeAt = e => {
     const rect = canvasRef.current.getBoundingClientRect();
-    return Math.max(0, Math.min(duration, ((e.clientX - rect.left) / rect.width) * duration));
+    const { t0, t1 } = view();
+    const tt = t0 + ((e.clientX - rect.left) / rect.width) * (t1 - t0);
+    return Math.max(0, Math.min(duration, tt));
+  };
+  const tolTime = () => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const { t0, t1 } = view();
+    return (8 / rect.width) * (t1 - t0);
   };
   const snapTime = tt => {
     if (!snap || !downbeats || !downbeats.length) return tt;
     let best = tt, bd = Infinity;
     for (const b of downbeats) { const d = Math.abs(b - tt); if (d < bd) { bd = d; best = b; } }
-    return bd < duration * 0.01 + 0.5 ? best : tt;
+    const { t0, t1 } = view();
+    return bd < (t1 - t0) * 0.01 + 0.35 ? best : tt;
+  };
+
+  // wheel: зум к курсору; shift+wheel / горизонтальный скролл: панорама
+  const onWheel = e => {
+    if (!duration) return;
+    e.preventDefault();
+    const { t0, t1 } = view();
+    const span = t1 - t0;
+    if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      const dt = (e.deltaX || e.deltaY) / 500 * span;
+      let n0 = t0 + dt, n1 = t1 + dt;
+      if (n0 < 0) { n1 -= n0; n0 = 0; }
+      if (n1 > duration) { n0 -= n1 - duration; n1 = duration; }
+      viewRef.current = { t0: Math.max(0, n0), t1: Math.min(duration, n1) };
+      return;
+    }
+    const cursor = timeAt(e);
+    const factor = e.deltaY > 0 ? 1.25 : 0.8;
+    let ns = Math.min(duration, Math.max(2, span * factor));
+    const ratio = (cursor - t0) / span;
+    let n0 = cursor - ns * ratio, n1 = n0 + ns;
+    if (n0 < 0) { n1 -= n0; n0 = 0; }
+    if (n1 > duration) { n0 -= n1 - duration; n1 = duration; }
+    viewRef.current = ns >= duration ? { t0: 0, t1: 0 } : { t0: Math.max(0, n0), t1: n1 };
   };
 
   const onMouseDown = e => {
     if (!duration) return;
     const tt = timeAt(e);
-    const rect = canvasRef.current.getBoundingClientRect();
-    const tolT = (8 / rect.width) * duration;
+    const tolT = tolTime();
     // 1) плейхед — приоритет
     const pos = (player && player.position()) ?? (player && player.pendingPos);
     if (pos != null && Math.abs(pos - tt) < tolT) {
@@ -638,8 +818,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       });
       return;
     }
-    const rect = canvas.getBoundingClientRect();
-    const tolT = (8 / rect.width) * duration;
+    const tolT = tolTime();
     const pos = (player && player.position()) ?? (player && player.pendingPos);
     const onPlayhead = pos != null && Math.abs(pos - tt) < tolT;
     const nearBound = segments.some((s, i) => i > 0 && Math.abs(s.start - tt) < tolT);
@@ -665,8 +844,13 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
 
   useEffect(() => {
     window.addEventListener('mouseup', onMouseUp);
-    return () => window.removeEventListener('mouseup', onMouseUp);
-  }, []);
+    const cv = canvasRef.current;
+    if (cv) cv.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      window.removeEventListener('mouseup', onMouseUp);
+      if (cv) cv.removeEventListener('wheel', onWheel);
+    };
+  }, [duration, segments]);
 
   return (
     <div className="canvas-wrap">
@@ -693,16 +877,65 @@ function App() {
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [crossfade, setCrossfade] = useState(0);       // сек
+  const [transMode, setTransMode] = useState('loop');  // 'loop' | 'bar'
   const [, force] = useState(0);
   const playerRef = useRef(null);
   const fileRef = useRef(null);
   const markupRef = useRef(null);
+  const loopQT = useRef(null);
 
   if (!playerRef.current) playerRef.current = new LoopPlayer();
   const player = playerRef.current;
   useEffect(() => { player.onState = () => force(x => x + 1); }, []);
   useEffect(() => { player.setSegments(segments); }, [segments]);
+  useEffect(() => { player.crossfade = crossfade; }, [crossfade]);
+  useEffect(() => { player.transitionMode = transMode; }, [transMode]);
+  useEffect(() => {
+    if (analysis) player.downbeats = analysis.downbeats || [];
+  }, [analysis]);
   useEffect(() => () => player.stop(false), []);
+
+  // пересчёт качества лупа после ручного редактирования (debounce 800мс)
+  useEffect(() => {
+    if (!trackId || !segments.length) return;
+    clearTimeout(loopQT.current);
+    loopQT.current = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/loopability/${trackId}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(segments.map(s => ({ start: s.start, end: s.end }))),
+        });
+        if (!r.ok) return;
+        const { loopability } = await r.json();
+        setSegments(segs => segs.length === loopability.length
+          ? segs.map((s, i) => ({ ...s, loopability: loopability[i] })) : segs);
+      } catch (e) {}
+    }, 800);
+    return () => clearTimeout(loopQT.current);
+  }, [trackId, segments.map(s => `${s.start.toFixed(2)}_${s.end.toFixed(2)}`).join('|')]);
+
+  const exportLoops = async () => {
+    if (!trackId) return;
+    setLoading(t.exporting);
+    try {
+      const r = await fetch(`/api/export/${trackId}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(segments.map(s => ({ start: s.start, end: s.end, label: s.label }))),
+      });
+      if (!r.ok) throw new Error(t.err_export);
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (trackName || 'track').replace(/\.[^.]+$/, '') + '_loops.zip';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const exportMarkup = () => {
     const data = { track: trackName, tempo: analysis && analysis.tempo, segments };
@@ -770,8 +1003,6 @@ function App() {
       const r = await fetch(`/api/analyze/${id}${q}`);
       if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
       const a = await r.json();
-      // локализуем автоматические названия частей
-      a.segments = a.segments.map((s, i) => ({ ...s, label: `${t.part} ${i + 1}` }));
       setAnalysis(a);
       setSegments(a.segments);
     } catch (e) {
@@ -863,6 +1094,7 @@ function App() {
             </button>
             <button className="ghost" onClick={exportMarkup} title={t.export_tip}>{t.export_markup}</button>
             <button className="ghost" onClick={() => markupRef.current.click()} title={t.import_tip}>{t.import_markup}</button>
+            <button className="ghost" onClick={exportLoops} title={t.export_loops_tip} disabled={!!loading}>{t.export_loops}</button>
             <input ref={markupRef} type="file" accept=".json" style={{ display: 'none' }}
               onChange={e => e.target.files[0] && importMarkup(e.target.files[0])} />
           </div>
@@ -874,20 +1106,28 @@ function App() {
           onSeekSeg={i => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1))} />
 
         <div className="seg-list">
-          {segments.map((s, i) => (
-            <div key={i} className={'seg-chip' + (i === player.segIndex ? ' active' : '')}
-              onClick={() => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1))}>
-              <div className="dot" style={{ background: SEG_COLORS[i % SEG_COLORS.length] }}></div>
-              <input value={s.label} onClick={e => e.stopPropagation()}
-                onChange={e => setSegments(segs => {
-                  const ns = segs.map(x => ({ ...x }));
-                  ns[i].label = e.target.value; return ns;
-                })} />
-              <span className="time">{fmt(s.start)}–{fmt(s.end)}</span>
-              <span className="x" title={t.del_seg}
-                onClick={e => { e.stopPropagation(); removeSeg(i); }}>✕</span>
-            </div>
-          ))}
+          {segments.map((s, i) => {
+            const gi = s.group ? s.group.charCodeAt(0) - 65 : i;
+            const col = SEG_COLORS[gi % SEG_COLORS.length];
+            const q = s.loopability;
+            const qc = q == null ? 'var(--muted)' : q > 0.75 ? '#34d399' : q > 0.55 ? '#ffb84f' : '#fb6a6a';
+            return (
+              <div key={i} className={'seg-chip' + (i === player.segIndex ? ' active' : '')}
+                onClick={() => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1))}>
+                <div className="dot" style={{ background: col }}></div>
+                <input value={s.label} onClick={e => e.stopPropagation()}
+                  onChange={e => setSegments(segs => {
+                    const ns = segs.map(x => ({ ...x }));
+                    ns[i].label = e.target.value; return ns;
+                  })} />
+                <span className="time">{fmt(s.start)}–{fmt(s.end)}</span>
+                {q != null && <span className="time" title={t.loop_quality_tip}
+                  style={{ color: qc }}>⟳{Math.round(q * 100)}%</span>}
+                <span className="x" title={t.del_seg}
+                  onClick={e => { e.stopPropagation(); removeSeg(i); }}>✕</span>
+              </div>
+            );
+          })}
         </div>
       </div>}
 
@@ -912,6 +1152,22 @@ function App() {
                   {player.advanceArmed && ' ' + t.transition_planned}</span>
               : <span>{t.selected} <b>{segments[player.segIndex] ? segments[player.segIndex].label : '–'}</b></span>}
           </div>
+        </div>
+        <div className="row" style={{ marginTop: 12 }}>
+          <span className="badge">{t.trans_mode}</span>
+          <div className="lang-switch">
+            <button className={transMode === 'loop' ? 'on' : ''}
+              onClick={() => setTransMode('loop')} title={t.mode_loop_tip}>{t.mode_loop}</button>
+            <button className={transMode === 'bar' ? 'on' : ''}
+              onClick={() => setTransMode('bar')} title={t.mode_bar_tip}>{t.mode_bar}</button>
+          </div>
+          <span className="badge" style={{ marginLeft: 12 }}>{t.crossfade}</span>
+          <input type="range" min="0" max="2" step="0.1" value={crossfade}
+            style={{ width: 130, accentColor: 'var(--accent)' }}
+            onChange={e => setCrossfade(+e.target.value)} />
+          <span className="time" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12, color: 'var(--muted)' }}>
+            {crossfade.toFixed(1)}s
+          </span>
         </div>
         <div className="hint">{t.keys_hint}</div>
       </div>}
