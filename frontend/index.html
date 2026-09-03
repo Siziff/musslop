@@ -23,7 +23,7 @@
   html, body { height: 100%; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
-    font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Manrope', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
     background-image:
       radial-gradient(900px 480px at 12% -8%, rgba(106,141,255,.14), transparent 62%),
       radial-gradient(800px 460px at 92% -6%, rgba(52,211,153,.10), transparent 60%),
@@ -340,6 +340,70 @@ const STR = {
     keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next” · <kbd>S</kbd> — split at position. The transition is seamless at the loop boundary, just like in game soundtracks.</span>,
     part: 'Part',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)',
+  },
+  zh: {
+    tagline: '把任意乐曲变成自适应游戏配乐：段落无限循环，点击「下一段」音乐无缝推进',
+    upload_title: '音轨',
+    drop_hint: '将音频文件拖到此处，或点击选择文件',
+    drop_formats: 'mp3 · wav · ogg · flac · m4a …',
+    drop_replace: '— 点击替换',
+    track: '音轨：',
+    loading_upload: '正在上传到服务器进行分析…',
+    loading_decode: '正在解码音频…',
+    loading_analyze: '正在分析乐曲结构（速度、小节、段落）…',
+    err_upload: '上传失败',
+    err_analyze: '分析失败',
+    err_prefix: '错误：',
+    err_markup: '无法读取标注文件：',
+    structure_title: '结构',
+    tempo: '速度：',
+    duration: '时长：',
+    parts: '段落数：',
+    fallback: '未检测到节奏 — 均匀切分',
+    snap: '对齐小节',
+    n_parts_ph: '自动',
+    n_parts_tip: '段落数量',
+    reanalyze: '重新分析',
+    export_markup: '⤓ 标注',
+    import_markup: '⤒ 标注',
+    export_tip: '将段落标注下载为 JSON',
+    import_tip: '从 JSON 加载段落标注',
+    export_loops: '⤓ 循环片段 (zip)',
+    export_loops_tip: '将所有段落下载为独立的 WAV 文件',
+    exporting: '正在打包循环片段…',
+    err_export: '导出失败',
+    loop_quality_tip: '循环质量：该段落循环时的无缝程度',
+    loop_toggle_tip: '循环此段落？渐强过渡段（build-up）只播放一次效果更好',
+    transition_badge: '过渡段',
+    n_suggested: '建议：',
+    n_max: '最大：',
+    loopstart_hint: 'Alt+点击段落内部 — 设置循环起点（黄色标记）：首次播放从段落开头开始，重复时从标记处开始',
+    split_btn: '✂ 切分',
+    split_tip: '在当前位置切分段落（快捷键 S）。位置 = 播放头或点击处；若无则取所选段落的中点。边界自动对齐小节',
+    split_seg_tip: '将此段落对半切分（对齐最近的小节）',
+    trans_mode: '切换方式：',
+    mode_loop: '循环结尾',
+    mode_phrase: '乐句结尾',
+    mode_loop_tip: '等当前循环播完后无缝切换',
+    mode_phrase_tip: '在最近的乐句边界（4 或 8 小节）切换，无需等循环结束',
+    phrase_len_tip: '乐句长度：切换发生在距循环起点该长度的整数倍处',
+    bars: '小节',
+    crossfade: '交叉淡化：',
+    wave_hint: <span>点击 — 定位 · 绿色滑块 — 播放位置 · 白色边界 — 拖动调整 · 双击 — 切分 · Alt+点击 — 循环起点（黄色标记） · 滚轮 — 缩放 · 斜线阴影 — 过渡段（只播一次）</span>,
+    del_seg: '删除边界（与前一段合并）',
+    player_title: '播放器',
+    play: '▶ 播放（循环此段）',
+    stop: '■ 停止',
+    next: '下一段 →',
+    next_armed: '将在循环结尾切换…',
+    playing: '正在播放：',
+    pass: '第',
+    pass_suffix: '遍',
+    transition_planned: '· 已计划切换',
+    selected: '已选段落:',
+    keys_hint: <span><kbd>空格</kbd> — 播放/停止 · <kbd>→</kbd> / <kbd>Enter</kbd> — 「下一段」 · <kbd>S</kbd> — 在当前位置切分。切换在循环边界处无缝完成，就像游戏配乐一样。</span>,
+    part: '段落',
+    footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）',
   },
 };
 
@@ -966,7 +1030,10 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
 
 // ================================ App ======================================
 function App() {
-  const [lang, setLang] = useState(() => localStorage.getItem('musslop_lang') || 'ru');
+  const [lang, setLang] = useState(() => {
+    const saved = localStorage.getItem('musslop_lang');
+    return STR[saved] ? saved : 'ru';
+  });
   const t = STR[lang];
   const setLanguage = l => { setLang(l); localStorage.setItem('musslop_lang', l); document.documentElement.lang = l; };
 
@@ -1203,6 +1270,7 @@ function App() {
         <div className="lang-switch">
           <button className={lang === 'ru' ? 'on' : ''} onClick={() => setLanguage('ru')}>RU</button>
           <button className={lang === 'en' ? 'on' : ''} onClick={() => setLanguage('en')}>EN</button>
+          <button className={lang === 'zh' ? 'on' : ''} onClick={() => setLanguage('zh')}>中文</button>
         </div>
       </header>
 
@@ -1318,7 +1386,7 @@ function App() {
             {player.playing && <span className="eq"><i></i><i></i><i></i></span>}
             {player.playing
               ? <span>{t.playing} <b>{segments[player.segIndex] ? segments[player.segIndex].label : '–'}</b>
-                  &nbsp;· {t.pass}{player.loopCount}
+                  &nbsp;· {t.pass}{player.loopCount}{t.pass_suffix || ''}
                   {player.advanceArmed && ' ' + t.transition_planned}</span>
               : <span>{t.selected} <b>{segments[player.segIndex] ? segments[player.segIndex].label : '–'}</b></span>}
           </div>
