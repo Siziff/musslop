@@ -48,8 +48,27 @@ techniques:
 **Playback** (browser, Web Audio API): every loop pass is scheduled as a separate
 `AudioBufferSourceNode` with sample-accurate timing; 6 ms micro-fades remove clicks.
 Press **Next** and the upcoming chunk is taken from the next section — the transition
-lands exactly on the loop boundary (or on the next downbeat, in `next bar` mode),
-optionally with an equal-power crossfade.
+lands exactly on the loop boundary (or on the next phrase boundary in `phrase end`
+mode), optionally with a crossfade.
+
+### What is a crossfade?
+
+A **crossfade** is overlapping two pieces of audio while the first *fades out*
+and the second *fades in*. Instead of a hard cut at the seam (which can sound
+jerky when the waveforms don't line up), the two signals coexist for a short
+time — the ear hears a smooth blend instead of a jump.
+
+musslop uses an **equal-power** crossfade: gain follows cosine/sine curves so
+that the *combined loudness* stays constant during the overlap (a naive linear
+fade dips in the middle, which is audible). The crossfade slider (0–2 s) applies
+to both **loop repeats** (the tail of a pass overlaps the head of the next pass,
+masking an imperfect seam) and **section transitions**. Rules of thumb:
+
+- `0 s` — pure gapless splice with 6 ms anti-click micro-fades; best when the
+  boundary sits exactly on a bar line and the loop quality score (⟳%) is high
+- `0.3–0.8 s` — hides most seam artifacts in dense/ambient material
+- `1–2 s` — cinematic blend for pads and atmospheres; too long for rhythmic
+  music (transients from both parts overlap and can smear the groove)
 
 ## Quick start
 
@@ -72,7 +91,14 @@ Open http://localhost:8801
   - draggable playhead, click-to-seek
   - live editing — boundary changes apply to playback immediately
 - Player: seamless looping, **Next** button, two transition modes
-  (*loop end* / *next bar*), adjustable crossfade (0–2 s)
+  (*loop end* / *phrase end* — advance on a 4/8-bar phrase boundary),
+  adjustable crossfade (0–2 s)
+- Build-up detection: sections with a directed crescendo (rising RMS +
+  spectral brightness) are flagged as *transitions* and play once instead
+  of looping; per-section loop toggle and a draggable *loop repeat start*
+  marker (first pass plays the whole part, repeats start from the marker)
+- Suggested and maximum part counts reported by the analyzer; the user
+  picks the actual number
 - Per-section loop quality indicator (⟳%), auto-recomputed after edits
 - Section labels by similarity clustering (A/B/A/C)
 - Export: segment markup as JSON (re-importable), all loops as a zip of WAVs

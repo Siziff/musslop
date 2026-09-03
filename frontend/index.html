@@ -247,16 +247,23 @@ const STR = {
     exporting: 'Формирование zip с лупами…',
     err_export: 'Ошибка экспорта',
     loop_quality_tip: 'Качество лупа: насколько бесшовно эта часть зациклится',
+    loop_toggle_tip: 'Зацикливать эту часть? Проигровки (нарастание перед новой темой) лучше играть один раз',
+    transition_badge: 'проигровка',
+    n_suggested: 'оптимально:',
+    n_max: 'макс:',
+    loopstart_hint: 'Alt+клик внутри части — начало повтора лупа (жёлтый маркер): первый проход играет с начала части, повторы — с маркера',
     split_btn: '✂ Разрезать',
     split_tip: 'Разрезать часть в текущей позиции (клавиша S). Позиция — плейхед или место клика; без позиции — середина выбранной части. Граница привязывается к такту',
     split_seg_tip: 'Разрезать эту часть пополам (по ближайшему такту)',
     trans_mode: 'Переход:',
     mode_loop: 'конец лупа',
-    mode_bar: 'ближайший такт',
+    mode_phrase: 'конец фразы',
     mode_loop_tip: 'Дождаться конца текущего лупа и перейти бесшовно',
-    mode_bar_tip: 'Перейти на ближайшей сильной доле, не дожидаясь конца лупа',
+    mode_phrase_tip: 'Перейти на ближайшей границе музыкальной фразы (4 или 8 тактов), не дожидаясь конца лупа',
+    phrase_len_tip: 'Длина фразы: переход произойдёт на кратной границе от начала лупа',
+    bars: 'такта',
     crossfade: 'Кроссфейд:',
-    wave_hint: <span>Клик — перемотка · Зелёный ползунок — позиция · Белая граница — перетащить · Двойной клик — разрезать · Колесо — зум, Shift+колесо — прокрутка · ⟳% — качество лупа</span>,
+    wave_hint: <span>Клик — перемотка · Зелёный ползунок — позиция · Белая граница — перетащить · Двойной клик — разрезать · Alt+клик — начало повтора лупа (жёлтый маркер) · Колесо — зум · Штриховка — проигровка (играет 1 раз)</span>,
     del_seg: 'Удалить границу (слить с предыдущей)',
     player_title: 'Плеер',
     play: '▶ Играть (зациклить часть)',
@@ -303,16 +310,23 @@ const STR = {
     exporting: 'Building zip with loops…',
     err_export: 'Export failed',
     loop_quality_tip: 'Loop quality: how seamlessly this part will loop',
+    loop_toggle_tip: 'Loop this part? Build-ups (rising transitions into a new theme) are better played once',
+    transition_badge: 'build-up',
+    n_suggested: 'suggested:',
+    n_max: 'max:',
+    loopstart_hint: 'Alt+click inside a part — loop repeat start (yellow marker): first pass plays from the part start, repeats from the marker',
     split_btn: '✂ Split',
     split_tip: 'Split the part at the current position (hotkey S). Position = playhead or last click; falls back to the middle of the selected part. Boundary snaps to a bar',
     split_seg_tip: 'Split this part in half (snapped to the nearest bar)',
     trans_mode: 'Transition:',
     mode_loop: 'loop end',
-    mode_bar: 'next bar',
+    mode_phrase: 'phrase end',
     mode_loop_tip: 'Wait for the current loop to finish, then advance seamlessly',
-    mode_bar_tip: 'Advance on the next downbeat without waiting for the loop end',
+    mode_phrase_tip: 'Advance at the nearest musical phrase boundary (4 or 8 bars) without waiting for the loop end',
+    phrase_len_tip: 'Phrase length: transition happens on a multiple of this from the loop start',
+    bars: 'bars',
     crossfade: 'Crossfade:',
-    wave_hint: <span>Click — seek · Green handle — position · White boundary — drag · Double click — split · Wheel — zoom, Shift+wheel — pan · ⟳% — loop quality</span>,
+    wave_hint: <span>Click — seek · Green handle — position · White boundary — drag · Double click — split · Alt+click — loop repeat start (yellow marker) · Wheel — zoom · Hatching — build-up (plays once)</span>,
     del_seg: 'Remove boundary (merge with previous)',
     player_title: 'Player',
     play: '▶ Play (loop part)',
@@ -349,7 +363,8 @@ class LoopPlayer {
     this.advanceArmed = false;
     this.loopEnabled = true;
     this.crossfade = 0;         // сек, 0 = стык по границе с микро-фейдом
-    this.transitionMode = 'loop'; // 'loop' = в конце лупа, 'bar' = ближайший такт
+    this.transitionMode = 'loop'; // 'loop' = в конце лупа, 'phrase' = граница фразы
+    this.phraseBars = 4;          // длина фразы в тактах для режима 'phrase'
     this.nextTime = 0;          // ctx time of the next chunk start
     this.queue = [];            // [{t0, t1, segIndex, trackStart}]
     this.sources = [];          // [{src, g}]
@@ -466,26 +481,33 @@ class LoopPlayer {
       if (!this.segments.length) break;
       let idx = this.lastPlannedIndex;
       let isRepeat = true;
-      if (this.advanceArmed || !this.loopEnabled) {
+      const curSeg = this.segments[idx];
+      // часть без лупа (проигровка) проигрывается один раз и идёт дальше
+      const noLoop = curSeg && curSeg.loop === false;
+      if (this.advanceArmed || !this.loopEnabled || noLoop) {
         if (idx + 1 < this.segments.length) { idx = idx + 1; isRepeat = false; }
         else { this.stop(); this.onState(); return; }
         this.advanceArmed = false;
         this.onState();
       }
       const seg = this.segments[idx];
-      const xf = (!isRepeat && this.crossfade > 0.02) ? this.crossfade : 0;
-      if (xf > 0) {
-        // хвост прошлой части затухает поверх новой
-        const prev = this.segments[this.lastPlannedIndex];
-        this._scheduleTail(prev.end, this.nextTime, xf);
-      }
-      const dur = this._scheduleChunkRange(seg.start, seg.end, this.nextTime,
-                                           xf > 0 ? xf : null, null);
+      // повтор лупа начинается с loopStart (если задан), первый вход — с start
+      const from = (isRepeat && seg.loopStart != null
+                    && seg.loopStart > seg.start && seg.loopStart < seg.end - 0.5)
+        ? seg.loopStart : seg.start;
+      // Кроссфейд: куски перекрываются на xf — конец текущего затухает,
+      // пока начало следующего нарастает (equal-power). Работает и на
+      // повторах лупа (сглаживает стык конец->начало), и на переходах.
+      const chunkDur = seg.end - from;
+      const xf = this.crossfade > 0.02 ? Math.min(this.crossfade, chunkDur / 3) : 0;
+      const dur = this._scheduleChunkRange(from, seg.end, this.nextTime,
+                                           xf > 0 ? xf : null,
+                                           xf > 0 ? xf : null);
       this.queue.push({ t0: this.nextTime, t1: this.nextTime + dur,
-                        segIndex: idx, trackStart: seg.start,
+                        segIndex: idx, trackStart: from,
                         isLoopRepeat: isRepeat && this.lastPlannedIndex === idx });
       this.lastPlannedIndex = idx;
-      this.nextTime += dur;
+      this.nextTime += dur - xf; // следующий кусок стартует внахлёст
     }
   }
   play(fromSeg = null) {
@@ -517,25 +539,37 @@ class LoopPlayer {
   }
   advance() {
     if (!this.playing) return;
-    if (this.transitionMode === 'bar' && this.downbeats.length) {
-      this._advanceAtNextBar();
+    if (this.transitionMode === 'phrase' && this.downbeats.length) {
+      this._advanceAtPhrase();
     } else {
       this.advanceArmed = true;
     }
     this.onState();
   }
-  // Переход на ближайшем downbeat, не дожидаясь конца лупа
-  _advanceAtNextBar() {
+  // Переход на границе музыкальной фразы (кратно phraseBars тактов от начала
+  // текущего куска), не дожидаясь конца лупа. Такт — слишком мелкая единица:
+  // тема должна завершиться, поэтому по умолчанию фраза = 4 такта.
+  _advanceAtPhrase() {
     const pos = this.position();
     if (pos == null) return;
     if (this.segIndex + 1 >= this.segments.length) { this.advanceArmed = true; return; }
-    const margin = 0.12; // мс на планирование
-    const nb = this.downbeats.find(b => b > pos + margin);
     const seg = this.segments[this.segIndex];
-    // если следующий такт уже за границей сегмента — обычный переход в конце лупа
-    if (nb == null || nb >= seg.end - 0.05) { this.advanceArmed = true; return; }
+    const margin = 0.12; // сек на планирование
+    // опорная точка отсчёта фраз — начало текущего прохода лупа
+    const cur = this.queue.length ? this.queue[this.queue.length - 1] : null;
+    const anchor = cur ? cur.trackStart : seg.start;
+    // downbeats внутри части, начиная с якоря
+    const dbs = this.downbeats.filter(b => b >= anchor - 0.05 && b < seg.end - 0.05);
+    const nBars = this.phraseBars || 4;
+    // кандидаты: каждый nBars-й downbeat от якоря
+    let target = null;
+    for (let k = nBars; k < dbs.length; k += nBars) {
+      if (dbs[k] > pos + margin) { target = dbs[k]; break; }
+    }
+    // фразовой границы впереди нет — доигрываем луп до конца (обычный режим)
+    if (target == null) { this.advanceArmed = true; return; }
     const now = this.ctx.currentTime;
-    const Tt = now + (nb - pos);
+    const Tt = now + (target - pos);
     const nextSeg = this.segments[this.segIndex + 1];
     const xf = Math.max(this.crossfade, 0.03);
     // погасить всё текущее к моменту Tt (+xf хвост)
@@ -592,7 +626,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
   const dragRef = useRef(null);
   const viewRef = useRef({ t0: 0, t1: 0 }); // видимое окно (сек); t1=0 -> весь трек
   const [, force] = useState(0);
-  const H = 190;
+  const H = 380;
 
   useEffect(() => {
     if (!buffer) { peaksRef.current = null; return; }
@@ -645,6 +679,32 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       const c = segColor(s, i);
       ctx.fillStyle = c + (i === playingSeg ? '40' : '1c');
       ctx.fillRect(tx(s.start), 0, tx(s.end) - tx(s.start), H);
+      // проигровка (без лупа): диагональная штриховка
+      if (s.loop === false) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(tx(s.start), 0, tx(s.end) - tx(s.start), H);
+        ctx.clip();
+        ctx.strokeStyle = '#ffffff14';
+        ctx.beginPath();
+        const step = 14;
+        for (let x = tx(s.start) - H; x < tx(s.end); x += step) {
+          ctx.moveTo(x, H); ctx.lineTo(x + H, 0);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+      // loopStart: жёлтый маркер внутри части
+      if (s.loop !== false && s.loopStart != null && s.loopStart > s.start + 0.05) {
+        const lx = tx(s.loopStart);
+        ctx.strokeStyle = '#ffb84f';
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, H); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#ffb84f';
+        ctx.beginPath();
+        ctx.moveTo(lx, 14); ctx.lineTo(lx + 8, 19); ctx.lineTo(lx, 24); ctx.fill();
+      }
     });
 
     // beats / downbeats (биты рисуем только при достаточном зуме)
@@ -792,7 +852,17 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       e.preventDefault();
       return;
     }
-    // 2) границы сегментов
+    // 2) маркер loopStart
+    for (let i = 0; i < segments.length; i++) {
+      const s = segments[i];
+      if (s.loop !== false && s.loopStart != null
+          && Math.abs(s.loopStart - tt) < tolT) {
+        dragRef.current = { type: 'loopstart', idx: i };
+        e.preventDefault();
+        return;
+      }
+    }
+    // 3) границы сегментов
     for (let i = 1; i < segments.length; i++) {
       if (Math.abs(segments[i].start - tt) < tolT) {
         dragRef.current = { type: 'bound', idx: i };
@@ -800,7 +870,20 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         return;
       }
     }
-    // 3) клик по свободному месту — перемотка в эту точку
+    // 4) Alt+клик внутри части — установить loopStart в этой точке
+    if (e.altKey) {
+      const i = segments.findIndex(s => tt > s.start + 0.3 && tt < s.end - 0.3);
+      if (i >= 0) {
+        const nt = snapTime(tt);
+        setSegments(segs => {
+          const ns = segs.map(s => ({ ...s }));
+          ns[i].loopStart = Math.max(ns[i].start + 0.3, Math.min(ns[i].end - 0.5, nt));
+          return ns;
+        });
+        return;
+      }
+    }
+    // 5) клик по свободному месту — перемотка в эту точку
     player.seek(tt);
   };
   const onMouseMove = e => {
@@ -810,6 +893,17 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     const d = dragRef.current;
     if (d && d.type === 'playhead') {
       d.pos = Math.max(0, Math.min(duration - 0.05, tt));
+      return;
+    }
+    if (d && d.type === 'loopstart') {
+      const i = d.idx;
+      const s = segments[i];
+      const nt = Math.max(s.start + 0.3, Math.min(s.end - 0.5, snapTime(tt)));
+      setSegments(segs => {
+        const ns = segs.map(x => ({ ...x }));
+        ns[i].loopStart = nt;
+        return ns;
+      });
       return;
     }
     if (d && d.type === 'bound') {
@@ -827,8 +921,11 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     const tolT = tolTime();
     const pos = (player && player.position()) ?? (player && player.pendingPos);
     const onPlayhead = pos != null && Math.abs(pos - tt) < tolT;
+    const onLoopStart = segments.some(s => s.loop !== false && s.loopStart != null
+                                      && Math.abs(s.loopStart - tt) < tolT);
     const nearBound = segments.some((s, i) => i > 0 && Math.abs(s.start - tt) < tolT);
-    canvas.style.cursor = onPlayhead ? 'grab' : nearBound ? 'ew-resize' : 'pointer';
+    canvas.style.cursor = onPlayhead ? 'grab'
+      : (onLoopStart || nearBound) ? 'ew-resize' : 'pointer';
   };
   const onMouseUp = () => {
     const d = dragRef.current;
@@ -884,7 +981,8 @@ function App() {
   const [nSeg, setNSeg] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [crossfade, setCrossfade] = useState(0);       // сек
-  const [transMode, setTransMode] = useState('loop');  // 'loop' | 'bar'
+  const [transMode, setTransMode] = useState('loop');  // 'loop' | 'phrase'
+  const [phraseBars, setPhraseBars] = useState(4);     // 4 или 8 тактов
   const [, force] = useState(0);
   const playerRef = useRef(null);
   const fileRef = useRef(null);
@@ -897,6 +995,7 @@ function App() {
   useEffect(() => { player.setSegments(segments); }, [segments]);
   useEffect(() => { player.crossfade = crossfade; }, [crossfade]);
   useEffect(() => { player.transitionMode = transMode; }, [transMode]);
+  useEffect(() => { player.phraseBars = phraseBars; }, [phraseBars]);
   useEffect(() => {
     if (analysis) player.downbeats = analysis.downbeats || [];
   }, [analysis]);
@@ -958,7 +1057,10 @@ function App() {
       const data = JSON.parse(await file.text());
       if (!Array.isArray(data.segments) || !data.segments.length) throw new Error('no segments');
       const segs = data.segments
-        .map(s => ({ start: +s.start, end: +s.end, label: String(s.label || '') }))
+        .map(s => ({ start: +s.start, end: +s.end, label: String(s.label || ''),
+                     loop: s.loop !== false,
+                     transition: !!s.transition,
+                     loopStart: isFinite(+s.loopStart) ? +s.loopStart : undefined }))
         .filter(s => isFinite(s.start) && isFinite(s.end) && s.end > s.start)
         .sort((a, b) => a.start - b.start);
       if (!segs.length) throw new Error('empty markup');
@@ -1128,7 +1230,10 @@ function App() {
           <div className="row">
             <span className="badge">{t.tempo} <b>{analysis.tempo.toFixed(1)} BPM</b></span>
             <span className="badge">{t.duration} <b>{fmt(duration)}</b></span>
-            <span className="badge">{t.parts} <b>{segments.length}</b></span>
+            <span className="badge">{t.parts} <b>{segments.length}</b>
+              {analysis.n_suggested != null && <span style={{ marginLeft: 6 }}>
+                · {t.n_suggested} <b>{analysis.n_suggested}</b> · {t.n_max} <b>{analysis.n_max}</b></span>}
+            </span>
             {analysis.fallback && <span className="badge" style={{ color: 'var(--danger)' }}>{t.fallback}</span>}
           </div>
           <div className="row">
@@ -1173,6 +1278,19 @@ function App() {
                 <span className="time">{fmt(s.start)}–{fmt(s.end)}</span>
                 {q != null && <span className="time" title={t.loop_quality_tip}
                   style={{ color: qc }}>⟳{Math.round(q * 100)}%</span>}
+                <span className="x" title={t.loop_toggle_tip}
+                  style={{ color: s.loop === false ? 'var(--danger)' : 'var(--accent2)' }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSegments(segs => {
+                      const ns = segs.map(x => ({ ...x }));
+                      ns[i].loop = ns[i].loop === false;
+                      ns[i].transition = !ns[i].loop;
+                      return ns;
+                    });
+                  }}>{s.loop === false ? '→' : '⟳'}</span>
+                {s.loop === false && <span className="time"
+                  style={{ color: 'var(--danger)' }}>{t.transition_badge}</span>}
                 <span className="x" title={t.split_seg_tip}
                   onClick={e => { e.stopPropagation(); splitSeg(i); }}>✂</span>
                 <span className="x" title={t.del_seg}
@@ -1210,9 +1328,15 @@ function App() {
           <div className="lang-switch">
             <button className={transMode === 'loop' ? 'on' : ''}
               onClick={() => setTransMode('loop')} title={t.mode_loop_tip}>{t.mode_loop}</button>
-            <button className={transMode === 'bar' ? 'on' : ''}
-              onClick={() => setTransMode('bar')} title={t.mode_bar_tip}>{t.mode_bar}</button>
+            <button className={transMode === 'phrase' ? 'on' : ''}
+              onClick={() => setTransMode('phrase')} title={t.mode_phrase_tip}>{t.mode_phrase}</button>
           </div>
+          {transMode === 'phrase' && <div className="lang-switch" title={t.phrase_len_tip}>
+            <button className={phraseBars === 4 ? 'on' : ''}
+              onClick={() => setPhraseBars(4)}>4 {t.bars}</button>
+            <button className={phraseBars === 8 ? 'on' : ''}
+              onClick={() => setPhraseBars(8)}>8 {t.bars}</button>
+          </div>}
           <span className="badge" style={{ marginLeft: 12 }}>{t.crossfade}</span>
           <input type="range" min="0" max="2" step="0.1" value={crossfade}
             style={{ width: 130, accentColor: 'var(--accent)' }}

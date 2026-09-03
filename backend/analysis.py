@@ -99,7 +99,7 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         bounds = np.linspace(0, duration, n + 1)
         segments = [
             {"start": float(bounds[i]), "end": float(bounds[i + 1]),
-             "label": f"Часть {i + 1}"}
+             "label": f"Часть {i + 1}", "loop": True, "transition": False}
             for i in range(n)
         ]
         return {
@@ -108,6 +108,8 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
             "beats": beat_times.tolist(),
             "downbeats": downbeat_times.tolist(),
             "segments": segments,
+            "n_suggested": n,
+            "n_max": min(24, max(1, int(duration // 8))),
             "fallback": True,
         }
 
@@ -307,14 +309,79 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
     for s in segments:
         s["loopability"] = _loopability(y, sr, s["start"], s["end"])
 
+    # --- Проигровки (build-up/transition): части с направленным крещендо -----
+    # Луп такой части звучит неестественно: напряжение растёт и резко
+    # сбрасывается на стыке. Детект: монотонный тренд RMS + спектральной
+    # яркости (centroid) на протяжении части + плохая замыкаемость.
+    for s in segments:
+        s["transition"] = _is_transition(y, sr, rms_env, rms_times,
+                                         s["start"], s["end"],
+                                         s["loopability"])
+        s["loop"] = not s["transition"]
+
+    # --- Рекомендации по числу частей ---------------------------------------
+    # suggested — сколько нашёл алгоритм; max — сколько влезает физически
+    # (по min_len), ограничение сверху 24 (как в API).
+    n_suggested = len(segments)
+    n_max = min(24, max(1, int(duration // min_len)))
+
     return {
         "duration": duration,
         "tempo": tempo,
         "beats": beat_times.tolist(),
         "downbeats": downbeat_times.tolist(),
         "segments": segments,
+        "n_suggested": n_suggested,
+        "n_max": n_max,
         "fallback": False,
     }
+
+
+def _is_transition(y: np.ndarray, sr: int, rms_env: np.ndarray,
+                   rms_times: np.ndarray, start: float, end: float,
+                   loopability: float) -> bool:
+    """Похожа ли часть на проигровку/build-up (не стоит зацикливать).
+
+    Признаки «конусовидного» куска:
+      * сильный монотонный тренд громкости (нормированный наклон RMS),
+      * согласованный тренд спектральной яркости (centroid растёт при
+        нарастании),
+      * низкая замыкаемость лупа (конец не похож на начало).
+    """
+    mask = (rms_times >= start) & (rms_times < end)
+    seg_rms = rms_env[mask]
+    if len(seg_rms) < 16:
+        return False
+
+    n = len(seg_rms)
+    x = np.arange(n, dtype=float)
+    # наклон линейной регрессии RMS, нормированный на средний уровень и длину:
+    # slope_norm ~ во сколько раз меняется громкость от начала к концу
+    denom = max(float(seg_rms.mean()), 1e-8)
+    slope = float(np.polyfit(x, seg_rms, 1)[0]) * n / denom
+    # монотонность: доля дисперсии, объяснённая трендом (R^2)
+    trend = np.polyval(np.polyfit(x, seg_rms, 1), x)
+    ss_res = float(np.sum((seg_rms - trend) ** 2))
+    ss_tot = float(np.sum((seg_rms - seg_rms.mean()) ** 2)) + 1e-12
+    r2 = max(0.0, 1.0 - ss_res / ss_tot)
+
+    # спектральная яркость (centroid) — растёт при типичном build-up
+    i0, i1 = int(start * sr), int(end * sr)
+    cent = librosa.feature.spectral_centroid(y=y[i0:i1], sr=sr, hop_length=HOP)[0]
+    if len(cent) >= 8:
+        xc = np.arange(len(cent), dtype=float)
+        cden = max(float(cent.mean()), 1e-8)
+        cslope = float(np.polyfit(xc, cent, 1)[0]) * len(cent) / cden
+    else:
+        cslope = 0.0
+
+    # скоринг: |изменение громкости| > ~60% с выраженной монотонностью,
+    # либо умеренный тренд, подтверждённый яркостью и плохим замыканием
+    strong_ramp = abs(slope) > 0.6 and r2 > 0.35
+    agree = (slope * cslope) > 0 and abs(cslope) > 0.25
+    weak_loop = loopability < 0.65
+    moderate_ramp = abs(slope) > 0.35 and r2 > 0.25 and (agree or weak_loop)
+    return bool(strong_ramp or moderate_ramp)
 
 
 def _label_segments(segments: list, feats: np.ndarray,
