@@ -6,3 +6,4 @@ python-multipart
 scikit-learn
 scipy
 numpy
+quickjs

@@ -3,3 +3,5 @@ example/
 server.log
 __pycache__/
 *.pyc
+frontend/app.js
+frontend/index.prod.html

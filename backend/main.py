@@ -177,4 +177,16 @@ def export_loops(track_id: str, segments: list[dict] = Body(...)):
     )
 
 
+@app.get("/")
+def index():
+    """Отдаём прекомпилированную страницу (app.js), если она собрана и свежее
+    исходника; иначе dev-версию с Babel в браузере (медленнее на слабых
+    машинах/каналах). Пересборка: python3 tools/build.py"""
+    prod = os.path.join(FRONTEND_DIR, "index.prod.html")
+    dev = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(prod) and os.path.getmtime(prod) >= os.path.getmtime(dev):
+        return FileResponse(prod, media_type="text/html")
+    return FileResponse(dev, media_type="text/html")
+
+
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

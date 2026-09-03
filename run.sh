@@ -16,5 +16,9 @@ command -v ffmpeg >/dev/null || { echo "ОШИБКА: ffmpeg не найден �
 python3 -c "import fastapi, uvicorn, librosa" 2>/dev/null || {
   echo "Зависимости не установлены. Выполните: pip install -r requirements.txt"; exit 1; }
 
+# Прекомпиляция JSX (страница грузится в разы быстрее, Babel не нужен в браузере)
+python3 tools/build.py 2>/dev/null && echo "Frontend собран (app.js)" \
+  || echo "ВНИМАНИЕ: сборка фронта не удалась (pip install quickjs) — будет dev-режим с Babel"
+
 echo "Запуск: http://localhost:$PORT (лог: server.log)"
 exec python3 -m uvicorn backend.main:app --host 0.0.0.0 --port "$PORT" 2>&1 | tee server.log
