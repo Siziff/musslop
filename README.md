@@ -1,15 +1,36 @@
-# musslop
+<p align="center">
+  <img src="assets/banner.png" alt="musslop — adaptive game-style loops from any track" width="100%">
+</p>
 
-**Turn any music track into an adaptive, game-style soundtrack.**
+<h3 align="center">Turn any music track into an adaptive, game-style soundtrack</h3>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10+-4f8cff?style=flat-square">
+  <img src="https://img.shields.io/badge/backend-FastAPI%20%2B%20librosa-34d399?style=flat-square">
+  <img src="https://img.shields.io/badge/frontend-React%20%2B%20Web%20Audio-4f8cff?style=flat-square">
+  <img src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
+</p>
+
+<p align="center">
+  <b>Loop any section forever · hit «Next» · the track evolves — seamlessly, on the beat</b>
+</p>
+
+---
 
 Game soundtracks don't just play — they *react*. While you stay in one location, a musical
 section loops forever; when you move on, the music seamlessly evolves with you.
-**musslop** brings this behaviour to any track: it automatically detects the musical
-structure, splits the track into loopable sections snapped to bar lines, and lets you
-loop each section indefinitely — advancing to the next one on demand, seamlessly,
-right on the loop boundary.
+**musslop** brings this behaviour to any track:
 
-![](https://img.shields.io/badge/python-3.10+-blue) ![](https://img.shields.io/badge/license-MIT-green)
+- 🎼 **Understands the music** — tempo, beats, bars and section structure detected
+  automatically (~2 s for a 4-minute track), boundaries snapped to bar lines
+- 🔁 **Loops without seams** — sample-accurate Web Audio scheduling, equal-power
+  crossfades, per-section loop-quality score (⟳%)
+- 🎮 **Evolves on demand** — press **Next** and the transition lands exactly on the
+  loop or phrase boundary, like in FMOD/Wwise horizontal re-sequencing
+- 📈 **Knows what not to loop** — build-ups/risers are detected by their crescendo
+  shape and play once instead of looping
+- ✂️ **Fully editable** — drag boundaries, split, merge, set loop-repeat markers;
+  export loops as WAV or markup as JSON
 
 ## Use cases
 
