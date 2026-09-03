@@ -222,7 +222,7 @@ const STR = {
     drop_formats: 'mp3 · wav · ogg · flac · m4a …',
     drop_replace: '— кликните, чтобы заменить',
     track: 'Трек:',
-    loading_upload: 'Загрузка файла…',
+    loading_upload: 'Отправка на сервер для анализа…',
     loading_decode: 'Декодирование аудио…',
     loading_analyze: 'Анализ структуры трека (темп, такты, секции)…',
     err_upload: 'Ошибка загрузки',
@@ -264,7 +264,7 @@ const STR = {
     drop_formats: 'mp3 · wav · ogg · flac · m4a …',
     drop_replace: '— click to replace',
     track: 'Track:',
-    loading_upload: 'Uploading file…',
+    loading_upload: 'Uploading to server for analysis…',
     loading_decode: 'Decoding audio…',
     loading_analyze: 'Analyzing track structure (tempo, bars, sections)…',
     err_upload: 'Upload failed',
@@ -666,21 +666,25 @@ function App() {
   const upload = async file => {
     setError(null);
     player.stop();
-    setLoading(t.loading_upload);
     try {
+      // Файл уже у браузера — декодируем его напрямую, без скачивания с сервера.
+      // Параллельно отправляем на сервер для анализа структуры.
+      setLoading(t.loading_decode);
       const fd = new FormData();
       fd.append('file', file);
-      const r = await fetch('/api/upload', { method: 'POST', body: fd });
-      if (!r.ok) throw new Error((await r.json()).detail || t.err_upload);
-      const { track_id, name } = await r.json();
-      setTrackId(track_id); setTrackName(name);
+      const uploadPromise = fetch('/api/upload', { method: 'POST', body: fd });
 
-      setLoading(t.loading_decode);
-      const ab = await (await fetch(`/api/audio/${track_id}`)).arrayBuffer();
+      const ab = await file.arrayBuffer();
       player._ensureCtx();
       const buf = await player.ctx.decodeAudioData(ab);
       player.buffer = buf;
       setBuffer(buf);
+
+      setLoading(t.loading_upload);
+      const r = await uploadPromise;
+      if (!r.ok) throw new Error((await r.json()).detail || t.err_upload);
+      const { track_id, name } = await r.json();
+      setTrackId(track_id); setTrackName(name);
 
       await doAnalyze(track_id, null);
     } catch (e) {

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import os
-import uuid
 import shutil
 import subprocess
-import tempfile
+import uuid
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -21,18 +21,49 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI(title="Musslop")
 
-# id -> {"path": ..., "name": ...}
+# id -> {"orig": path, "wav": path, "name": str, "mime": str}
 TRACKS: dict[str, dict] = {}
 
 ALLOWED_EXT = {".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac", ".opus", ".webm"}
+MIME = {
+    ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg",
+    ".flac": "audio/flac", ".m4a": "audio/mp4", ".aac": "audio/aac",
+    ".opus": "audio/ogg", ".webm": "audio/webm",
+}
+
+
+def _meta_path(track_id: str) -> str:
+    return os.path.join(UPLOAD_DIR, f"{track_id}.json")
+
+
+def _restore_tracks() -> None:
+    """Восстановить реестр треков после рестарта сервера (по meta-файлам)."""
+    for fn in os.listdir(UPLOAD_DIR):
+        if not fn.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(UPLOAD_DIR, fn)) as f:
+                meta = json.load(f)
+            if os.path.exists(meta["orig"]) and os.path.exists(meta["wav"]):
+                TRACKS[meta["id"]] = meta
+        except Exception:
+            pass
+
+
+_restore_tracks()
 
 
 def _to_wav(src: str, dst: str) -> None:
-    """Перекодировать в WAV (для надёжного decodeAudioData в браузере и librosa)."""
+    """Перекодировать в WAV для librosa (браузеру отдаём оригинал)."""
     subprocess.run(
-        ["ffmpeg", "-y", "-i", src, "-ac", "2", "-ar", "44100", dst],
+        ["ffmpeg", "-y", "-i", src, "-ac", "1", "-ar", "22050", dst],
         check=True, capture_output=True,
     )
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "tracks": len(TRACKS)}
 
 
 @app.post("/api/upload")
@@ -42,21 +73,29 @@ async def upload(file: UploadFile = File(...)):
         raise HTTPException(400, f"Неподдерживаемый формат: {ext}")
 
     track_id = uuid.uuid4().hex[:12]
-    raw_path = os.path.join(UPLOAD_DIR, f"{track_id}{ext}")
-    with open(raw_path, "wb") as f:
+    orig_path = os.path.join(UPLOAD_DIR, f"{track_id}{ext}")
+    with open(orig_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    wav_path = os.path.join(UPLOAD_DIR, f"{track_id}.wav")
-    if ext != ".wav":
+    # WAV (mono/22050) — только для анализа на сервере
+    wav_path = os.path.join(UPLOAD_DIR, f"{track_id}.analysis.wav")
+    if ext == ".wav":
+        wav_path = orig_path
+    else:
         try:
-            _to_wav(raw_path, wav_path)
+            _to_wav(orig_path, wav_path)
         except subprocess.CalledProcessError:
-            os.remove(raw_path)
-            raise HTTPException(400, "Не удалось декодировать файл")
-        os.remove(raw_path)
+            os.remove(orig_path)
+            raise HTTPException(400, "Не удалось декодировать файл (ffmpeg)")
 
-    TRACKS[track_id] = {"path": wav_path, "name": file.filename}
-    return {"track_id": track_id, "name": file.filename}
+    meta = {"id": track_id, "orig": orig_path, "wav": wav_path,
+            "name": file.filename, "mime": MIME.get(ext, "application/octet-stream")}
+    TRACKS[track_id] = meta
+    with open(_meta_path(track_id), "w") as f:
+        json.dump(meta, f)
+
+    size = os.path.getsize(orig_path)
+    return {"track_id": track_id, "name": file.filename, "size": size}
 
 
 @app.get("/api/analyze/{track_id}")
@@ -64,7 +103,7 @@ def analyze_track(track_id: str, n_segments: int | None = Query(None, ge=2, le=2
     track = TRACKS.get(track_id)
     if not track:
         raise HTTPException(404, "Трек не найден")
-    result = analyze(track["path"], n_segments=n_segments)
+    result = analyze(track["wav"], n_segments=n_segments)
     result["track_id"] = track_id
     result["name"] = track["name"]
     return result
@@ -72,10 +111,12 @@ def analyze_track(track_id: str, n_segments: int | None = Query(None, ge=2, le=2
 
 @app.get("/api/audio/{track_id}")
 def get_audio(track_id: str):
+    """Браузеру отдаём оригинальный (сжатый) файл — быстрее качается,
+    decodeAudioData умеет mp3/ogg/flac и т.д."""
     track = TRACKS.get(track_id)
     if not track:
         raise HTTPException(404, "Трек не найден")
-    return FileResponse(track["path"], media_type="audio/wav")
+    return FileResponse(track["orig"], media_type=track["mime"])
 
 
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
