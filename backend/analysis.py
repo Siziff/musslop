@@ -102,22 +102,28 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
             "fallback": True,
         }
 
-    # --- Beat-синхронные признаки: гармония + тембр ------------------------
+    # --- Beat-синхронные признаки: гармония + тембр + энергия ---------------
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=HOP)
     mfcc = librosa.feature.mfcc(y=y, sr=sr, hop_length=HOP, n_mfcc=13)
     mfcc = mfcc[1:]  # без 0-го коэффициента (громкость)
+    rms = librosa.feature.rms(y=y, hop_length=HOP)  # огибающая громкости
 
     sync_frames = librosa.util.fix_frames(beat_frames, x_min=0,
                                           x_max=chroma.shape[1] - 1)
     chroma_sync = librosa.util.sync(chroma, sync_frames, aggregate=np.median)
     mfcc_sync = librosa.util.sync(mfcc, sync_frames, aggregate=np.mean)
+    rms_sync = librosa.util.sync(rms, sync_frames, aggregate=np.mean)
 
     def _norm(f):
         f = f - f.mean(axis=1, keepdims=True)
         s = f.std(axis=1, keepdims=True)
         return f / np.maximum(s, 1e-8)
 
-    feats = np.vstack([_norm(chroma_sync) * 1.0, _norm(mfcc_sync) * 0.7])
+    feats = np.vstack([
+        _norm(chroma_sync) * 1.0,   # гармония
+        _norm(mfcc_sync) * 0.7,     # тембр
+        _norm(rms_sync) * 2.0,      # динамика (вход/уход инструментов)
+    ])
     feats = librosa.util.normalize(feats, axis=0)
 
     # --- SSM + новизна ------------------------------------------------------
@@ -144,9 +150,49 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
     sync_times = librosa.frames_to_time(sync_frames, sr=sr, hop_length=HOP)
     bound_times = [sync_times[p] for p in peaks if p < len(sync_times)]
 
-    # --- Квантование границ к downbeats ------------------------------------
+    # --- Квантование границ к downbeats + уточнение -------------------------
+    # Пик новизны размыт (ядро на 4 такта), поэтому ближайший downbeat может
+    # промахиваться на такт. Уточняем: среди downbeats в окне +-1 такт вокруг
+    # кандидата выбираем тот, где переход "слышнее" всего:
+    #   * сильный онсет на самой границе (вступление новой партии),
+    #   * максимальный скачок RMS-энергии между тактом до и тактом после.
     grid = downbeat_times if len(downbeat_times) > 2 else beat_times
-    snapped = sorted({_snap(t, grid) for t in bound_times})
+    onset_times = librosa.times_like(onset_env, sr=sr, hop_length=HOP)
+    rms_env = rms[0]
+    rms_times = librosa.times_like(rms_env, sr=sr, hop_length=HOP)
+    bar_dur = (60.0 / max(tempo, 1e-6)) * beats_per_bar
+
+    onset_n = onset_env / max(onset_env.max(), 1e-8)
+
+    def _onset_at(t: float) -> float:
+        i = int(np.argmin(np.abs(onset_times - t)))
+        lo, hi = max(0, i - 2), min(len(onset_n), i + 3)
+        return float(onset_n[lo:hi].max())
+
+    def _rms_jump(t: float) -> float:
+        """|среднее RMS такта после - такта до| (нормированное)."""
+        pre = rms_env[(rms_times >= t - bar_dur) & (rms_times < t)]
+        post = rms_env[(rms_times >= t) & (rms_times < t + bar_dur)]
+        if len(pre) == 0 or len(post) == 0:
+            return 0.0
+        denom = max(float(rms_env.mean()), 1e-8)
+        return abs(float(post.mean()) - float(pre.mean())) / denom
+
+    def _refine(t: float) -> float:
+        cands = grid[np.abs(grid - t) <= bar_dur * 1.05]
+        if len(cands) == 0:
+            return _snap(t, grid)
+        best, best_score = float(cands[0]), -1.0
+        for c in cands:
+            c = float(c)
+            # штраф за удаление от пика новизны, чтобы не уползать без причины
+            dist_pen = abs(c - t) / bar_dur * 0.15
+            score = 0.6 * _onset_at(c) + 0.4 * min(_rms_jump(c), 2.0) - dist_pen
+            if score > best_score:
+                best_score, best = score, c
+        return best
+
+    snapped = sorted({_refine(t) for t in bound_times})
 
     min_len = max(4.0, (60.0 / max(tempo, 1e-6)) * beats_per_bar * 2)  # >= 2 тактов
     bounds = [0.0]

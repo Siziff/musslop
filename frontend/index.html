@@ -242,7 +242,7 @@ const STR = {
     import_markup: '⤒ Разметка',
     export_tip: 'Скачать разметку частей в JSON',
     import_tip: 'Загрузить разметку из JSON',
-    wave_hint: <span>Клик — выбрать часть · Перетащить границу — изменить · Двойной клик — разрезать · Штрихи снизу: короткие — биты, длинные — такты</span>,
+    wave_hint: <span>Клик — перемотка · Зелёный ползунок — перетащить позицию · Белая граница — перетащить · Двойной клик — разрезать · Штрихи снизу: короткие — биты, длинные — такты</span>,
     del_seg: 'Удалить границу (слить с предыдущей)',
     player_title: 'Плеер',
     play: '▶ Играть (зациклить часть)',
@@ -284,7 +284,7 @@ const STR = {
     import_markup: '⤒ Markup',
     export_tip: 'Download segment markup as JSON',
     import_tip: 'Load segment markup from JSON',
-    wave_hint: <span>Click — select part · Drag a boundary — move it · Double click — split · Ticks at the bottom: short — beats, long — bars</span>,
+    wave_hint: <span>Click — seek · Green handle — drag position · White boundary — drag to move · Double click — split · Ticks at the bottom: short — beats, long — bars</span>,
     del_seg: 'Remove boundary (merge with previous)',
     player_title: 'Player',
     play: '▶ Play (loop part)',
@@ -320,13 +320,15 @@ class LoopPlayer {
     this.advanceArmed = false;
     this.loopEnabled = true;
     this.nextTime = 0;          // ctx time of the next chunk start
-    this.queue = [];            // [{t0, t1, segIndex, segStart}]
+    this.queue = [];            // [{t0, t1, segIndex, trackStart}]
     this.sources = [];
     this.timer = null;
     this.loopCount = 0;
+    this.pendingPos = null;     // позиция, выбранная кликом до запуска
     this.onState = () => {};
     this.FADE = 0.006;
     this.LOOKAHEAD = 0.35;      // sec of scheduling lookahead
+    this._reschedT = null;
   }
   _ensureCtx() {
     if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -335,9 +337,24 @@ class LoopPlayer {
   setSegments(segs) {
     this.segments = segs;
     if (this.segIndex >= segs.length) this.segIndex = Math.max(0, segs.length - 1);
+    // границы изменились во время игры — перепланировать с текущей позиции
+    if (this.playing) {
+      clearTimeout(this._reschedT);
+      this._reschedT = setTimeout(() => {
+        if (!this.playing) return;
+        const pos = this.position();
+        if (pos != null) this._restartAt(pos);
+      }, 180);
+    }
   }
-  _scheduleChunk(seg, when) {
-    const dur = seg.end - seg.start;
+  _segAt(pos) {
+    let idx = this.segments.findIndex(s => pos >= s.start && pos < s.end);
+    if (idx < 0) idx = this.segments.findIndex(s => pos < s.end);
+    if (idx < 0) idx = this.segments.length - 1;
+    return idx;
+  }
+  _scheduleChunkRange(from, to, when) {
+    const dur = to - from;
     const src = this.ctx.createBufferSource();
     src.buffer = this.buffer;
     const g = this.ctx.createGain();
@@ -347,10 +364,27 @@ class LoopPlayer {
     g.gain.setValueAtTime(1, when + dur - f);
     g.gain.linearRampToValueAtTime(0, when + dur);
     src.connect(g); g.connect(this.ctx.destination);
-    src.start(when, seg.start, dur);
+    src.start(when, from, dur);
     this.sources.push(src);
     src.onended = () => { this.sources = this.sources.filter(s => s !== src); };
     return dur;
+  }
+  // Перезапуск с произвольной позиции трека (не сбрасывает playing)
+  _restartAt(pos) {
+    this.sources.forEach(s => { try { s.stop(); } catch (e) {} });
+    this.sources = [];
+    if (!this.segments.length || !this.buffer) return;
+    const idx = this._segAt(pos);
+    const seg = this.segments[idx];
+    const from = Math.max(seg.start, Math.min(pos, seg.end - 0.05));
+    this.segIndex = idx;
+    this.lastPlannedIndex = idx;
+    this.nextTime = this.ctx.currentTime + 0.06;
+    const dur = this._scheduleChunkRange(from, seg.end, this.nextTime);
+    this.queue = [{ t0: this.nextTime, t1: this.nextTime + dur,
+                    segIndex: idx, trackStart: from, isLoopRepeat: false }];
+    this.nextTime += dur;
+    this.onState();
   }
   _tick() {
     if (!this.playing) return;
@@ -374,9 +408,9 @@ class LoopPlayer {
         this.onState();
       }
       const seg = this.segments[idx];
-      const dur = this._scheduleChunk(seg, this.nextTime);
+      const dur = this._scheduleChunkRange(seg.start, seg.end, this.nextTime);
       this.queue.push({ t0: this.nextTime, t1: this.nextTime + dur,
-                        segIndex: idx, segStart: seg.start,
+                        segIndex: idx, trackStart: seg.start,
                         isLoopRepeat: isRepeat && this.lastPlannedIndex === idx });
       this.lastPlannedIndex = idx;
       this.nextTime += dur;
@@ -385,25 +419,35 @@ class LoopPlayer {
   play(fromSeg = null) {
     this._ensureCtx();
     this.stop(false);
-    if (fromSeg != null) this.segIndex = fromSeg;
+    if (fromSeg != null) { this.segIndex = fromSeg; this.pendingPos = null; }
     if (!this.segments.length || !this.buffer) return;
     this.playing = true;
     this.advanceArmed = false;
     this.loopCount = 1;
-    this.lastPlannedIndex = this.segIndex;
-    this.nextTime = this.ctx.currentTime + 0.08;
-    const seg = this.segments[this.segIndex];
-    const dur = this._scheduleChunk(seg, this.nextTime);
-    this.queue = [{ t0: this.nextTime, t1: this.nextTime + dur,
-                    segIndex: this.segIndex, segStart: seg.start, isLoopRepeat: false }];
-    this.nextTime += dur;
+    const seg0 = this.segments[Math.min(this.segIndex, this.segments.length - 1)];
+    const pos = (this.pendingPos != null && fromSeg == null) ? this.pendingPos : seg0.start;
+    this.pendingPos = null;
     this.timer = setInterval(() => this._tick(), 60);
-    this.onState();
+    this._restartAt(pos);
+  }
+  // Перемотка в произвольную точку трека (drag плейхеда / клик)
+  seek(pos) {
+    if (!this.segments.length) return;
+    if (this.playing) {
+      this.loopCount = 1;
+      this.advanceArmed = false;
+      this._restartAt(pos);
+    } else {
+      this.segIndex = this._segAt(pos);
+      this.pendingPos = pos;
+      this.onState();
+    }
   }
   advance() { if (this.playing) { this.advanceArmed = true; this.onState(); } }
   stop(notify = true) {
     this.playing = false;
     this.advanceArmed = false;
+    clearTimeout(this._reschedT);
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
     this.sources.forEach(s => { try { s.stop(); } catch (e) {} });
     this.sources = [];
@@ -415,8 +459,8 @@ class LoopPlayer {
     const now = this.ctx.currentTime;
     let cur = this.queue[0];
     for (const q of this.queue) if (q.t0 <= now) cur = q;
-    if (now < cur.t0) return cur.segStart;
-    return cur.segStart + (now - cur.t0);
+    if (now < cur.t0) return cur.trackStart;
+    return cur.trackStart + (now - cur.t0);
   }
 }
 
@@ -511,8 +555,11 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.fillText(s.label, tx(s.start) + 6, 15);
     });
 
-    // playhead
-    const pos = player && player.position();
+    // playhead (или позиция, выбранная до запуска / при перетаскивании)
+    let pos = dragRef.current && dragRef.current.type === 'playhead'
+      ? dragRef.current.pos
+      : (player && player.position());
+    if (pos == null && player && player.pendingPos != null) pos = player.pendingPos;
     if (pos != null) {
       const x = tx(pos);
       const grad = ctx.createLinearGradient(x - 8, 0, x + 8, 0);
@@ -522,6 +569,9 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.fillStyle = grad; ctx.fillRect(x - 8, 0, 16, H);
       ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      // ручка плейхеда
+      ctx.fillStyle = '#34d399';
+      ctx.beginPath(); ctx.arc(x, 6, 5, 0, Math.PI * 2); ctx.fill();
       ctx.lineWidth = 1;
     }
   }, [segments, beats, downbeats, duration, playingSeg, player]);
@@ -549,22 +599,35 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     const tt = timeAt(e);
     const rect = canvasRef.current.getBoundingClientRect();
     const tolT = (8 / rect.width) * duration;
+    // 1) плейхед — приоритет
+    const pos = (player && player.position()) ?? (player && player.pendingPos);
+    if (pos != null && Math.abs(pos - tt) < tolT) {
+      dragRef.current = { type: 'playhead', pos };
+      e.preventDefault();
+      return;
+    }
+    // 2) границы сегментов
     for (let i = 1; i < segments.length; i++) {
       if (Math.abs(segments[i].start - tt) < tolT) {
-        dragRef.current = { idx: i };
+        dragRef.current = { type: 'bound', idx: i };
         e.preventDefault();
         return;
       }
     }
-    const si = segments.findIndex(s => tt >= s.start && tt < s.end);
-    if (si >= 0) onSeekSeg(si);
+    // 3) клик по свободному месту — перемотка в эту точку
+    player.seek(tt);
   };
   const onMouseMove = e => {
     const canvas = canvasRef.current;
     if (!canvas || !duration) return;
     const tt = timeAt(e);
-    if (dragRef.current) {
-      const i = dragRef.current.idx;
+    const d = dragRef.current;
+    if (d && d.type === 'playhead') {
+      d.pos = Math.max(0, Math.min(duration - 0.05, tt));
+      return;
+    }
+    if (d && d.type === 'bound') {
+      const i = d.idx;
       const lo = segments[i - 1].start + 0.5;
       const hi = segments[i].end - 0.5;
       const nt = Math.max(lo, Math.min(hi, snapTime(tt)));
@@ -573,14 +636,20 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         ns[i - 1].end = nt; ns[i].start = nt;
         return ns;
       });
-    } else {
-      const rect = canvas.getBoundingClientRect();
-      const tolT = (8 / rect.width) * duration;
-      const near = segments.some((s, i) => i > 0 && Math.abs(s.start - tt) < tolT);
-      canvas.style.cursor = near ? 'ew-resize' : 'pointer';
+      return;
     }
+    const rect = canvas.getBoundingClientRect();
+    const tolT = (8 / rect.width) * duration;
+    const pos = (player && player.position()) ?? (player && player.pendingPos);
+    const onPlayhead = pos != null && Math.abs(pos - tt) < tolT;
+    const nearBound = segments.some((s, i) => i > 0 && Math.abs(s.start - tt) < tolT);
+    canvas.style.cursor = onPlayhead ? 'grab' : nearBound ? 'ew-resize' : 'pointer';
   };
-  const onMouseUp = () => { dragRef.current = null; };
+  const onMouseUp = () => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (d && d.type === 'playhead') player.seek(d.pos);
+  };
   const onDblClick = e => {
     const tt = snapTime(timeAt(e));
     setSegments(segs => {
