@@ -21,6 +21,15 @@ import librosa
 SR = 22050
 HOP = 512
 
+# Веса скоринга границы (тюнятся через tools/tune.py по ручным разметкам)
+BOUNDARY_WEIGHTS = {
+    "loop_q": 0.30,   # качество замыкания лупов слева/справа от границы
+    "phrase": 0.20,   # длины частей кратны 4/8 тактам
+    "audib": 0.20,    # слышимость перехода (онсет + скачок RMS)
+    "novelty": 0.30,  # структурная новизна (SSM)
+    "dist_pen": 0.08, # штраф за смещение от пика новизны, на такт
+}
+
 
 def _checkerboard_kernel(size: int) -> np.ndarray:
     """Гауссово-взвешенное шахматное ядро Фута (size — половина стороны)."""
@@ -200,6 +209,68 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         if t - bounds[-1] >= min_len and duration - t >= min_len:
             bounds.append(float(t))
     bounds.append(duration)
+
+    # --- Loop-aware доводка границ -------------------------------------------
+    # Для лупов важнее не «слышимость перехода», а чтобы каждая часть:
+    #   1) чисто замыкалась (стык конец->начало похож по спектру и уровню),
+    #   2) имела фразовую длину (кратно 4/8 тактам — так строится музыка).
+    # Координатный спуск: каждую границу двигаем по downbeats в окне +-2 такта,
+    # максимизируя качество замыкания соседних частей + фразовость их длин.
+    def _bars_between(a: float, b: float) -> int:
+        """Число тактов между точками по сетке downbeats (не по оценке темпа)."""
+        return int(np.searchsorted(grid, b - 1e-3) - np.searchsorted(grid, a - 1e-3))
+
+    def _phrase_score(a: float, b: float) -> float:
+        """1.0 — длина кратна 8 тактам, 0.85 — 4, 0.6 — 2, иначе 0.35."""
+        nb = _bars_between(a, b)
+        if nb <= 0:
+            return 0.0
+        if nb % 8 == 0:
+            return 1.0
+        if nb % 4 == 0:
+            return 0.85
+        if nb % 2 == 0:
+            return 0.6
+        return 0.35
+
+    def _novelty_at_time(t: float) -> float:
+        i = int(np.argmin(np.abs(sync_times - t)))
+        lo, hi = max(0, i - 1), min(len(novelty), i + 2)
+        return float(novelty[lo:hi].max())
+
+    def _boundary_score(lo: float, c: float, hi: float, t_orig: float) -> float:
+        W = BOUNDARY_WEIGHTS
+        loop_q = 0.5 * (_loopability(y, sr, lo, c) + _loopability(y, sr, c, hi))
+        phrase = 0.5 * (_phrase_score(lo, c) + _phrase_score(c, hi))
+        audib = 0.6 * _onset_at(c) + 0.4 * min(_rms_jump(c), 2.0)
+        nov = _novelty_at_time(c)  # структурный сигнал: где реально смена секции
+        dist_pen = abs(c - t_orig) / bar_dur * W["dist_pen"]
+        return (W["loop_q"] * loop_q + W["phrase"] * phrase
+                + W["audib"] * audib + W["novelty"] * nov - dist_pen)
+
+    orig = list(bounds)
+    for _ in range(2):  # два прохода координатного спуска
+        moved = False
+        for j in range(1, len(bounds) - 1):
+            lo, hi = bounds[j - 1], bounds[j + 1]
+            cands = grid[(np.abs(grid - orig[j]) <= bar_dur * 2.05)
+                         & (grid >= lo + min_len) & (grid <= hi - min_len)]
+            if len(cands) == 0:
+                continue
+            cur = bounds[j]
+            best, best_s = cur, _boundary_score(lo, cur, hi, orig[j])
+            for c in cands:
+                c = float(c)
+                if abs(c - cur) < 1e-3:
+                    continue
+                s = _boundary_score(lo, c, hi, orig[j])
+                if s > best_s + 1e-4:
+                    best_s, best = s, c
+            if best != cur:
+                bounds[j] = best
+                moved = True
+        if not moved:
+            break
 
     # --- Добор до запрошенного числа частей ---------------------------------
     # Если пиков новизны не хватило, делим самые длинные части по downbeat,
