@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Musslop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0d14;
+    --panel: rgba(23, 28, 40, .72);
+    --panel2: #1d2433;
+    --text: #eef1f8; --muted: #8b94a8;
+    --accent: #6a8dff; --accent2: #34d399; --danger: #fb6a6a;
+    --border: #2a3245; --border-soft: #232a3b;
+    --glow: rgba(106, 141, 255, .35);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    background-image:
+      radial-gradient(900px 480px at 12% -8%, rgba(106,141,255,.14), transparent 62%),
+      radial-gradient(800px 460px at 92% -6%, rgba(52,211,153,.10), transparent 60%),
+      radial-gradient(700px 700px at 50% 118%, rgba(106,141,255,.07), transparent 60%);
+    background-attachment: fixed;
+  }
+  #root { max-width: 1180px; margin: 0 auto; padding: 28px 22px 60px; }
+
+  /* ---------- header ---------- */
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .logo { display: flex; align-items: baseline; gap: 12px; }
+  h1 {
+    font-size: 26px; margin: 0; letter-spacing: 3px; font-weight: 800;
+    background: linear-gradient(90deg, #eef1f8 0%, #9db4ff 55%, #6a8dff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { color: var(--muted); font-size: 13px; }
+  .lang-switch {
+    display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    background: var(--panel2);
+  }
+  .lang-switch button {
+    border: none; border-radius: 0; background: transparent; padding: 7px 14px;
+    font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .5px;
+  }
+  .lang-switch button.on { background: var(--accent); color: #fff; }
+  .lang-switch button:hover:not(.on) { color: var(--text); border-color: transparent; }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px; padding: 18px; margin-bottom: 16px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 30px rgba(0,0,0,.28);
+  }
+  .panel-title {
+    font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+  }
+
+  /* ---------- dropzone ---------- */
+  .dropzone {
+    position: relative;
+    border: 1.5px dashed var(--border); border-radius: 14px;
+    padding: 38px 20px; text-align: center; color: var(--muted);
+    cursor: pointer; transition: border-color .2s, background .2s, box-shadow .2s;
+    font-size: 14px;
+  }
+  .dropzone:hover, .dropzone.over {
+    border-color: var(--accent); background: rgba(106,141,255,.06);
+    box-shadow: inset 0 0 40px rgba(106,141,255,.05);
+  }
+  .dropzone .dz-icon { font-size: 26px; display: block; margin-bottom: 8px; opacity: .8; }
+  .dropzone b { color: var(--text); }
+
+  /* ---------- buttons & inputs ---------- */
+  button {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 16px; font-size: 14px; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+    transition: border-color .15s, background .15s, transform .06s, box-shadow .15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(106,141,255,.12); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .35; cursor: default; }
+  button.primary {
+    background: linear-gradient(135deg, #6a8dff, #4f6fe0); border-color: transparent; color: #fff;
+    box-shadow: 0 4px 18px var(--glow);
+  }
+  button.primary:hover:not(:disabled) { box-shadow: 0 4px 26px var(--glow); border-color: transparent; }
+  button.go {
+    background: linear-gradient(135deg, #34d399, #1fae7c); border-color: transparent;
+    color: #06231a; font-weight: 800;
+    box-shadow: 0 4px 18px rgba(52,211,153,.3);
+  }
+  button.go:hover:not(:disabled) { box-shadow: 0 4px 26px rgba(52,211,153,.45); border-color: transparent; }
+  button.go.armed { animation: pulse 1.1s infinite; }
+  button.ghost { background: transparent; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(52,211,153,.22); } }
+
+  input[type=number] {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 10px; width: 68px; font-size: 13px; font-family: inherit;
+  }
+  input[type=number]:focus { outline: none; border-color: var(--accent); }
+  label.chk {
+    display: inline-flex; gap: 7px; align-items: center; font-size: 13px;
+    color: var(--muted); cursor: pointer; font-weight: 600;
+  }
+  label.chk input { accent-color: var(--accent); width: 15px; height: 15px; }
+
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row.between { justify-content: space-between; }
+
+  /* ---------- waveform ---------- */
+  .canvas-wrap { position: relative; user-select: none; }
+  canvas { display: block; width: 100%; border-radius: 12px; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 8px; line-height: 1.5; }
+  kbd {
+    background: var(--panel2); border: 1px solid var(--border); border-bottom-width: 2px;
+    border-radius: 5px; padding: 1px 6px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text);
+  }
+
+  /* ---------- segment chips ---------- */
+  .seg-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .seg-chip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--panel2); border: 1px solid var(--border-soft);
+    border-radius: 10px; padding: 6px 10px; font-size: 13px; cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .seg-chip:hover { border-color: var(--border); }
+  .seg-chip.active {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 1px var(--accent2), 0 0 16px rgba(52,211,153,.18);
+  }
+  .seg-chip .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .seg-chip input {
+    background: transparent; border: none; color: var(--text);
+    font-size: 13px; width: 88px; outline: none; font-family: inherit; font-weight: 600;
+  }
+  .seg-chip .time { color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+  .seg-chip .x { color: var(--muted); cursor: pointer; padding: 0 2px; border-radius: 4px; }
+  .seg-chip .x:hover { color: var(--danger); }
+
+  /* ---------- badges / status ---------- */
+  .badge {
+    background: var(--panel2); border: 1px solid var(--border-soft);
+    border-radius: 8px; padding: 4px 10px; font-size: 12px; color: var(--muted); font-weight: 600;
+  }
+  .badge b { color: var(--text); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .status { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; color: var(--muted); }
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .8s linear infinite; flex: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-box {
+    margin-top: 12px; padding: 10px 14px; border-radius: 10px; font-size: 13px;
+    background: rgba(251,106,106,.08); border: 1px solid rgba(251,106,106,.35); color: var(--danger);
+  }
+
+  /* ---------- now playing ---------- */
+  .now {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; padding: 9px 14px; border-radius: 10px;
+    background: var(--panel2); border: 1px solid var(--border-soft);
+  }
+  .now b { color: var(--accent2); }
+  .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+  .eq i {
+    width: 3px; background: var(--accent2); border-radius: 1px;
+    animation: eq 1s ease-in-out infinite;
+  }
+  .eq i:nth-child(1) { height: 60%; animation-delay: 0s; }
+  .eq i:nth-child(2) { height: 100%; animation-delay: .25s; }
+  .eq i:nth-child(3) { height: 40%; animation-delay: .5s; }
+  @keyframes eq { 0%,100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; opacity: .7; }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+const { useState, useRef, useEffect, useCallback } = React;
+
+const SEG_COLORS = ['#6a8dff','#34d399','#ffb84f','#ff5b8a','#a06bff',
+                    '#4fd6ff','#c9e04f','#ff8a4f','#5bffb0','#fb6a6a',
+                    '#8a9bff','#ffd75b'];
+
+// =============================== i18n ======================================
+const STR = {
+  ru: {
+    tagline: 'Адаптивные игровые лупы из любого трека: части зацикливаются, по кнопке «Дальше» трек развивается',
+    upload_title: 'Трек',
+    drop_hint: 'Перетащите аудиофайл сюда или кликните для выбора',
+    drop_formats: 'mp3 · wav · ogg · flac · m4a …',
+    drop_replace: '— кликните, чтобы заменить',
+    track: 'Трек:',
+    loading_upload: 'Загрузка файла…',
+    loading_decode: 'Декодирование аудио…',
+    loading_analyze: 'Анализ структуры трека (темп, такты, секции)…',
+    err_upload: 'Ошибка загрузки',
+    err_analyze: 'Ошибка анализа',
+    err_prefix: 'Ошибка:',
+    err_markup: 'Не удалось прочитать разметку:',
+    structure_title: 'Структура',
+    tempo: 'Темп:',
+    duration: 'Длительность:',
+    parts: 'Частей:',
+    fallback: 'ритм не найден — равномерная нарезка',
+    snap: 'привязка к тактам',
+    n_parts_ph: 'авто',
+    n_parts_tip: 'Число частей',
+    reanalyze: 'Переанализировать',
+    export_markup: '⤓ Разметка',
+    import_markup: '⤒ Разметка',
+    export_tip: 'Скачать разметку частей в JSON',
+    import_tip: 'Загрузить разметку из JSON',
+    wave_hint: <span>Клик — выбрать часть · Перетащить границу — изменить · Двойной клик — разрезать · Штрихи снизу: короткие — биты, длинные — такты</span>,
+    del_seg: 'Удалить границу (слить с предыдущей)',
+    player_title: 'Плеер',
+    play: '▶ Играть (зациклить часть)',
+    stop: '■ Стоп',
+    next: 'Дальше →',
+    next_armed: 'Переход в конце лупа…',
+    playing: 'Играет:',
+    pass: 'проход №',
+    transition_planned: '· переход запланирован',
+    selected: 'Выбрана часть:',
+    keys_hint: <span><kbd>Пробел</kbd> — играть/стоп · <kbd>→</kbd> / <kbd>Enter</kbd> — «Дальше». Переход происходит бесшовно на границе лупа, как в игровых саундтреках.</span>,
+    part: 'Часть',
+    footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)',
+  },
+  en: {
+    tagline: 'Adaptive game-style loops from any track: sections loop forever, hit “Next” and the track evolves',
+    upload_title: 'Track',
+    drop_hint: 'Drop an audio file here or click to browse',
+    drop_formats: 'mp3 · wav · ogg · flac · m4a …',
+    drop_replace: '— click to replace',
+    track: 'Track:',
+    loading_upload: 'Uploading file…',
+    loading_decode: 'Decoding audio…',
+    loading_analyze: 'Analyzing track structure (tempo, bars, sections)…',
+    err_upload: 'Upload failed',
+    err_analyze: 'Analysis failed',
+    err_prefix: 'Error:',
+    err_markup: 'Failed to read markup:',
+    structure_title: 'Structure',
+    tempo: 'Tempo:',
+    duration: 'Duration:',
+    parts: 'Parts:',
+    fallback: 'no rhythm found — uniform split',
+    snap: 'snap to bars',
+    n_parts_ph: 'auto',
+    n_parts_tip: 'Number of parts',
+    reanalyze: 'Re-analyze',
+    export_markup: '⤓ Markup',
+    import_markup: '⤒ Markup',
+    export_tip: 'Download segment markup as JSON',
+    import_tip: 'Load segment markup from JSON',
+    wave_hint: <span>Click — select part · Drag a boundary — move it · Double click — split · Ticks at the bottom: short — beats, long — bars</span>,
+    del_seg: 'Remove boundary (merge with previous)',
+    player_title: 'Player',
+    play: '▶ Play (loop part)',
+    stop: '■ Stop',
+    next: 'Next →',
+    next_armed: 'Advancing at loop end…',
+    playing: 'Playing:',
+    pass: 'pass #',
+    transition_planned: '· transition scheduled',
+    selected: 'Selected part:',
+    keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next”. The transition is seamless at the loop boundary, just like in game soundtracks.</span>,
+    part: 'Part',
+    footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)',
+  },
+};
+
+function fmt(t) {
+  if (t == null || isNaN(t)) return '–';
+  const m = Math.floor(t / 60), s = t % 60;
+  return `${m}:${s.toFixed(1).padStart(4, '0')}`;
+}
+
+// ============================ Player (Web Audio) ===========================
+// Each loop pass is scheduled as a separate AudioBufferSourceNode with
+// sample-accurate start; micro-fades (6 ms) remove clicks at seams.
+// "Next" — the next scheduled chunk is taken from the next section.
+class LoopPlayer {
+  constructor() {
+    this.ctx = null; this.buffer = null;
+    this.segments = [];
+    this.playing = false;
+    this.segIndex = 0;
+    this.advanceArmed = false;
+    this.loopEnabled = true;
+    this.nextTime = 0;          // ctx time of the next chunk start
+    this.queue = [];            // [{t0, t1, segIndex, segStart}]
+    this.sources = [];
+    this.timer = null;
+    this.loopCount = 0;
+    this.onState = () => {};
+    this.FADE = 0.006;
+    this.LOOKAHEAD = 0.35;      // sec of scheduling lookahead
+  }
+  _ensureCtx() {
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  setSegments(segs) {
+    this.segments = segs;
+    if (this.segIndex >= segs.length) this.segIndex = Math.max(0, segs.length - 1);
+  }
+  _scheduleChunk(seg, when) {
+    const dur = seg.end - seg.start;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.buffer;
+    const g = this.ctx.createGain();
+    const f = Math.min(this.FADE, dur / 4);
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(1, when + f);
+    g.gain.setValueAtTime(1, when + dur - f);
+    g.gain.linearRampToValueAtTime(0, when + dur);
+    src.connect(g); g.connect(this.ctx.destination);
+    src.start(when, seg.start, dur);
+    this.sources.push(src);
+    src.onended = () => { this.sources = this.sources.filter(s => s !== src); };
+    return dur;
+  }
+  _tick() {
+    if (!this.playing) return;
+    const now = this.ctx.currentTime;
+    while (this.queue.length > 1 && this.queue[1].t0 <= now) {
+      this.queue.shift();
+      const cur = this.queue[0];
+      if (cur.isLoopRepeat) this.loopCount++;
+      else this.loopCount = 1;
+      this.segIndex = cur.segIndex;
+      this.onState();
+    }
+    while (this.nextTime - now < this.LOOKAHEAD) {
+      if (!this.segments.length) break;
+      let idx = this.lastPlannedIndex;
+      let isRepeat = true;
+      if (this.advanceArmed || !this.loopEnabled) {
+        if (idx + 1 < this.segments.length) { idx = idx + 1; isRepeat = false; }
+        else { this.stop(); this.onState(); return; }
+        this.advanceArmed = false;
+        this.onState();
+      }
+      const seg = this.segments[idx];
+      const dur = this._scheduleChunk(seg, this.nextTime);
+      this.queue.push({ t0: this.nextTime, t1: this.nextTime + dur,
+                        segIndex: idx, segStart: seg.start,
+                        isLoopRepeat: isRepeat && this.lastPlannedIndex === idx });
+      this.lastPlannedIndex = idx;
+      this.nextTime += dur;
+    }
+  }
+  play(fromSeg = null) {
+    this._ensureCtx();
+    this.stop(false);
+    if (fromSeg != null) this.segIndex = fromSeg;
+    if (!this.segments.length || !this.buffer) return;
+    this.playing = true;
+    this.advanceArmed = false;
+    this.loopCount = 1;
+    this.lastPlannedIndex = this.segIndex;
+    this.nextTime = this.ctx.currentTime + 0.08;
+    const seg = this.segments[this.segIndex];
+    const dur = this._scheduleChunk(seg, this.nextTime);
+    this.queue = [{ t0: this.nextTime, t1: this.nextTime + dur,
+                    segIndex: this.segIndex, segStart: seg.start, isLoopRepeat: false }];
+    this.nextTime += dur;
+    this.timer = setInterval(() => this._tick(), 60);
+    this.onState();
+  }
+  advance() { if (this.playing) { this.advanceArmed = true; this.onState(); } }
+  stop(notify = true) {
+    this.playing = false;
+    this.advanceArmed = false;
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    this.sources.forEach(s => { try { s.stop(); } catch (e) {} });
+    this.sources = [];
+    this.queue = [];
+    if (notify) this.onState();
+  }
+  position() {
+    if (!this.playing || !this.ctx || !this.queue.length) return null;
+    const now = this.ctx.currentTime;
+    let cur = this.queue[0];
+    for (const q of this.queue) if (q.t0 <= now) cur = q;
+    if (now < cur.t0) return cur.segStart;
+    return cur.segStart + (now - cur.t0);
+  }
+}
+
+// ============================== Waveform ===================================
+function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
+                    player, playingSeg, duration, onSeekSeg, t }) {
+  const canvasRef = useRef(null);
+  const peaksRef = useRef(null);
+  const dragRef = useRef(null);
+  const [, force] = useState(0);
+  const H = 190;
+
+  useEffect(() => {
+    if (!buffer) { peaksRef.current = null; return; }
+    const W = 2400;
+    const data = buffer.getChannelData(0);
+    const step = Math.max(1, Math.floor(data.length / W));
+    const peaks = new Float32Array(W * 2);
+    for (let i = 0; i < W; i++) {
+      let mn = 1, mx = -1;
+      const s = i * step, e = Math.min(s + step, data.length);
+      for (let j = s; j < e; j += 4) { const v = data[j]; if (v < mn) mn = v; if (v > mx) mx = v; }
+      peaks[i * 2] = mn; peaks[i * 2 + 1] = mx;
+    }
+    peaksRef.current = { peaks, W };
+    force(x => x + 1);
+  }, [buffer]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr; canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const W = rect.width;
+    ctx.fillStyle = '#10141d'; ctx.fillRect(0, 0, W, H);
+    if (!duration) return;
+    const tx = tt => (tt / duration) * W;
+
+    // segment backgrounds
+    segments.forEach((s, i) => {
+      const c = SEG_COLORS[i % SEG_COLORS.length];
+      ctx.fillStyle = c + (i === playingSeg ? '40' : '1c');
+      ctx.fillRect(tx(s.start), 0, tx(s.end) - tx(s.start), H);
+    });
+
+    // beats / downbeats
+    if (beats) {
+      ctx.strokeStyle = '#ffffff10'; ctx.beginPath();
+      for (const b of beats) { ctx.moveTo(tx(b), H - 14); ctx.lineTo(tx(b), H); }
+      ctx.stroke();
+    }
+    if (downbeats) {
+      ctx.strokeStyle = '#ffffff30'; ctx.beginPath();
+      for (const b of downbeats) { ctx.moveTo(tx(b), H - 26); ctx.lineTo(tx(b), H); }
+      ctx.stroke();
+    }
+
+    // waveform
+    if (peaksRef.current) {
+      const { peaks, W: PW } = peaksRef.current;
+      ctx.strokeStyle = '#8fb0ec'; ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      const mid = H / 2, amp = H / 2 - 10;
+      for (let x = 0; x < W; x++) {
+        const pi = Math.min(PW - 1, Math.floor((x / W) * PW));
+        ctx.moveTo(x + .5, mid + peaks[pi * 2] * amp);
+        ctx.lineTo(x + .5, mid + peaks[pi * 2 + 1] * amp);
+      }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    }
+
+    // boundaries
+    segments.forEach((s, i) => {
+      if (i === 0) return;
+      const x = tx(s.start);
+      ctx.strokeStyle = '#ffffffcc'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#ffffffcc';
+      ctx.beginPath();
+      ctx.moveTo(x - 5, 0); ctx.lineTo(x + 5, 0); ctx.lineTo(x, 8); ctx.fill();
+    });
+
+    // labels
+    segments.forEach((s, i) => {
+      const c = SEG_COLORS[i % SEG_COLORS.length];
+      ctx.fillStyle = c;
+      ctx.font = '600 11px Manrope, sans-serif';
+      ctx.fillText(s.label, tx(s.start) + 6, 15);
+    });
+
+    // playhead
+    const pos = player && player.position();
+    if (pos != null) {
+      const x = tx(pos);
+      const grad = ctx.createLinearGradient(x - 8, 0, x + 8, 0);
+      grad.addColorStop(0, 'rgba(52,211,153,0)');
+      grad.addColorStop(.5, 'rgba(52,211,153,.25)');
+      grad.addColorStop(1, 'rgba(52,211,153,0)');
+      ctx.fillStyle = grad; ctx.fillRect(x - 8, 0, 16, H);
+      ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  }, [segments, beats, downbeats, duration, playingSeg, player]);
+
+  useEffect(() => {
+    let raf;
+    const loop = () => { draw(); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [draw]);
+
+  const timeAt = e => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    return Math.max(0, Math.min(duration, ((e.clientX - rect.left) / rect.width) * duration));
+  };
+  const snapTime = tt => {
+    if (!snap || !downbeats || !downbeats.length) return tt;
+    let best = tt, bd = Infinity;
+    for (const b of downbeats) { const d = Math.abs(b - tt); if (d < bd) { bd = d; best = b; } }
+    return bd < duration * 0.01 + 0.5 ? best : tt;
+  };
+
+  const onMouseDown = e => {
+    if (!duration) return;
+    const tt = timeAt(e);
+    const rect = canvasRef.current.getBoundingClientRect();
+    const tolT = (8 / rect.width) * duration;
+    for (let i = 1; i < segments.length; i++) {
+      if (Math.abs(segments[i].start - tt) < tolT) {
+        dragRef.current = { idx: i };
+        e.preventDefault();
+        return;
+      }
+    }
+    const si = segments.findIndex(s => tt >= s.start && tt < s.end);
+    if (si >= 0) onSeekSeg(si);
+  };
+  const onMouseMove = e => {
+    const canvas = canvasRef.current;
+    if (!canvas || !duration) return;
+    const tt = timeAt(e);
+    if (dragRef.current) {
+      const i = dragRef.current.idx;
+      const lo = segments[i - 1].start + 0.5;
+      const hi = segments[i].end - 0.5;
+      const nt = Math.max(lo, Math.min(hi, snapTime(tt)));
+      setSegments(segs => {
+        const ns = segs.map(s => ({ ...s }));
+        ns[i - 1].end = nt; ns[i].start = nt;
+        return ns;
+      });
+    } else {
+      const rect = canvas.getBoundingClientRect();
+      const tolT = (8 / rect.width) * duration;
+      const near = segments.some((s, i) => i > 0 && Math.abs(s.start - tt) < tolT);
+      canvas.style.cursor = near ? 'ew-resize' : 'pointer';
+    }
+  };
+  const onMouseUp = () => { dragRef.current = null; };
+  const onDblClick = e => {
+    const tt = snapTime(timeAt(e));
+    setSegments(segs => {
+      const i = segs.findIndex(s => tt > s.start + 0.5 && tt < s.end - 0.5);
+      if (i < 0) return segs;
+      const ns = segs.map(s => ({ ...s }));
+      const right = { start: tt, end: ns[i].end, label: ns[i].label + '·2' };
+      ns[i] = { ...ns[i], end: tt };
+      ns.splice(i + 1, 0, right);
+      return ns;
+    });
+  };
+
+  useEffect(() => {
+    window.addEventListener('mouseup', onMouseUp);
+    return () => window.removeEventListener('mouseup', onMouseUp);
+  }, []);
+
+  return (
+    <div className="canvas-wrap">
+      <canvas ref={canvasRef} style={{ height: H }}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onDoubleClick={onDblClick} />
+      <div className="hint">{t.wave_hint}</div>
+    </div>
+  );
+}
+
+// ================================ App ======================================
+function App() {
+  const [lang, setLang] = useState(() => localStorage.getItem('musslop_lang') || 'ru');
+  const t = STR[lang];
+  const setLanguage = l => { setLang(l); localStorage.setItem('musslop_lang', l); document.documentElement.lang = l; };
+
+  const [trackId, setTrackId] = useState(null);
+  const [trackName, setTrackName] = useState('');
+  const [loading, setLoading] = useState(null);
+  const [error, setError] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [segments, setSegments] = useState([]);
+  const [buffer, setBuffer] = useState(null);
+  const [snap, setSnap] = useState(true);
+  const [nSeg, setNSeg] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const [, force] = useState(0);
+  const playerRef = useRef(null);
+  const fileRef = useRef(null);
+  const markupRef = useRef(null);
+
+  if (!playerRef.current) playerRef.current = new LoopPlayer();
+  const player = playerRef.current;
+  useEffect(() => { player.onState = () => force(x => x + 1); }, []);
+  useEffect(() => { player.setSegments(segments); }, [segments]);
+  useEffect(() => () => player.stop(false), []);
+
+  const exportMarkup = () => {
+    const data = { track: trackName, tempo: analysis && analysis.tempo, segments };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (trackName || 'markup').replace(/\.[^.]+$/, '') + '.musslop.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const importMarkup = async file => {
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data.segments) || !data.segments.length) throw new Error('no segments');
+      const segs = data.segments
+        .map(s => ({ start: +s.start, end: +s.end, label: String(s.label || '') }))
+        .filter(s => isFinite(s.start) && isFinite(s.end) && s.end > s.start)
+        .sort((a, b) => a.start - b.start);
+      if (!segs.length) throw new Error('empty markup');
+      setSegments(segs);
+      setError(null);
+    } catch (e) {
+      setError(t.err_markup + ' ' + e.message);
+    } finally {
+      if (markupRef.current) markupRef.current.value = '';
+    }
+  };
+
+  const upload = async file => {
+    setError(null);
+    player.stop();
+    setLoading(t.loading_upload);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (!r.ok) throw new Error((await r.json()).detail || t.err_upload);
+      const { track_id, name } = await r.json();
+      setTrackId(track_id); setTrackName(name);
+
+      setLoading(t.loading_decode);
+      const ab = await (await fetch(`/api/audio/${track_id}`)).arrayBuffer();
+      player._ensureCtx();
+      const buf = await player.ctx.decodeAudioData(ab);
+      player.buffer = buf;
+      setBuffer(buf);
+
+      await doAnalyze(track_id, null);
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const doAnalyze = async (id, n) => {
+    setLoading(t.loading_analyze);
+    try {
+      const q = n ? `?n_segments=${n}` : '';
+      const r = await fetch(`/api/analyze/${id}${q}`);
+      if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
+      const a = await r.json();
+      // локализуем автоматические названия частей
+      a.segments = a.segments.map((s, i) => ({ ...s, label: `${t.part} ${i + 1}` }));
+      setAnalysis(a);
+      setSegments(a.segments);
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const onDrop = e => {
+    e.preventDefault(); setDragOver(false);
+    const f = e.dataTransfer.files[0];
+    if (f) upload(f);
+  };
+
+  const removeSeg = i => {
+    if (segments.length <= 1) return;
+    setSegments(segs => {
+      const ns = segs.map(s => ({ ...s }));
+      if (i === 0) { ns[1].start = ns[0].start; }
+      else { ns[i - 1].end = ns[i].end; }
+      ns.splice(i, 1);
+      return ns;
+    });
+  };
+
+  const playingSeg = player.playing ? player.segIndex : -1;
+  const duration = analysis ? analysis.duration : 0;
+
+  useEffect(() => {
+    const h = e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.code === 'Space') { e.preventDefault(); player.playing ? player.stop() : player.play(); }
+      if (e.code === 'ArrowRight' || e.code === 'Enter') { e.preventDefault(); player.advance(); }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
+
+  return (
+    <div>
+      <header>
+        <div className="logo">
+          <h1>MUSSLOP</h1>
+          <div className="sub">{t.tagline}</div>
+        </div>
+        <div className="lang-switch">
+          <button className={lang === 'ru' ? 'on' : ''} onClick={() => setLanguage('ru')}>RU</button>
+          <button className={lang === 'en' ? 'on' : ''} onClick={() => setLanguage('en')}>EN</button>
+        </div>
+      </header>
+
+      <div className="panel">
+        <div className="panel-title">{t.upload_title}</div>
+        <div className={'dropzone' + (dragOver ? ' over' : '')}
+          onClick={() => fileRef.current.click()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}>
+          <span className="dz-icon">♫</span>
+          {trackName
+            ? <span>{t.track} <b>{trackName}</b> {t.drop_replace}</span>
+            : <span>{t.drop_hint}<br /><span style={{ fontSize: 12, opacity: .7 }}>{t.drop_formats}</span></span>}
+          <input ref={fileRef} type="file" accept="audio/*" style={{ display: 'none' }}
+            onChange={e => e.target.files[0] && upload(e.target.files[0])} />
+        </div>
+        {loading && <div className="status" style={{ marginTop: 12 }}><div className="spinner"></div>{loading}</div>}
+        {error && <div className="error-box">{t.err_prefix} {error}</div>}
+      </div>
+
+      {analysis && <div className="panel">
+        <div className="panel-title">{t.structure_title}</div>
+        <div className="row between" style={{ marginBottom: 12 }}>
+          <div className="row">
+            <span className="badge">{t.tempo} <b>{analysis.tempo.toFixed(1)} BPM</b></span>
+            <span className="badge">{t.duration} <b>{fmt(duration)}</b></span>
+            <span className="badge">{t.parts} <b>{segments.length}</b></span>
+            {analysis.fallback && <span className="badge" style={{ color: 'var(--danger)' }}>{t.fallback}</span>}
+          </div>
+          <div className="row">
+            <label className="chk">
+              <input type="checkbox" checked={snap} onChange={e => setSnap(e.target.checked)} />
+              {t.snap}
+            </label>
+            <input type="number" min="2" max="24" placeholder={t.n_parts_ph}
+              value={nSeg} onChange={e => setNSeg(e.target.value)} title={t.n_parts_tip} />
+            <button onClick={() => doAnalyze(trackId, nSeg ? +nSeg : null)} disabled={!!loading}>
+              {t.reanalyze}
+            </button>
+            <button className="ghost" onClick={exportMarkup} title={t.export_tip}>{t.export_markup}</button>
+            <button className="ghost" onClick={() => markupRef.current.click()} title={t.import_tip}>{t.import_markup}</button>
+            <input ref={markupRef} type="file" accept=".json" style={{ display: 'none' }}
+              onChange={e => e.target.files[0] && importMarkup(e.target.files[0])} />
+          </div>
+        </div>
+
+        <Waveform buffer={buffer} segments={segments} setSegments={setSegments}
+          beats={analysis.beats} downbeats={analysis.downbeats} snap={snap}
+          player={player} playingSeg={playingSeg} duration={duration} t={t}
+          onSeekSeg={i => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1))} />
+
+        <div className="seg-list">
+          {segments.map((s, i) => (
+            <div key={i} className={'seg-chip' + (i === player.segIndex ? ' active' : '')}
+              onClick={() => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1))}>
+              <div className="dot" style={{ background: SEG_COLORS[i % SEG_COLORS.length] }}></div>
+              <input value={s.label} onClick={e => e.stopPropagation()}
+                onChange={e => setSegments(segs => {
+                  const ns = segs.map(x => ({ ...x }));
+                  ns[i].label = e.target.value; return ns;
+                })} />
+              <span className="time">{fmt(s.start)}–{fmt(s.end)}</span>
+              <span className="x" title={t.del_seg}
+                onClick={e => { e.stopPropagation(); removeSeg(i); }}>✕</span>
+            </div>
+          ))}
+        </div>
+      </div>}
+
+      {analysis && <div className="panel">
+        <div className="panel-title">{t.player_title}</div>
+        <div className="row between">
+          <div className="row">
+            {!player.playing
+              ? <button className="primary" onClick={() => player.play()}>{t.play}</button>
+              : <button onClick={() => player.stop()}>{t.stop}</button>}
+            <button className={'go' + (player.advanceArmed ? ' armed' : '')}
+              disabled={!player.playing || player.segIndex >= segments.length - 1}
+              onClick={() => player.advance()}>
+              {player.advanceArmed ? t.next_armed : t.next}
+            </button>
+          </div>
+          <div className="now">
+            {player.playing && <span className="eq"><i></i><i></i><i></i></span>}
+            {player.playing
+              ? <span>{t.playing} <b>{segments[player.segIndex] ? segments[player.segIndex].label : '–'}</b>
+                  &nbsp;· {t.pass}{player.loopCount}
+                  {player.advanceArmed && ' ' + t.transition_planned}</span>
+              : <span>{t.selected} <b>{segments[player.segIndex] ? segments[player.segIndex].label : '–'}</b></span>}
+          </div>
+        </div>
+        <div className="hint">{t.keys_hint}</div>
+      </div>}
+
+      <footer>{t.footer} · <a href="https://github.com/Siziff/musslop" target="_blank">GitHub</a></footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+librosa
+soundfile
+python-multipart
+scikit-learn
+scipy
+numpy
