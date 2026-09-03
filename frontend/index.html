@@ -247,6 +247,9 @@ const STR = {
     exporting: 'Формирование zip с лупами…',
     err_export: 'Ошибка экспорта',
     loop_quality_tip: 'Качество лупа: насколько бесшовно эта часть зациклится',
+    split_btn: '✂ Разрезать',
+    split_tip: 'Разрезать часть в текущей позиции (клавиша S). Позиция — плейхед или место клика; без позиции — середина выбранной части. Граница привязывается к такту',
+    split_seg_tip: 'Разрезать эту часть пополам (по ближайшему такту)',
     trans_mode: 'Переход:',
     mode_loop: 'конец лупа',
     mode_bar: 'ближайший такт',
@@ -264,7 +267,7 @@ const STR = {
     pass: 'проход №',
     transition_planned: '· переход запланирован',
     selected: 'Выбрана часть:',
-    keys_hint: <span><kbd>Пробел</kbd> — играть/стоп · <kbd>→</kbd> / <kbd>Enter</kbd> — «Дальше». Переход происходит бесшовно на границе лупа, как в игровых саундтреках.</span>,
+    keys_hint: <span><kbd>Пробел</kbd> — играть/стоп · <kbd>→</kbd> / <kbd>Enter</kbd> — «Дальше» · <kbd>S</kbd> — разрезать в позиции. Переход происходит бесшовно на границе лупа, как в игровых саундтреках.</span>,
     part: 'Часть',
     footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)',
   },
@@ -300,6 +303,9 @@ const STR = {
     exporting: 'Building zip with loops…',
     err_export: 'Export failed',
     loop_quality_tip: 'Loop quality: how seamlessly this part will loop',
+    split_btn: '✂ Split',
+    split_tip: 'Split the part at the current position (hotkey S). Position = playhead or last click; falls back to the middle of the selected part. Boundary snaps to a bar',
+    split_seg_tip: 'Split this part in half (snapped to the nearest bar)',
     trans_mode: 'Transition:',
     mode_loop: 'loop end',
     mode_bar: 'next bar',
@@ -317,7 +323,7 @@ const STR = {
     pass: 'pass #',
     transition_planned: '· transition scheduled',
     selected: 'Selected part:',
-    keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next”. The transition is seamless at the loop boundary, just like in game soundtracks.</span>,
+    keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next” · <kbd>S</kbd> — split at position. The transition is seamless at the loop boundary, just like in game soundtracks.</span>,
     part: 'Part',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)',
   },
@@ -1029,14 +1035,57 @@ function App() {
     });
   };
 
+  // Разрезать часть в точке pos (сек); привязка к ближайшему downbeat
+  const splitAt = pos => {
+    if (pos == null || !analysis) return;
+    let tt = pos;
+    const dbs = analysis.downbeats || [];
+    if (dbs.length) {
+      let best = tt, bd = Infinity;
+      for (const b of dbs) { const d = Math.abs(b - tt); if (d < bd) { bd = d; best = b; } }
+      if (bd < 2.5) tt = best;
+    }
+    setSegments(segs => {
+      const i = segs.findIndex(s => tt > s.start + 0.5 && tt < s.end - 0.5);
+      if (i < 0) return segs;
+      const ns = segs.map(s => ({ ...s }));
+      const right = { start: tt, end: ns[i].end, label: ns[i].label + '·2' };
+      ns[i] = { ...ns[i], end: tt };
+      ns.splice(i + 1, 0, right);
+      return ns;
+    });
+  };
+
+  // Разрезать в текущей позиции (играет / выбрана кликом), иначе — середина выбранной части
+  const splitAtPlayhead = () => {
+    let pos = player.position();
+    if (pos == null) pos = player.pendingPos;
+    if (pos == null && segments[player.segIndex]) {
+      const s = segments[player.segIndex];
+      pos = (s.start + s.end) / 2;
+    }
+    splitAt(pos);
+  };
+
+  // Разрезать конкретную часть пополам (по ближайшему такту к середине)
+  const splitSeg = i => {
+    const s = segments[i];
+    if (!s) return;
+    splitAt((s.start + s.end) / 2);
+  };
+
   const playingSeg = player.playing ? player.segIndex : -1;
   const duration = analysis ? analysis.duration : 0;
+
+  const splitRef = useRef(splitAtPlayhead);
+  splitRef.current = splitAtPlayhead;
 
   useEffect(() => {
     const h = e => {
       if (e.target.tagName === 'INPUT') return;
       if (e.code === 'Space') { e.preventDefault(); player.playing ? player.stop() : player.play(); }
       if (e.code === 'ArrowRight' || e.code === 'Enter') { e.preventDefault(); player.advance(); }
+      if (e.code === 'KeyS') { e.preventDefault(); splitRef.current(); }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
@@ -1095,6 +1144,7 @@ function App() {
             <button className="ghost" onClick={exportMarkup} title={t.export_tip}>{t.export_markup}</button>
             <button className="ghost" onClick={() => markupRef.current.click()} title={t.import_tip}>{t.import_markup}</button>
             <button className="ghost" onClick={exportLoops} title={t.export_loops_tip} disabled={!!loading}>{t.export_loops}</button>
+            <button onClick={splitAtPlayhead} title={t.split_tip}>{t.split_btn}</button>
             <input ref={markupRef} type="file" accept=".json" style={{ display: 'none' }}
               onChange={e => e.target.files[0] && importMarkup(e.target.files[0])} />
           </div>
@@ -1123,6 +1173,8 @@ function App() {
                 <span className="time">{fmt(s.start)}–{fmt(s.end)}</span>
                 {q != null && <span className="time" title={t.loop_quality_tip}
                   style={{ color: qc }}>⟳{Math.round(q * 100)}%</span>}
+                <span className="x" title={t.split_seg_tip}
+                  onClick={e => { e.stopPropagation(); splitSeg(i); }}>✂</span>
                 <span className="x" title={t.del_seg}
                   onClick={e => { e.stopPropagation(); removeSeg(i); }}>✕</span>
               </div>
