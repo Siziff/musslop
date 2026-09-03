@@ -4,11 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Musslop</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<script src="vendor/react.min.js"></script>
+<script src="vendor/react-dom.min.js"></script>
+<script src="vendor/babel.min.js"></script>
 <style>
   :root {
     --bg: #0a0d14;
@@ -192,6 +191,19 @@
 </head>
 <body>
 <div id="root"></div>
+<script>
+  // Если React/Babel не загрузились — показать понятную ошибку вместо пустой страницы
+  window.addEventListener('load', function () {
+    if (!window.React || !window.ReactDOM || !window.Babel) {
+      document.getElementById('root').innerHTML =
+        '<div style="padding:40px;text-align:center;color:#fb6a6a;font-size:15px">' +
+        'Не удалось загрузить скрипты (vendor/*.js). Обновите страницу (Ctrl+F5) ' +
+        'или проверьте консоль браузера (F12).<br>' +
+        'Failed to load scripts (vendor/*.js). Hard-refresh (Ctrl+F5) or check the browser console (F12).' +
+        '</div>';
+    }
+  });
+</script>
 <script type="text/babel" data-presets="react">
 
 const { useState, useRef, useEffect, useCallback } = React;
