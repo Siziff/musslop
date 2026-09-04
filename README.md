@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/python-3.10+-4f8cff?style=flat-square">
   <img src="https://img.shields.io/badge/backend-FastAPI%20%2B%20librosa-34d399?style=flat-square">
   <img src="https://img.shields.io/badge/frontend-React%20%2B%20Web%20Audio-4f8cff?style=flat-square">
+  <img src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
 </p>
 
 <p align="center">

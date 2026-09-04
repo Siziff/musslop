@@ -274,8 +274,13 @@ const STR = {
     pass: 'проход №',
     transition_planned: '· переход запланирован',
     selected: 'Выбрана часть:',
-    keys_hint: <span><kbd>Пробел</kbd> — играть/стоп · <kbd>→</kbd> / <kbd>Enter</kbd> — «Дальше» · <kbd>S</kbd> — разрезать в позиции. Переход происходит бесшовно на границе лупа, как в игровых саундтреках.</span>,
+    keys_hint: <span><kbd>Пробел</kbd> — играть/стоп · <kbd>→</kbd> / <kbd>Enter</kbd> — «Дальше» · <kbd>S</kbd> — разрезать в позиции · <kbd>Ctrl+Z</kbd> — отменить правку. Переход происходит бесшовно на границе лупа, как в игровых саундтреках.</span>,
     part: 'Часть',
+    history_title: 'История',
+    history_open_tip: 'Открыть трек с сохранённой разметкой',
+    history_del_tip: 'Удалить трек из истории',
+    history_parts: 'ч.',
+    loading_history: 'Загрузка трека из истории…',
     footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)',
   },
   en: {
@@ -337,8 +342,13 @@ const STR = {
     pass: 'pass #',
     transition_planned: '· transition scheduled',
     selected: 'Selected part:',
-    keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next” · <kbd>S</kbd> — split at position. The transition is seamless at the loop boundary, just like in game soundtracks.</span>,
+    keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next” · <kbd>S</kbd> — split at position · <kbd>Ctrl+Z</kbd> — undo edit. The transition is seamless at the loop boundary, just like in game soundtracks.</span>,
     part: 'Part',
+    history_title: 'History',
+    history_open_tip: 'Open track with saved markup',
+    history_del_tip: 'Remove track from history',
+    history_parts: 'parts',
+    loading_history: 'Loading track from history…',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)',
   },
   zh: {
@@ -401,8 +411,13 @@ const STR = {
     pass_suffix: '遍',
     transition_planned: '· 已计划切换',
     selected: '已选段落:',
-    keys_hint: <span><kbd>空格</kbd> — 播放/停止 · <kbd>→</kbd> / <kbd>Enter</kbd> — 「下一段」 · <kbd>S</kbd> — 在当前位置切分。切换在循环边界处无缝完成，就像游戏配乐一样。</span>,
+    keys_hint: <span><kbd>空格</kbd> — 播放/停止 · <kbd>→</kbd> / <kbd>Enter</kbd> — 「下一段」 · <kbd>S</kbd> — 在当前位置切分 · <kbd>Ctrl+Z</kbd> — 撤销编辑。切换在循环边界处无缝完成，就像游戏配乐一样。</span>,
     part: '段落',
+    history_title: '历史记录',
+    history_open_tip: '打开带有已保存标注的音轨',
+    history_del_tip: '从历史记录中删除',
+    history_parts: '段',
+    loading_history: '正在从历史记录加载音轨…',
     footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）',
   },
 };
@@ -684,13 +699,14 @@ class LoopPlayer {
 
 // ============================== Waveform ===================================
 function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
-                    player, playingSeg, duration, onSeekSeg, t }) {
+                    player, playingSeg, duration, onSeekSeg, t,
+                    beginEdit, commitEdit }) {
   const canvasRef = useRef(null);
   const peaksRef = useRef(null);
   const dragRef = useRef(null);
   const viewRef = useRef({ t0: 0, t1: 0 }); // видимое окно (сек); t1=0 -> весь трек
   const [, force] = useState(0);
-  const H = 380;
+  const H = 760;
 
   useEffect(() => {
     if (!buffer) { peaksRef.current = null; return; }
@@ -922,6 +938,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       if (s.loop !== false && s.loopStart != null
           && Math.abs(s.loopStart - tt) < tolT) {
         dragRef.current = { type: 'loopstart', idx: i };
+        if (beginEdit) beginEdit();
         e.preventDefault();
         return;
       }
@@ -930,6 +947,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     for (let i = 1; i < segments.length; i++) {
       if (Math.abs(segments[i].start - tt) < tolT) {
         dragRef.current = { type: 'bound', idx: i };
+        if (beginEdit) beginEdit();
         e.preventDefault();
         return;
       }
@@ -967,7 +985,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         const ns = segs.map(x => ({ ...x }));
         ns[i].loopStart = nt;
         return ns;
-      });
+      }, true);
       return;
     }
     if (d && d.type === 'bound') {
@@ -979,7 +997,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         const ns = segs.map(s => ({ ...s }));
         ns[i - 1].end = nt; ns[i].start = nt;
         return ns;
-      });
+      }, true);
       return;
     }
     const tolT = tolTime();
@@ -995,6 +1013,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     const d = dragRef.current;
     dragRef.current = null;
     if (d && d.type === 'playhead') player.seek(d.pos);
+    if (d && (d.type === 'bound' || d.type === 'loopstart') && commitEdit) commitEdit();
   };
   const onDblClick = e => {
     const tt = snapTime(timeAt(e));
@@ -1042,7 +1061,42 @@ function App() {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(null);
   const [analysis, setAnalysis] = useState(null);
-  const [segments, setSegments] = useState([]);
+  const [segments, setSegmentsRaw] = useState([]);
+
+  // --- Undo (Ctrl+Z): история изменений сегментов -------------------------
+  const historyRef = useRef([]);       // стек прошлых состояний
+  const dragSnapRef = useRef(null);    // снимок до начала drag-серии
+  // обычное изменение: снимок в историю; silent=true — без записи (drag)
+  const setSegments = useCallback((updater, silent = false) => {
+    setSegmentsRaw(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (!silent && next !== prev) {
+        historyRef.current.push(prev);
+        if (historyRef.current.length > 100) historyRef.current.shift();
+      }
+      return next;
+    });
+  }, []);
+  // drag-серия: один undo-шаг на всё перетаскивание
+  const beginEdit = useCallback(() => {
+    setSegmentsRaw(prev => { dragSnapRef.current = prev; return prev; });
+  }, []);
+  const commitEdit = useCallback(() => {
+    const snap0 = dragSnapRef.current;
+    dragSnapRef.current = null;
+    if (snap0 == null) return;
+    setSegmentsRaw(prev => {
+      if (prev !== snap0) {
+        historyRef.current.push(snap0);
+        if (historyRef.current.length > 100) historyRef.current.shift();
+      }
+      return prev;
+    });
+  }, []);
+  const undo = useCallback(() => {
+    const prev = historyRef.current.pop();
+    if (prev) setSegmentsRaw(prev);
+  }, []);
   const [buffer, setBuffer] = useState(null);
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
@@ -1164,11 +1218,87 @@ function App() {
       setTrackId(track_id); setTrackName(name);
 
       await doAnalyze(track_id, null);
+      loadHistory();
     } catch (e) {
       setError(String(e.message || e));
     } finally {
       setLoading(null);
     }
+  };
+
+  // --- История треков ------------------------------------------------------
+  const [history, setHistory] = useState([]);
+  const loadHistory = useCallback(async () => {
+    try {
+      const r = await fetch('/api/tracks');
+      if (r.ok) setHistory((await r.json()).tracks);
+    } catch (e) {}
+  }, []);
+  useEffect(() => { loadHistory(); }, []);
+
+  // автосохранение разметки на сервер (debounce 1.2с)
+  const saveT = useRef(null);
+  useEffect(() => {
+    if (!trackId || !analysis || !segments.length) return;
+    clearTimeout(saveT.current);
+    saveT.current = setTimeout(() => {
+      fetch(`/api/markup/${trackId}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          duration: analysis.duration, tempo: analysis.tempo,
+          beats: analysis.beats, downbeats: analysis.downbeats,
+          n_suggested: analysis.n_suggested, n_max: analysis.n_max,
+          segments,
+        }),
+      }).catch(() => {});
+    }, 1200);
+    return () => clearTimeout(saveT.current);
+  }, [trackId, segments, analysis]);
+
+  // открыть трек из истории: аудио с сервера + сохранённая разметка
+  const openFromHistory = async item => {
+    setError(null);
+    player.stop();
+    try {
+      setLoading(t.loading_history);
+      const [audioR, markupR] = await Promise.all([
+        fetch(`/api/audio/${item.track_id}`),
+        fetch(`/api/markup/${item.track_id}`),
+      ]);
+      if (!audioR.ok) throw new Error(t.err_upload);
+      const ab = await audioR.arrayBuffer();
+      player._ensureCtx();
+      const buf = await player.ctx.decodeAudioData(ab);
+      player.buffer = buf;
+      setBuffer(buf);
+      setTrackId(item.track_id); setTrackName(item.name);
+
+      const markup = markupR.ok ? (await markupR.json()).markup : null;
+      if (markup && Array.isArray(markup.segments) && markup.segments.length) {
+        historyRef.current = [];
+        setAnalysis({
+          duration: markup.duration, tempo: markup.tempo || 0,
+          beats: markup.beats || [], downbeats: markup.downbeats || [],
+          n_suggested: markup.n_suggested, n_max: markup.n_max,
+          segments: markup.segments, fallback: false,
+        });
+        setSegmentsRaw(markup.segments);
+      } else {
+        await doAnalyze(item.track_id, null);
+      }
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const deleteFromHistory = async (e, item) => {
+    e.stopPropagation();
+    try {
+      await fetch(`/api/tracks/${item.track_id}`, { method: 'DELETE' });
+      loadHistory();
+    } catch (er) {}
   };
 
   const doAnalyze = async (id, n) => {
@@ -1251,6 +1381,9 @@ function App() {
 
   useEffect(() => {
     const h = e => {
+      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
+        e.preventDefault(); undo(); return;
+      }
       if (e.target.tagName === 'INPUT') return;
       if (e.code === 'Space') { e.preventDefault(); player.playing ? player.stop() : player.play(); }
       if (e.code === 'ArrowRight' || e.code === 'Enter') { e.preventDefault(); player.advance(); }
@@ -1290,6 +1423,25 @@ function App() {
         </div>
         {loading && <div className="status" style={{ marginTop: 12 }}><div className="spinner"></div>{loading}</div>}
         {error && <div className="error-box">{t.err_prefix} {error}</div>}
+        {history.length > 0 && <div style={{ marginTop: 14 }}>
+          <div className="panel-title" style={{ marginBottom: 8 }}>{t.history_title}</div>
+          <div className="seg-list" style={{ marginTop: 0 }}>
+            {history.map(item => (
+              <div key={item.track_id}
+                className={'seg-chip' + (item.track_id === trackId ? ' active' : '')}
+                onClick={() => openFromHistory(item)}
+                title={t.history_open_tip}>
+                <span style={{ fontSize: 14 }}>{item.has_markup ? '💾' : '♫'}</span>
+                <span style={{ fontWeight: 600, maxWidth: 220, overflow: 'hidden',
+                               textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                {item.duration != null && <span className="time">{fmt(item.duration)}</span>}
+                {item.n_segments > 0 && <span className="time">{item.n_segments} {t.history_parts}</span>}
+                <span className="x" title={t.history_del_tip}
+                  onClick={e => deleteFromHistory(e, item)}>✕</span>
+              </div>
+            ))}
+          </div>
+        </div>}
       </div>
 
       {analysis && <div className="panel">
@@ -1326,7 +1478,8 @@ function App() {
         <Waveform buffer={buffer} segments={segments} setSegments={setSegments}
           beats={analysis.beats} downbeats={analysis.downbeats} snap={snap}
           player={player} playingSeg={playingSeg} duration={duration} t={t}
-          onSeekSeg={i => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1))} />
+          onSeekSeg={i => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1))}
+          beginEdit={beginEdit} commitEdit={commitEdit} />
 
         <div className="seg-list">
           {segments.map((s, i) => {

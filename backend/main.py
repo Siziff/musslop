@@ -101,13 +101,65 @@ async def upload(file: UploadFile = File(...)):
             raise HTTPException(400, "Не удалось декодировать файл (ffmpeg)")
 
     meta = {"id": track_id, "orig": orig_path, "wav": wav_path,
-            "name": file.filename, "mime": MIME.get(ext, "application/octet-stream")}
+            "name": file.filename, "mime": MIME.get(ext, "application/octet-stream"),
+            "uploaded_at": int(__import__("time").time())}
     TRACKS[track_id] = meta
     with open(_meta_path(track_id), "w") as f:
         json.dump(meta, f)
 
     size = os.path.getsize(orig_path)
     return {"track_id": track_id, "name": file.filename, "size": size}
+
+
+@app.get("/api/tracks")
+def list_tracks():
+    """История загруженных треков (для повторного открытия с разметкой)."""
+    items = []
+    for tid, m in TRACKS.items():
+        items.append({
+            "track_id": tid,
+            "name": m.get("name"),
+            "uploaded_at": m.get("uploaded_at", 0),
+            "has_markup": bool(m.get("markup")),
+            "duration": (m.get("markup") or {}).get("duration"),
+            "n_segments": len((m.get("markup") or {}).get("segments", []) or []),
+        })
+    items.sort(key=lambda x: -x["uploaded_at"])
+    return {"tracks": items}
+
+
+@app.post("/api/markup/{track_id}")
+def save_markup(track_id: str, markup: dict = Body(...)):
+    """Сохранить разметку (segments + downbeats/beats/tempo) рядом с треком."""
+    track = TRACKS.get(track_id)
+    if not track:
+        raise HTTPException(404, "Трек не найден")
+    track["markup"] = markup
+    with open(_meta_path(track_id), "w") as f:
+        json.dump(track, f)
+    return {"ok": True}
+
+
+@app.get("/api/markup/{track_id}")
+def get_markup(track_id: str):
+    track = TRACKS.get(track_id)
+    if not track:
+        raise HTTPException(404, "Трек не найден")
+    return {"markup": track.get("markup")}
+
+
+@app.delete("/api/tracks/{track_id}")
+def delete_track(track_id: str):
+    track = TRACKS.pop(track_id, None)
+    if not track:
+        raise HTTPException(404, "Трек не найден")
+    for p in {track.get("orig"), track.get("wav"), _meta_path(track_id)}:
+        if p and os.path.exists(p):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+    return {"ok": True}
 
 
 @app.get("/api/analyze/{track_id}")
