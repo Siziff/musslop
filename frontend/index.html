@@ -195,7 +195,9 @@
 <script>
   // Если React/Babel не загрузились — показать понятную ошибку вместо пустой страницы
   window.addEventListener('load', function () {
-    if (!window.React || !window.ReactDOM || !window.Babel) {
+    // Babel нужен только в dev-режиме (inline text/babel скрипт)
+    var needBabel = !!document.querySelector('script[type="text/babel"]');
+    if (!window.React || !window.ReactDOM || (needBabel && !window.Babel)) {
       document.getElementById('root').innerHTML =
         '<div style="padding:40px;text-align:center;color:#fb6a6a;font-size:15px">' +
         'Не удалось загрузить скрипты (vendor/*.js). Обновите страницу (Ctrl+F5) ' +
