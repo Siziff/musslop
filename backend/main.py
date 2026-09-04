@@ -194,7 +194,12 @@ def loopability(track_id: str, segments: list[dict] = Body(...)):
 
 @app.post("/api/export/{track_id}")
 def export_loops(track_id: str, segments: list[dict] = Body(...)):
-    """Нарезать трек на лупы по границам и вернуть zip с WAV-файлами."""
+    """Нарезать трек на лупы по границам и вернуть zip с WAV-файлами.
+
+    Режем оригинальный файл (полное качество, 44.1kHz stereo 16bit), а не
+    моно-WAV для анализа. ZIP_STORED: PCM почти не сжимается deflate'ом,
+    а времени на попытку уходит много.
+    """
     track = TRACKS.get(track_id)
     if not track:
         raise HTTPException(404, "Трек не найден")
@@ -203,20 +208,35 @@ def export_loops(track_id: str, segments: list[dict] = Body(...)):
 
     import io
     import re
+    import tempfile
     import zipfile
     import soundfile as sf
 
-    y, sr = sf.read(track["orig"] if track["orig"].endswith(".wav")
-                    else track["wav"], always_2d=True)
+    # декодируем оригинал в полном качестве (единожды, ~1-2с на трек)
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", track["orig"], "-ac", "2", "-ar", "44100",
+             "-acodec", "pcm_s16le", tmp_path],
+            check=True, capture_output=True,
+        )
+        y, sr = sf.read(tmp_path, always_2d=True, dtype="int16")
+    except subprocess.CalledProcessError:
+        raise HTTPException(500, "Не удалось декодировать оригинал (ffmpeg)")
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
     buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as zf:
         for i, s in enumerate(segments):
             a, b = int(float(s["start"]) * sr), int(float(s["end"]) * sr)
             a, b = max(0, a), min(len(y), b)
             if b - a < sr // 10:
                 continue
             wav_io = io.BytesIO()
-            sf.write(wav_io, y[a:b], sr, format="WAV")
+            sf.write(wav_io, y[a:b], sr, format="WAV", subtype="PCM_16")
             label = re.sub(r"[^\w\-]+", "_", str(s.get("label", f"part{i+1}")))
             zf.writestr(f"{i+1:02d}_{label}.wav", wav_io.getvalue())
     buf.seek(0)

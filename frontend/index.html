@@ -247,6 +247,7 @@ const STR = {
     export_loops: '⤓ Лупы (zip)',
     export_loops_tip: 'Скачать все части отдельными WAV-файлами',
     exporting: 'Формирование zip с лупами…',
+    export_downloading: 'Скачивание лупов:',
     err_export: 'Ошибка экспорта',
     loop_quality_tip: 'Качество лупа: насколько бесшовно эта часть зациклится',
     loop_toggle_tip: 'Зацикливать эту часть? Проигровки (нарастание перед новой темой) лучше играть один раз',
@@ -265,7 +266,7 @@ const STR = {
     phrase_len_tip: 'Длина фразы: переход произойдёт на кратной границе от начала лупа',
     bars: 'такта',
     crossfade: 'Кроссфейд:',
-    wave_hint: <span>Клик — перемотка · Зелёный ползунок — позиция · Белая граница — перетащить · Двойной клик — разрезать · Alt+клик — начало повтора лупа (жёлтый маркер) · Колесо — зум · Штриховка — проигровка (играет 1 раз)</span>,
+    wave_hint: <span>Клик — перемотка · Зелёный ползунок — позиция · Белая граница — перетащить · Двойной клик — разрезать · Alt+клик — начало повтора лупа (жёлтый маркер) · Колесо — зум, ползунок снизу — прокрутка · Штриховка — проигровка (играет 1 раз)</span>,
     del_seg: 'Удалить границу (слить с предыдущей)',
     player_title: 'Плеер',
     play: '▶ Играть (зациклить часть)',
@@ -315,6 +316,7 @@ const STR = {
     export_loops: '⤓ Loops (zip)',
     export_loops_tip: 'Download all parts as separate WAV files',
     exporting: 'Building zip with loops…',
+    export_downloading: 'Downloading loops:',
     err_export: 'Export failed',
     loop_quality_tip: 'Loop quality: how seamlessly this part will loop',
     loop_toggle_tip: 'Loop this part? Build-ups (rising transitions into a new theme) are better played once',
@@ -333,7 +335,7 @@ const STR = {
     phrase_len_tip: 'Phrase length: transition happens on a multiple of this from the loop start',
     bars: 'bars',
     crossfade: 'Crossfade:',
-    wave_hint: <span>Click — seek · Green handle — position · White boundary — drag · Double click — split · Alt+click — loop repeat start (yellow marker) · Wheel — zoom · Hatching — build-up (plays once)</span>,
+    wave_hint: <span>Click — seek · Green handle — position · White boundary — drag · Double click — split · Alt+click — loop repeat start (yellow marker) · Wheel — zoom, bottom scrollbar — pan · Hatching — build-up (plays once)</span>,
     del_seg: 'Remove boundary (merge with previous)',
     player_title: 'Player',
     play: '▶ Play (loop part)',
@@ -383,6 +385,7 @@ const STR = {
     export_loops: '⤓ 循环片段 (zip)',
     export_loops_tip: '将所有段落下载为独立的 WAV 文件',
     exporting: '正在打包循环片段…',
+    export_downloading: '正在下载循环片段:',
     err_export: '导出失败',
     loop_quality_tip: '循环质量：该段落循环时的无缝程度',
     loop_toggle_tip: '循环此段落？渐强过渡段（build-up）只播放一次效果更好',
@@ -401,7 +404,7 @@ const STR = {
     phrase_len_tip: '乐句长度：切换发生在距循环起点该长度的整数倍处',
     bars: '小节',
     crossfade: '交叉淡化：',
-    wave_hint: <span>点击 — 定位 · 绿色滑块 — 播放位置 · 白色边界 — 拖动调整 · 双击 — 切分 · Alt+点击 — 循环起点（黄色标记） · 滚轮 — 缩放 · 斜线阴影 — 过渡段（只播一次）</span>,
+    wave_hint: <span>点击 — 定位 · 绿色滑块 — 播放位置 · 白色边界 — 拖动调整 · 双击 — 切分 · Alt+点击 — 循环起点（黄色标记） · 滚轮 — 缩放，底部滑块 — 平移 · 斜线阴影 — 过渡段（只播一次）</span>,
     del_seg: '删除边界（与前一段合并）',
     player_title: '播放器',
     play: '▶ 播放（循环此段）',
@@ -844,12 +847,31 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       }
     });
 
-    // мини-карта при зуме
+    // скроллбар при зуме: дорожка + перетаскиваемый бегунок
     if (span < duration * 0.999) {
-      ctx.fillStyle = '#ffffff18';
-      ctx.fillRect(0, H - 4, W, 4);
-      ctx.fillStyle = '#6a8dff';
-      ctx.fillRect((t0 / duration) * W, H - 4, Math.max(6, (span / duration) * W), 4);
+      const SB_H = 12;
+      ctx.fillStyle = '#ffffff14';
+      ctx.fillRect(0, H - SB_H, W, SB_H);
+      const bx = (t0 / duration) * W;
+      const bw = Math.max(24, (span / duration) * W);
+      const hover = dragRef.current && dragRef.current.type === 'scroll';
+      ctx.fillStyle = hover ? '#8aa8ff' : '#6a8dff';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(bx, H - SB_H + 2, bw, SB_H - 4, 4);
+        ctx.fill();
+      } else {
+        ctx.fillRect(bx, H - SB_H + 2, bw, SB_H - 4);
+      }
+      // насечки на бегунке
+      ctx.strokeStyle = '#0a0d14aa';
+      ctx.beginPath();
+      const cxm = bx + bw / 2;
+      for (const dx of [-4, 0, 4]) {
+        ctx.moveTo(cxm + dx, H - SB_H + 4);
+        ctx.lineTo(cxm + dx, H - 4);
+      }
+      ctx.stroke();
     }
 
     // playhead (или позиция, выбранная до запуска / при перетаскивании)
@@ -927,6 +949,31 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     if (!duration) return;
     const tt = timeAt(e);
     const tolT = tolTime();
+    // 0) скроллбар (нижние 12px при зуме)
+    {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const my = e.clientY - rect.top;
+      const { t0, t1 } = view();
+      const span = t1 - t0;
+      if (span < duration * 0.999 && my > H - 14) {
+        const W = rect.width;
+        const bx = (t0 / duration) * W;
+        const bw = Math.max(24, (span / duration) * W);
+        const mx = e.clientX - rect.left;
+        if (mx >= bx && mx <= bx + bw) {
+          // тащим бегунок
+          dragRef.current = { type: 'scroll', grabDx: mx - bx, span };
+        } else {
+          // клик по дорожке — прыжок окна и сразу тащим
+          let n0 = (mx / W) * duration - span / 2;
+          n0 = Math.max(0, Math.min(duration - span, n0));
+          viewRef.current = { t0: n0, t1: n0 + span };
+          dragRef.current = { type: 'scroll', grabDx: bw / 2, span };
+        }
+        e.preventDefault();
+        return;
+      }
+    }
     // 1) плейхед — приоритет
     const pos = (player && player.position()) ?? (player && player.pendingPos);
     if (pos != null && Math.abs(pos - tt) < tolT) {
@@ -975,6 +1022,16 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     if (!canvas || !duration) return;
     const tt = timeAt(e);
     const d = dragRef.current;
+    if (d && d.type === 'scroll') {
+      const rect = canvas.getBoundingClientRect();
+      const W = rect.width;
+      const mx = e.clientX - rect.left;
+      const span = d.span;
+      let n0 = ((mx - d.grabDx) / W) * duration;
+      n0 = Math.max(0, Math.min(duration - span, n0));
+      viewRef.current = { t0: n0, t1: n0 + span };
+      return;
+    }
     if (d && d.type === 'playhead') {
       d.pos = Math.max(0, Math.min(duration - 0.05, tt));
       return;
@@ -1003,12 +1060,16 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       return;
     }
     const tolT = tolTime();
+    const rect2 = canvas.getBoundingClientRect();
+    const my2 = e.clientY - rect2.top;
+    const v2 = view();
+    const onScrollbar = (v2.t1 - v2.t0) < duration * 0.999 && my2 > H - 14;
     const pos = (player && player.position()) ?? (player && player.pendingPos);
     const onPlayhead = pos != null && Math.abs(pos - tt) < tolT;
     const onLoopStart = segments.some(s => s.loop !== false && s.loopStart != null
                                       && Math.abs(s.loopStart - tt) < tolT);
     const nearBound = segments.some((s, i) => i > 0 && Math.abs(s.start - tt) < tolT);
-    canvas.style.cursor = onPlayhead ? 'grab'
+    canvas.style.cursor = onScrollbar ? 'grab' : onPlayhead ? 'grab'
       : (onLoopStart || nearBound) ? 'ew-resize' : 'pointer';
   };
   const onMouseUp = () => {
@@ -1152,7 +1213,19 @@ function App() {
         body: JSON.stringify(segments.map(s => ({ start: s.start, end: s.end, label: s.label }))),
       });
       if (!r.ok) throw new Error(t.err_export);
-      const blob = await r.blob();
+      // скачивание с прогрессом (zip может быть большим — полное качество WAV)
+      const total = +r.headers.get('Content-Length') || 0;
+      const reader = r.body.getReader();
+      const chunks = []; let got = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value); got += value.length;
+        setLoading(total
+          ? `${t.export_downloading} ${Math.round(got / total * 100)}% (${(got / 1048576).toFixed(0)} MB)`
+          : `${t.export_downloading} ${(got / 1048576).toFixed(0)} MB`);
+      }
+      const blob = new Blob(chunks, { type: 'application/zip' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = (trackName || 'track').replace(/\.[^.]+$/, '') + '_loops.zip';
