@@ -708,7 +708,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
   const dragRef = useRef(null);
   const viewRef = useRef({ t0: 0, t1: 0 }); // видимое окно (сек); t1=0 -> весь трек
   const [, force] = useState(0);
-  const H = 760;
+  const H = 420;
 
   useEffect(() => {
     if (!buffer) { peaksRef.current = null; return; }
