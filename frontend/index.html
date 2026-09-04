@@ -284,6 +284,7 @@ const STR = {
     history_del_tip: 'Удалить трек из истории',
     history_parts: 'ч.',
     loading_history: 'Загрузка трека из истории…',
+    loading_transcode: 'Браузер обрезал аудио — беру полный WAV с сервера…',
     footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)',
   },
   en: {
@@ -353,6 +354,7 @@ const STR = {
     history_del_tip: 'Remove track from history',
     history_parts: 'parts',
     loading_history: 'Loading track from history…',
+    loading_transcode: 'Browser truncated the audio — fetching full WAV from server…',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)',
   },
   zh: {
@@ -423,6 +425,7 @@ const STR = {
     history_del_tip: '从历史记录中删除',
     history_parts: '段',
     loading_history: '正在从历史记录加载音轨…',
+    loading_transcode: '浏览器截断了音频 — 正在从服务器获取完整 WAV…',
     footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）',
   },
 };
@@ -1282,9 +1285,10 @@ function App() {
 
       const ab = await file.arrayBuffer();
       player._ensureCtx();
-      const buf = await player.ctx.decodeAudioData(ab);
-      player.buffer = buf;
-      setBuffer(buf);
+      let buf = null;
+      try {
+        buf = await player.ctx.decodeAudioData(ab.slice(0));
+      } catch (e) { buf = null; }
 
       setLoading(t.loading_upload);
       const r = await uploadPromise;
@@ -1292,8 +1296,27 @@ function App() {
       const { track_id, name } = await r.json();
       setTrackId(track_id); setTrackName(name);
 
-      await doAnalyze(track_id, null);
+      // Анализ на сервере — источник истины о длительности
+      const a = await doAnalyze(track_id, null);
       loadHistory();
+
+      // сверяем длительности: браузерные декодеры иногда обрезают
+      // FLAC/m4a с вложенной обложкой — тогда берём WAV с сервера
+      const serverDur = a ? a.duration : null;
+      const durOk = buf && serverDur != null
+        && Math.abs(buf.duration - serverDur) < Math.max(1, serverDur * 0.02);
+      if (buf && (serverDur == null || durOk)) {
+        player.buffer = buf;
+        setBuffer(buf);
+      } else {
+        setLoading(t.loading_transcode);
+        const wavR = await fetch(`/api/audio/${track_id}?transcode=1`);
+        if (!wavR.ok) throw new Error(t.err_upload);
+        const wavAb = await wavR.arrayBuffer();
+        const wavBuf = await player.ctx.decodeAudioData(wavAb);
+        player.buffer = wavBuf;
+        setBuffer(wavBuf);
+      }
     } catch (e) {
       setError(String(e.message || e));
     } finally {
@@ -1343,12 +1366,13 @@ function App() {
       if (!audioR.ok) throw new Error(t.err_upload);
       const ab = await audioR.arrayBuffer();
       player._ensureCtx();
-      const buf = await player.ctx.decodeAudioData(ab);
-      player.buffer = buf;
-      setBuffer(buf);
+      let buf = null;
+      try { buf = await player.ctx.decodeAudioData(ab); } catch (e) { buf = null; }
       setTrackId(item.track_id); setTrackName(item.name);
 
       const markup = markupR.ok ? (await markupR.json()).markup : null;
+      let serverDur = markup ? markup.duration : null;
+      let analyzed = null;
       if (markup && Array.isArray(markup.segments) && markup.segments.length) {
         historyRef.current = [];
         setAnalysis({
@@ -1359,7 +1383,23 @@ function App() {
         });
         setSegmentsRaw(markup.segments);
       } else {
-        await doAnalyze(item.track_id, null);
+        analyzed = await doAnalyze(item.track_id, null);
+        if (analyzed) serverDur = analyzed.duration;
+      }
+
+      // браузер мог обрезать оригинал (FLAC с обложкой и т.п.)
+      const durOk = buf && serverDur != null
+        && Math.abs(buf.duration - serverDur) < Math.max(1, serverDur * 0.02);
+      if (buf && (serverDur == null || durOk)) {
+        player.buffer = buf;
+        setBuffer(buf);
+      } else {
+        setLoading(t.loading_transcode);
+        const wavR = await fetch(`/api/audio/${item.track_id}?transcode=1`);
+        if (!wavR.ok) throw new Error(t.err_upload);
+        const wavBuf = await player.ctx.decodeAudioData(await wavR.arrayBuffer());
+        player.buffer = wavBuf;
+        setBuffer(wavBuf);
       }
     } catch (e) {
       setError(String(e.message || e));
@@ -1385,8 +1425,10 @@ function App() {
       const a = await r.json();
       setAnalysis(a);
       setSegments(a.segments);
+      return a;
     } catch (e) {
       setError(String(e.message || e));
+      return null;
     } finally {
       setLoading(null);
     }

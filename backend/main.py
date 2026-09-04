@@ -174,12 +174,30 @@ def analyze_track(track_id: str, n_segments: int | None = Query(None, ge=2, le=2
 
 
 @app.get("/api/audio/{track_id}")
-def get_audio(track_id: str):
-    """Браузеру отдаём оригинальный (сжатый) файл — быстрее качается,
-    decodeAudioData умеет mp3/ogg/flac и т.д."""
+def get_audio(track_id: str, transcode: int = Query(0)):
+    """Браузеру отдаём оригинальный (сжатый) файл — быстрее качается.
+    ?transcode=1 — перекодировать в WAV 44.1kHz stereo: нужен, когда
+    decodeAudioData не осиливает оригинал (например, FLAC с обложкой
+    декодируется не полностью)."""
     track = TRACKS.get(track_id)
     if not track:
         raise HTTPException(404, "Трек не найден")
+    if transcode:
+        safe = track.get("safe_wav")
+        if not safe or not os.path.exists(safe):
+            safe = os.path.join(UPLOAD_DIR, f"{track_id}.playback.wav")
+            try:
+                subprocess.run(
+                    ["ffmpeg", "-y", "-vn", "-i", track["orig"],
+                     "-ac", "2", "-ar", "44100", "-acodec", "pcm_s16le", safe],
+                    check=True, capture_output=True,
+                )
+            except subprocess.CalledProcessError:
+                raise HTTPException(500, "Не удалось перекодировать (ffmpeg)")
+            track["safe_wav"] = safe
+            with open(_meta_path(track_id), "w") as f:
+                json.dump(track, f)
+        return FileResponse(safe, media_type="audio/wav")
     return FileResponse(track["orig"], media_type=track["mime"])
 
 
