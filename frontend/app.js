@@ -32,6 +32,10 @@ const STR = {
     n_parts_ph: 'авто',
     n_parts_tip: 'Число частей',
     reanalyze: 'Переанализировать',
+    engine_fast: 'быстрый',
+    engine_deep: 'нейросеть',
+    engine_tip: 'Быстрый — эвристика (2с). Нейросеть (All-In-One, обучена на 912 размеченных треках) — точнее границы и названия секций, ~1мин на первый анализ трека',
+    loading_deep: 'Глубокий анализ нейросетью (~1 мин: разделение на стемы + сегментация)…',
     export_markup: '⤓ Разметка',
     import_markup: '⤒ Разметка',
     export_tip: 'Скачать разметку частей в JSON',
@@ -107,6 +111,10 @@ const STR = {
     n_parts_ph: 'auto',
     n_parts_tip: 'Number of parts',
     reanalyze: 'Re-analyze',
+    engine_fast: 'fast',
+    engine_deep: 'neural',
+    engine_tip: 'Fast — heuristic (2s). Neural (All-In-One, trained on 912 annotated tracks) — better boundaries and section names, ~1min for the first analysis',
+    loading_deep: 'Deep neural analysis (~1 min: stem separation + segmentation)…',
     export_markup: '⤓ Markup',
     import_markup: '⤒ Markup',
     export_tip: 'Download segment markup as JSON',
@@ -182,6 +190,10 @@ const STR = {
     n_parts_ph: '自动',
     n_parts_tip: '段落数量',
     reanalyze: '重新分析',
+    engine_fast: '快速',
+    engine_deep: '神经网络',
+    engine_tip: '快速 — 启发式（2秒）。神经网络（All-In-One，用912首标注曲目训练）— 边界和段落名称更准确，首次分析约1分钟',
+    loading_deep: '正在进行深度神经网络分析（约1分钟：音轨分离+分段）…',
     export_markup: '⤓ 标注',
     import_markup: '⤒ 标注',
     export_tip: '将段落标注下载为 JSON',
@@ -1323,6 +1335,11 @@ function App() {
   const [buffer, setBuffer] = useState(null);
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
+  const [engine, setEngine] = useState('fast'); // 'fast' | 'deep'
+  const [deepAvailable, setDeepAvailable] = useState(false);
+  useEffect(() => {
+    fetch('/api/health').then(r => r.json()).then(h => setDeepAvailable(!!h.deep_available)).catch(() => {});
+  }, []);
   const [dragOver, setDragOver] = useState(false);
   const [crossfade, setCrossfade] = useState(0); // сек
   const [transMode, setTransMode] = useState('loop'); // 'loop' | 'phrase'
@@ -1641,11 +1658,15 @@ function App() {
     } catch (er) {}
   };
   const currentFav = history.find(h => h.track_id === trackId);
-  const doAnalyze = async (id, n) => {
-    setLoading(t.loading_analyze);
+  const doAnalyze = async (id, n, eng) => {
+    const useEngine = eng || engine;
+    setLoading(useEngine === 'deep' ? t.loading_deep : t.loading_analyze);
     try {
-      const q = n ? `?n_segments=${n}` : '';
-      const r = await fetch(`/api/analyze/${id}${q}`);
+      const params = new URLSearchParams();
+      if (n) params.set('n_segments', n);
+      if (useEngine === 'deep') params.set('engine', 'deep');
+      const qs = params.toString();
+      const r = await fetch(`/api/analyze/${id}${qs ? '?' + qs : ''}`);
       if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
       const a = await r.json();
       setAnalysis(a);
@@ -1916,7 +1937,16 @@ function App() {
     value: nSeg,
     onChange: e => setNSeg(e.target.value),
     title: t.n_parts_tip
-  }), /*#__PURE__*/React.createElement("button", {
+  }), deepAvailable && /*#__PURE__*/React.createElement("div", {
+    className: "lang-switch",
+    title: t.engine_tip
+  }, /*#__PURE__*/React.createElement("button", {
+    className: engine === 'fast' ? 'on' : '',
+    onClick: () => setEngine('fast')
+  }, t.engine_fast), /*#__PURE__*/React.createElement("button", {
+    className: engine === 'deep' ? 'on' : '',
+    onClick: () => setEngine('deep')
+  }, t.engine_deep)), /*#__PURE__*/React.createElement("button", {
     onClick: () => doAnalyze(trackId, nSeg ? +nSeg : null),
     disabled: !!loading
   }, t.reanalyze), /*#__PURE__*/React.createElement("button", {

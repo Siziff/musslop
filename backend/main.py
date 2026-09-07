@@ -12,7 +12,14 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .analysis import analyze, loop_quality
+from .analysis import analyze, analyze_deep_merge, loop_quality
+
+# Python из отдельного venv c allin1 (torch+NATTEN). Если нет — deep недоступен
+DEEP_PY = os.environ.get(
+    "MUSSLOP_DEEP_PY",
+    "/workspace-SR008.fs2/mikheev-kandy/.envs/allin1/bin/python",
+)
+DEEP_AVAILABLE = os.path.exists(DEEP_PY)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
@@ -75,7 +82,7 @@ def _to_wav(src: str, dst: str) -> None:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "tracks": len(TRACKS)}
+    return {"status": "ok", "tracks": len(TRACKS), "deep_available": DEEP_AVAILABLE}
 
 
 @app.post("/api/upload")
@@ -177,14 +184,51 @@ def delete_track(track_id: str):
 
 
 @app.get("/api/analyze/{track_id}")
-def analyze_track(track_id: str, n_segments: int | None = Query(None, ge=2, le=24)):
+def analyze_track(track_id: str,
+                  n_segments: int | None = Query(None, ge=2, le=24),
+                  engine: str = Query("fast")):
     track = TRACKS.get(track_id)
     if not track:
         raise HTTPException(404, "Трек не найден")
-    result = analyze(track["wav"], n_segments=n_segments)
+
+    if engine == "deep":
+        if not DEEP_AVAILABLE:
+            raise HTTPException(503, "Глубокий анализ недоступен (venv allin1 не найден)")
+        result = _deep_analyze(track)
+    else:
+        result = analyze(track["wav"], n_segments=n_segments)
+
     result["track_id"] = track_id
     result["name"] = track["name"]
     return result
+
+
+def _deep_analyze(track: dict) -> dict:
+    """allin1 в отдельном venv (subprocess), результат кэшируется в meta."""
+    cached = track.get("deep_raw")
+    if not cached:
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+            out_json = tmp.name
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        try:
+            proc = subprocess.run(
+                [DEEP_PY, os.path.join(base, "tools", "deep_analyze.py"),
+                 track["orig"], out_json],
+                capture_output=True, text=True, timeout=1800,
+            )
+            if proc.returncode != 0:
+                tail = (proc.stderr or "")[-800:]
+                raise HTTPException(500, f"Ошибка глубокого анализа: {tail}")
+            with open(out_json) as f:
+                cached = json.load(f)
+        finally:
+            if os.path.exists(out_json):
+                os.remove(out_json)
+        track["deep_raw"] = cached
+        with open(_meta_path(track["id"]), "w") as f:
+            json.dump(track, f)
+    return analyze_deep_merge(track["wav"], cached)
 
 
 @app.get("/api/audio/{track_id}")

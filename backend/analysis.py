@@ -76,6 +76,77 @@ def _snap(value: float, grid: np.ndarray) -> float:
     return float(grid[np.argmin(np.abs(grid - value))])
 
 
+def analyze_deep_merge(path: str, deep: dict) -> dict:
+    """Слить результат allin1 (границы/лейблы/биты от нейросети) с нашими
+    метриками: loopability, детект проигровок, снап мелких секций.
+
+    allin1 обучена на Harmonix (человеческая разметка структуры) — границы
+    берём её. Наша добавка — специфичные для лупов свойства.
+    """
+    y, sr = librosa.load(path, sr=SR, mono=True)
+    duration = float(len(y) / sr)
+    rms = librosa.feature.rms(y=y, hop_length=HOP)
+    rms_env = rms[0]
+    rms_times = librosa.times_like(rms_env, sr=sr, hop_length=HOP)
+
+    downbeats = deep.get("downbeats") or []
+    beats = deep.get("beats") or []
+    tempo = float(deep.get("bpm") or 120.0)
+
+    # секции: выкинуть микро-«start/end» (<2c), склеить смежные короче 4с
+    raw = [s for s in deep.get("segments", [])
+           if s["end"] - s["start"] > 0.5]
+    segs: list[dict] = []
+    for s in raw:
+        if segs and (s["end"] - s["start"] < 4.0 or s["label"] in ("start", "end")):
+            segs[-1]["end"] = s["end"]
+            continue
+        if not segs and (s["end"] - s["start"] < 4.0 or s["label"] == "start"):
+            # первый мини-кусок вливаем в следующий
+            segs.append({"start": s["start"], "end": s["end"],
+                         "label": s["label"], "_merge_next": True})
+            continue
+        segs.append({"start": s["start"], "end": s["end"], "label": s["label"]})
+    merged: list[dict] = []
+    for s in segs:
+        if merged and merged[-1].get("_merge_next"):
+            merged[-1] = {"start": merged[-1]["start"], "end": s["end"],
+                          "label": s["label"]}
+        else:
+            merged.append(s)
+    segs = [{k: v for k, v in s.items() if k != "_merge_next"} for s in merged]
+    if segs:
+        segs[0]["start"] = 0.0
+        segs[-1]["end"] = duration
+
+    # функциональные лейблы -> человекочитаемые с нумерацией повторов
+    counts: dict[str, int] = {}
+    for s in segs:
+        base = str(s["label"]).capitalize()
+        counts[base] = counts.get(base, 0) + 1
+        s["label"] = f"{base} {counts[base]}" if counts[base] > 1 else base
+
+    for s in segs:
+        s["loopability"] = _loopability(y, sr, s["start"], s["end"])
+        s["transition"] = _is_transition(y, sr, rms_env, rms_times,
+                                         s["start"], s["end"], s["loopability"])
+        s["loop"] = not s["transition"]
+
+    bar_dur = 60.0 / max(tempo, 1e-6) * 4
+    min_len = max(4.0, bar_dur * 2)
+    return {
+        "duration": duration,
+        "tempo": tempo,
+        "beats": beats,
+        "downbeats": downbeats,
+        "segments": segs,
+        "n_suggested": len(segs),
+        "n_max": min(24, max(1, int(duration // min_len))),
+        "fallback": False,
+        "engine": "deep",
+    }
+
+
 def analyze(path: str, n_segments: int | None = None) -> dict:
     """Полный анализ трека. Возвращает dict для JSON-ответа."""
     y, sr = librosa.load(path, sr=SR, mono=True)

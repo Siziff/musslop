@@ -3,3 +3,4 @@ example/
 server.log
 __pycache__/
 *.pyc
+demix/
