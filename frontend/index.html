@@ -233,6 +233,22 @@
   .ai-bars i:nth-child(6) { height: 50%; animation-delay: .6s; }
   .ai-bars i:nth-child(7) { height: 70%; animation-delay: .72s; }
   @keyframes aeq { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+
+  /* ---------- volume control ---------- */
+  .volume-box {
+    position: fixed; right: 18px; bottom: 18px; z-index: 50;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 9px 14px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  }
+  .volume-box .vol-icon { font-size: 15px; cursor: pointer; user-select: none; width: 20px; text-align: center; }
+  .volume-box input[type=range] { width: 110px; accent-color: var(--accent); }
+  .volume-box .vol-num {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted); width: 34px; text-align: right;
+  }
 </style>
 </head>
 <body>
@@ -342,6 +358,7 @@ const STR = {
     history_del_tip: 'Удалить трек из истории',
     history_parts: 'ч.',
     loading_history: 'Загрузка трека из истории…',
+    volume_tip: 'Громкость (клик по иконке — выкл/вкл)',
     loading_transcode: 'Браузер обрезал аудио — беру полный WAV с сервера…',
     footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)',
   },
@@ -425,6 +442,7 @@ const STR = {
     history_del_tip: 'Remove track from history',
     history_parts: 'parts',
     loading_history: 'Loading track from history…',
+    volume_tip: 'Volume (click icon to mute/unmute)',
     loading_transcode: 'Browser truncated the audio — fetching full WAV from server…',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)',
   },
@@ -509,6 +527,7 @@ const STR = {
     history_del_tip: '从历史记录中删除',
     history_parts: '段',
     loading_history: '正在从历史记录加载音轨…',
+    volume_tip: '音量（点击图标静音/取消静音）',
     loading_transcode: '浏览器截断了音频 — 正在从服务器获取完整 WAV…',
     footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）',
   },
@@ -548,8 +567,22 @@ class LoopPlayer {
     this._reschedT = null;
   }
   _ensureCtx() {
-    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.volume != null ? this.volume : 1;
+      this.master.connect(this.ctx.destination);
+    }
     if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  setVolume(v) {
+    this.volume = v;
+    if (this.master) {
+      const now = this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(now);
+      this.master.gain.setValueAtTime(this.master.gain.value, now);
+      this.master.gain.linearRampToValueAtTime(v, now + 0.03);
+    }
   }
   setSegments(segs) {
     const prevSig = this._segSig;
@@ -680,7 +713,7 @@ class LoopPlayer {
     } else {
       g.gain.linearRampToValueAtTime(0, when + dur);
     }
-    src.connect(g); g.connect(this.ctx.destination);
+    src.connect(g); g.connect(this.master);
     src.start(when, from, dur);
     const rec = { src, g, when, from, end: to };
     this.sources.push(rec);
@@ -698,7 +731,7 @@ class LoopPlayer {
     g.gain.setValueAtTime(1, when);
     for (let k = 1; k <= N; k++)
       g.gain.linearRampToValueAtTime(Math.cos((k / N) * Math.PI / 2), when + dur * k / N);
-    src.connect(g); g.connect(this.ctx.destination);
+    src.connect(g); g.connect(this.master);
     src.start(when, from, dur);
     const rec = { src, g, when, from, end, isTail: true };
     this.sources.push(rec);
@@ -1379,6 +1412,15 @@ function App() {
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
   const [aiWorking, setAiWorking] = useState(false);   // ИИ-анализ в процессе
+  const [volume, setVolumeState] = useState(() => {
+    const v = parseFloat(localStorage.getItem('musslop_volume'));
+    return isFinite(v) ? v : 1;
+  });
+  const setVolume = v => {
+    setVolumeState(v);
+    localStorage.setItem('musslop_volume', String(v));
+    if (playerRef.current) playerRef.current.setVolume(v);
+  };
   const [deepAvailable, setDeepAvailable] = useState(false);
   useEffect(() => {
     fetch('/api/health').then(r => r.json())
@@ -1394,7 +1436,10 @@ function App() {
   const markupRef = useRef(null);
   const loopQT = useRef(null);
 
-  if (!playerRef.current) playerRef.current = new LoopPlayer();
+  if (!playerRef.current) {
+    playerRef.current = new LoopPlayer();
+    playerRef.current.volume = volume;
+  }
   const player = playerRef.current;
   useEffect(() => { player.onState = () => force(x => x + 1); }, []);
   useEffect(() => { player.setSegments(segments); }, [segments]);
@@ -1944,6 +1989,15 @@ function App() {
       </div>}
 
       <footer>{t.footer} · <a href="https://github.com/Siziff/musslop" target="_blank">GitHub</a></footer>
+
+      <div className="volume-box" title={t.volume_tip}>
+        <span className="vol-icon" onClick={() => setVolume(volume > 0 ? 0 : 1)}>
+          {volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊'}
+        </span>
+        <input type="range" min="0" max="1" step="0.01" value={volume}
+          onChange={e => setVolume(+e.target.value)} />
+        <span className="vol-num">{Math.round(volume * 100)}%</span>
+      </div>
     </div>
   );
 }

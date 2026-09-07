@@ -232,6 +232,22 @@
   .ai-bars i:nth-child(6) { height: 50%; animation-delay: .6s; }
   .ai-bars i:nth-child(7) { height: 70%; animation-delay: .72s; }
   @keyframes aeq { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+
+  /* ---------- volume control ---------- */
+  .volume-box {
+    position: fixed; right: 18px; bottom: 18px; z-index: 50;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 9px 14px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  }
+  .volume-box .vol-icon { font-size: 15px; cursor: pointer; user-select: none; width: 20px; text-align: center; }
+  .volume-box input[type=range] { width: 110px; accent-color: var(--accent); }
+  .volume-box .vol-num {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted); width: 34px; text-align: right;
+  }
 </style>
 </head>
 <body>
@@ -251,6 +267,6 @@
     }
   });
 </script>
-<script defer src="app.js?v=e82b978520"></script>
+<script defer src="app.js?v=bc4e83660c"></script>
 </body>
 </html>

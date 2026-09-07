@@ -89,6 +89,7 @@ const STR = {
     history_del_tip: 'Удалить трек из истории',
     history_parts: 'ч.',
     loading_history: 'Загрузка трека из истории…',
+    volume_tip: 'Громкость (клик по иконке — выкл/вкл)',
     loading_transcode: 'Браузер обрезал аудио — беру полный WAV с сервера…',
     footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)'
   },
@@ -172,6 +173,7 @@ const STR = {
     history_del_tip: 'Remove track from history',
     history_parts: 'parts',
     loading_history: 'Loading track from history…',
+    volume_tip: 'Volume (click icon to mute/unmute)',
     loading_transcode: 'Browser truncated the audio — fetching full WAV from server…',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)'
   },
@@ -256,6 +258,7 @@ const STR = {
     history_del_tip: '从历史记录中删除',
     history_parts: '段',
     loading_history: '正在从历史记录加载音轨…',
+    volume_tip: '音量（点击图标静音/取消静音）',
     loading_transcode: '浏览器截断了音频 — 正在从服务器获取完整 WAV…',
     footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）'
   }
@@ -296,8 +299,22 @@ class LoopPlayer {
     this._reschedT = null;
   }
   _ensureCtx() {
-    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.volume != null ? this.volume : 1;
+      this.master.connect(this.ctx.destination);
+    }
     if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  setVolume(v) {
+    this.volume = v;
+    if (this.master) {
+      const now = this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(now);
+      this.master.gain.setValueAtTime(this.master.gain.value, now);
+      this.master.gain.linearRampToValueAtTime(v, now + 0.03);
+    }
   }
   setSegments(segs) {
     const prevSig = this._segSig;
@@ -446,7 +463,7 @@ class LoopPlayer {
       g.gain.linearRampToValueAtTime(0, when + dur);
     }
     src.connect(g);
-    g.connect(this.ctx.destination);
+    g.connect(this.master);
     src.start(when, from, dur);
     const rec = {
       src,
@@ -473,7 +490,7 @@ class LoopPlayer {
     g.gain.setValueAtTime(1, when);
     for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(Math.cos(k / N * Math.PI / 2), when + dur * k / N);
     src.connect(g);
-    g.connect(this.ctx.destination);
+    g.connect(this.master);
     src.start(when, from, dur);
     const rec = {
       src,
@@ -1375,6 +1392,15 @@ function App() {
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
   const [aiWorking, setAiWorking] = useState(false); // ИИ-анализ в процессе
+  const [volume, setVolumeState] = useState(() => {
+    const v = parseFloat(localStorage.getItem('musslop_volume'));
+    return isFinite(v) ? v : 1;
+  });
+  const setVolume = v => {
+    setVolumeState(v);
+    localStorage.setItem('musslop_volume', String(v));
+    if (playerRef.current) playerRef.current.setVolume(v);
+  };
   const [deepAvailable, setDeepAvailable] = useState(false);
   useEffect(() => {
     fetch('/api/health').then(r => r.json()).then(h => setDeepAvailable(!!h.deep_available)).catch(() => {});
@@ -1388,7 +1414,10 @@ function App() {
   const fileRef = useRef(null);
   const markupRef = useRef(null);
   const loopQT = useRef(null);
-  if (!playerRef.current) playerRef.current = new LoopPlayer();
+  if (!playerRef.current) {
+    playerRef.current = new LoopPlayer();
+    playerRef.current.volume = volume;
+  }
   const player = playerRef.current;
   useEffect(() => {
     player.onState = () => force(x => x + 1);
@@ -2180,6 +2209,21 @@ function App() {
   }, t.keys_hint)), /*#__PURE__*/React.createElement("footer", null, t.footer, " \xB7 ", /*#__PURE__*/React.createElement("a", {
     href: "https://github.com/Siziff/musslop",
     target: "_blank"
-  }, "GitHub")));
+  }, "GitHub")), /*#__PURE__*/React.createElement("div", {
+    className: "volume-box",
+    title: t.volume_tip
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "vol-icon",
+    onClick: () => setVolume(volume > 0 ? 0 : 1)
+  }, volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊'), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: "0",
+    max: "1",
+    step: "0.01",
+    value: volume,
+    onChange: e => setVolume(+e.target.value)
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "vol-num"
+  }, Math.round(volume * 100), "%")));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
