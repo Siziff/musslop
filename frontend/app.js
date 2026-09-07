@@ -261,17 +261,119 @@ class LoopPlayer {
     if (this.ctx.state === 'suspended') this.ctx.resume();
   }
   setSegments(segs) {
+    const prevSig = this._segSig;
+    this._segSig = segs.map(s => `${s.start.toFixed(3)}_${s.end.toFixed(3)}_${s.loopStart != null ? s.loopStart.toFixed(3) : ''}_${s.loop === false ? 0 : 1}`).join('|');
     this.segments = segs;
     if (this.segIndex >= segs.length) this.segIndex = Math.max(0, segs.length - 1);
-    // границы изменились во время игры — перепланировать с текущей позиции
-    if (this.playing) {
+    // перепланируем только если реально изменились границы/флаги,
+    // а не метаданные (loopability, label)
+    if (this.playing && prevSig !== undefined && prevSig !== this._segSig) {
       clearTimeout(this._reschedT);
       this._reschedT = setTimeout(() => {
         if (!this.playing) return;
-        const pos = this.position();
-        if (pos != null) this._restartAt(pos);
-      }, 180);
+        this._replan();
+      }, 120);
     }
+  }
+  // Мягко погасить и остановить источники (вместо жёсткого stop -> щелчки)
+  _fadeStopAll(fade = 0.05) {
+    const now = this.ctx.currentTime;
+    for (const r of this.sources) {
+      try {
+        if (r.when > now + 0.005) {
+          r.src.stop(now);
+          continue;
+        } // ещё не стартовал
+        const g = r.g.gain;
+        g.cancelScheduledValues(now);
+        g.setValueAtTime(g.value, now);
+        g.linearRampToValueAtTime(0, now + fade);
+        r.src.stop(now + fade + 0.01);
+      } catch (e) {
+        try {
+          r.src.stop();
+        } catch (e2) {}
+      }
+    }
+    this.sources = [];
+  }
+  // Перепланирование на лету: текущий кусок продолжает звучать, его конец
+  // подгоняется под новую границу, будущие куски отменяются и строятся заново.
+  _replan() {
+    if (!this.playing || !this.buffer || !this.segments.length) return;
+    const now = this.ctx.currentTime;
+    const pos = this.position();
+    if (pos == null) return;
+    const idx = this._segAt(pos);
+    const seg = this.segments[idx];
+    // текущий звучащий источник (самый поздний из уже стартовавших)
+    let cur = null;
+    for (const r of this.sources) {
+      if (r.when <= now + 0.005 && (!cur || r.when > cur.when)) cur = r;
+    }
+    // границу утащили за плейхед или источник не найден — мягкий перезапуск
+    if (!cur || pos >= seg.end - 0.08 || pos < seg.start - 0.05) {
+      this._softRestartAt(Math.max(seg.start, Math.min(pos, seg.end - 0.1)));
+      return;
+    }
+    // отменить будущие куски (они ещё не звучат — тишина без артефактов)
+    for (const r of this.sources) {
+      if (r !== cur && r.when > now + 0.005) {
+        try {
+          r.src.stop(now);
+        } catch (e) {}
+      }
+    }
+    this.sources = this.sources.filter(r => r === cur || r.when <= now + 0.005);
+    // подогнать конец текущего куска под новую границу сегмента
+    const newEndCtx = cur.when + (seg.end - cur.from);
+    try {
+      const g = cur.g.gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(1, now + 0.02);
+      g.setValueAtTime(1, Math.max(now + 0.02, newEndCtx - this.FADE));
+      g.linearRampToValueAtTime(0, newEndCtx);
+      cur.src.stop(newEndCtx + 0.02);
+      cur.end = seg.end;
+    } catch (e) {
+      // браузер не дал перенести stop — тогда мягкий перезапуск
+      this._softRestartAt(pos);
+      return;
+    }
+    const prevFlags = this.queue.length ? this.queue[0] : {};
+    this.queue = [{
+      t0: cur.when,
+      t1: newEndCtx,
+      segIndex: idx,
+      trackStart: cur.from,
+      isLoopRepeat: !!prevFlags.isLoopRepeat
+    }];
+    this.segIndex = idx;
+    this.lastPlannedIndex = idx;
+    this.nextTime = newEndCtx;
+    this.onState();
+  }
+  // Перезапуск с плавным затуханием старого (для seek и краевых случаев)
+  _softRestartAt(pos) {
+    this._fadeStopAll(0.05);
+    if (!this.segments.length || !this.buffer) return;
+    const idx = this._segAt(pos);
+    const seg = this.segments[idx];
+    const from = Math.max(seg.start, Math.min(pos, seg.end - 0.05));
+    this.segIndex = idx;
+    this.lastPlannedIndex = idx;
+    this.nextTime = this.ctx.currentTime + 0.06;
+    const dur = this._scheduleChunkRange(from, seg.end, this.nextTime, 0.03, null);
+    this.queue = [{
+      t0: this.nextTime,
+      t1: this.nextTime + dur,
+      segIndex: idx,
+      trackStart: from,
+      isLoopRepeat: false
+    }];
+    this.nextTime += dur;
+    this.onState();
   }
   _segAt(pos) {
     let idx = this.segments.findIndex(s => pos >= s.start && pos < s.end);
@@ -309,7 +411,10 @@ class LoopPlayer {
     src.start(when, from, dur);
     const rec = {
       src,
-      g
+      g,
+      when,
+      from,
+      end: to
     };
     this.sources.push(rec);
     src.onended = () => {
@@ -333,7 +438,11 @@ class LoopPlayer {
     src.start(when, from, dur);
     const rec = {
       src,
-      g
+      g,
+      when,
+      from,
+      end,
+      isTail: true
     };
     this.sources.push(rec);
     src.onended = () => {
@@ -438,7 +547,7 @@ class LoopPlayer {
     if (this.playing) {
       this.loopCount = 1;
       this.advanceArmed = false;
-      this._restartAt(pos);
+      this._softRestartAt(pos);
     } else {
       this.segIndex = this._segAt(pos);
       this.pendingPos = pos;
