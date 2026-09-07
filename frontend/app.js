@@ -91,6 +91,32 @@ const STR = {
     loading_history: 'Загрузка трека из истории…',
     volume_tip: 'Громкость (клик по иконке — выкл/вкл)',
     files_menu: '⤓⤒ Файлы',
+    tail_label: 'хвост перехода',
+    tail_tip: 'Реверберация/затухание старой части дозвучивает поверх новой (~1.2с) — главный убийца «дёрганых» стыков',
+    bass_swap_label: 'бас-своп',
+    bass_swap_tip: 'Бас новой части включается ровно на границе, а не в кроссфейде — не будет каши из двух басов',
+    stinger_label: 'Стингер:',
+    stinger_tip: 'Одиночный звук-акцент на переходе — как удар при входе в новую локацию',
+    stinger_none: 'нет',
+    stinger_cymbal: 'тарелка',
+    stinger_boom: 'удар',
+    stinger_riser: 'райзер',
+    stems_label: 'Слои:',
+    stems_tip: 'ИИ разделит трек на 4 слоя (барабаны/бас/вокал/фон) — ползунок интенсивности включает их постепенно, как в игровых саундтреках',
+    stems_btn: 'Разделить на слои',
+    stems_working: 'Разделение…',
+    stems_ready: 'слои готовы',
+    stems_off: 'выкл',
+    stems_loading: 'ИИ разделяет трек на слои (~1 мин)…',
+    stems_downloading: 'Загрузка слоя',
+    intensity_label: 'Интенсивность:',
+    int_calm: 'фон',
+    int_low: '+бас',
+    int_mid: '+ритм',
+    int_full: 'всё',
+    url_placeholder: 'Ссылка на YouTube / прямая ссылка на аудио…',
+    url_btn: 'Импорт',
+    url_downloading: 'Скачивание по ссылке…',
     loading_transcode: 'Браузер обрезал аудио — беру полный WAV с сервера…',
     footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)'
   },
@@ -176,6 +202,32 @@ const STR = {
     loading_history: 'Loading track from history…',
     volume_tip: 'Volume (click icon to mute/unmute)',
     files_menu: '⤓⤒ Files',
+    tail_label: 'transition tail',
+    tail_tip: 'Reverb/decay of the old section rings out over the new one (~1.2s) — the main cure for jerky seams',
+    bass_swap_label: 'bass swap',
+    bass_swap_tip: 'The incoming bass enters exactly on the boundary, not inside the crossfade — no two-bass mud',
+    stinger_label: 'Stinger:',
+    stinger_tip: 'One-shot accent on the transition — like a hit when entering a new location',
+    stinger_none: 'none',
+    stinger_cymbal: 'cymbal',
+    stinger_boom: 'boom',
+    stinger_riser: 'riser',
+    stems_label: 'Layers:',
+    stems_tip: 'AI splits the track into 4 layers (drums/bass/vocals/backing) — the intensity slider brings them in gradually, like game soundtracks do',
+    stems_btn: 'Split into layers',
+    stems_working: 'Splitting…',
+    stems_ready: 'layers ready',
+    stems_off: 'off',
+    stems_loading: 'AI is splitting the track into layers (~1 min)…',
+    stems_downloading: 'Downloading layer',
+    intensity_label: 'Intensity:',
+    int_calm: 'ambient',
+    int_low: '+bass',
+    int_mid: '+drums',
+    int_full: 'full',
+    url_placeholder: 'YouTube link / direct audio URL…',
+    url_btn: 'Import',
+    url_downloading: 'Downloading from URL…',
     loading_transcode: 'Browser truncated the audio — fetching full WAV from server…',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)'
   },
@@ -262,6 +314,32 @@ const STR = {
     loading_history: '正在从历史记录加载音轨…',
     volume_tip: '音量（点击图标静音/取消静音）',
     files_menu: '⤓⤒ 文件',
+    tail_label: '过渡尾音',
+    tail_tip: '旧段落的混响/衰减在新段落上延续（约1.2秒）— 消除生硬接缝的关键',
+    bass_swap_label: '贝斯切换',
+    bass_swap_tip: '新段落的贝斯恰好在边界处进入，而非在交叉淡化中 — 避免双贝斯浑浊',
+    stinger_label: '重音音效:',
+    stinger_tip: '过渡时的单次重音 — 如同进入新场景时的音效',
+    stinger_none: '无',
+    stinger_cymbal: '镲片',
+    stinger_boom: '低音鼓',
+    stinger_riser: '上升音',
+    stems_label: '分层:',
+    stems_tip: 'AI 将音轨分为4层（鼓/贝斯/人声/伴奏）— 强度滑块逐层加入，如同游戏配乐',
+    stems_btn: 'AI 分层',
+    stems_working: '正在分离…',
+    stems_ready: '分层就绪',
+    stems_off: '关闭',
+    stems_loading: 'AI 正在分层（约1分钟）…',
+    stems_downloading: '正在下载分层',
+    intensity_label: '强度:',
+    int_calm: '氛围',
+    int_low: '+贝斯',
+    int_mid: '+鼓点',
+    int_full: '全部',
+    url_placeholder: 'YouTube 链接 / 音频直链…',
+    url_btn: '导入',
+    url_downloading: '正在从链接下载…',
     loading_transcode: '浏览器截断了音频 — 正在从服务器获取完整 WAV…',
     footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）'
   }
@@ -290,6 +368,14 @@ class LoopPlayer {
     this.crossfade = 0; // сек, 0 = стык по границе с микро-фейдом
     this.transitionMode = 'loop'; // 'loop' = в конце лупа, 'phrase' = граница фразы
     this.phraseBars = 4; // длина фразы в тактах для режима 'phrase'
+    this.tailEnabled = true; // post-exit: хвост старой части дозвучивает
+    this.TAIL = 1.2; // сек хвоста
+    this.bassSwap = true; // бас входящей части включается на границе
+    this.stinger = 'none'; // 'none' | 'cymbal' | 'boom' | 'riser'
+    this.stingerBuffers = {}; // name -> AudioBuffer
+    this.stems = null; // {drums,bass,other,vocals: AudioBuffer} | null
+    this.stemGains = null; // {name: GainNode}
+    this.intensity = 1; // 0..1, влияет на слои стемов
     this.nextTime = 0; // ctx time of the next chunk start
     this.queue = []; // [{t0, t1, segIndex, trackStart}]
     this.sources = []; // [{src, g}]
@@ -340,17 +426,17 @@ class LoopPlayer {
     for (const r of this.sources) {
       try {
         if (r.when > now + 0.005) {
-          r.src.stop(now);
+          (r.stopAll || (t => r.src.stop(t)))(now);
           continue;
         } // ещё не стартовал
         const g = r.g.gain;
         g.cancelScheduledValues(now);
         g.setValueAtTime(g.value, now);
         g.linearRampToValueAtTime(0, now + fade);
-        r.src.stop(now + fade + 0.01);
+        (r.stopAll || (t => r.src.stop(t)))(now + fade + 0.01);
       } catch (e) {
         try {
-          r.src.stop();
+          (r.stopAll || (() => r.src.stop()))();
         } catch (e2) {}
       }
     }
@@ -379,7 +465,7 @@ class LoopPlayer {
     for (const r of this.sources) {
       if (r !== cur && r.when > now + 0.005) {
         try {
-          r.src.stop(now);
+          (r.stopAll || (t => r.src.stop(t)))(now);
         } catch (e) {}
       }
     }
@@ -393,7 +479,7 @@ class LoopPlayer {
       g.linearRampToValueAtTime(1, now + 0.02);
       g.setValueAtTime(1, Math.max(now + 0.02, newEndCtx - this.FADE));
       g.linearRampToValueAtTime(0, newEndCtx);
-      cur.src.stop(newEndCtx + 0.02);
+      (cur.stopAll || (t => cur.src.stop(t)))(newEndCtx + 0.02);
       cur.end = seg.end;
     } catch (e) {
       // браузер не дал перенести stop — тогда мягкий перезапуск
@@ -442,11 +528,10 @@ class LoopPlayer {
   }
   // Кусок аудио [from, to) на ctx-времени when.
   // fadeIn/fadeOut — длительности фейдов (equal-power при кроссфейде).
-  _scheduleChunkRange(from, to, when, fadeIn = null, fadeOut = null) {
+  // opts.bassDelay — сек: бас включается позже (бас-своп на переходе).
+  _scheduleChunkRange(from, to, when, fadeIn = null, fadeOut = null, opts = {}) {
     const dur = to - from;
     if (dur <= 0.01) return 0;
-    const src = this.ctx.createBufferSource();
-    src.buffer = this.buffer;
     const g = this.ctx.createGain();
     const fi = Math.min(fadeIn != null ? fadeIn : this.FADE, dur / 2);
     const fo = Math.min(fadeOut != null ? fadeOut : this.FADE, dur / 2);
@@ -465,43 +550,147 @@ class LoopPlayer {
     } else {
       g.gain.linearRampToValueAtTime(0, when + dur);
     }
-    src.connect(g);
     g.connect(this.master);
-    src.start(when, from, dur);
+    const started = [];
+    if (this.stems) {
+      // мульти-стем: каждый слой через свой gain (интенсивность)
+      this._ensureStemGains();
+      for (const name of ['drums', 'bass', 'other', 'vocals']) {
+        const buf = this.stems[name];
+        if (!buf) continue;
+        const s = this.ctx.createBufferSource();
+        s.buffer = buf;
+        const sg = this.stemGains[name];
+        // бас-своп: bass и drums молчат до границы + fi, потом резкий вход
+        if (opts.bassDelay && (name === 'bass' || name === 'drums')) {
+          const dg = this.ctx.createGain();
+          dg.gain.setValueAtTime(0, when);
+          dg.gain.setValueAtTime(0, when + opts.bassDelay - 0.005);
+          dg.gain.linearRampToValueAtTime(1, when + opts.bassDelay + 0.01);
+          s.connect(dg);
+          dg.connect(sg);
+        } else {
+          s.connect(sg);
+        }
+        sg.connect(g);
+        s.start(when, Math.min(from, buf.duration - 0.01), dur);
+        started.push(s);
+      }
+    } else {
+      const src = this.ctx.createBufferSource();
+      src.buffer = this.buffer;
+      if (opts.bassDelay && this.bassSwap) {
+        // без стемов: 2-полосный сплит, низ входит с задержкой
+        const lo = this.ctx.createBiquadFilter();
+        lo.type = 'lowpass';
+        lo.frequency.value = 180;
+        lo.Q.value = 0.7;
+        const hi = this.ctx.createBiquadFilter();
+        hi.type = 'highpass';
+        hi.frequency.value = 180;
+        hi.Q.value = 0.7;
+        const loG = this.ctx.createGain();
+        loG.gain.setValueAtTime(0, when);
+        loG.gain.setValueAtTime(0, when + opts.bassDelay - 0.005);
+        loG.gain.linearRampToValueAtTime(1, when + opts.bassDelay + 0.01);
+        src.connect(lo);
+        lo.connect(loG);
+        loG.connect(g);
+        src.connect(hi);
+        hi.connect(g);
+      } else {
+        src.connect(g);
+      }
+      src.start(when, from, dur);
+      started.push(src);
+    }
     const rec = {
-      src,
+      src: started[0],
+      srcs: started,
       g,
       when,
       from,
       end: to
     };
     this.sources.push(rec);
-    src.onended = () => {
+    started[0].onended = () => {
       this.sources = this.sources.filter(s => s !== rec);
     };
+    // общий stop для мульти-источников
+    rec.stopAll = t => started.forEach(s => {
+      try {
+        t != null ? s.stop(t) : s.stop();
+      } catch (e) {}
+    });
     return dur;
   }
-  // Хвост предыдущей части, затухающий поверх начала новой (кроссфейд)
-  _scheduleTail(from, when, xf) {
-    const end = Math.min(from + xf, this.buffer.duration);
-    if (end - from <= 0.02) return;
+  _ensureStemGains() {
+    if (this.stemGains) return;
+    this.stemGains = {};
+    for (const name of ['drums', 'bass', 'other', 'vocals']) {
+      const gn = this.ctx.createGain();
+      this.stemGains[name] = gn;
+    }
+    this.setIntensity(this.intensity);
+  }
+  // Интенсивность 0..1 -> слои: other всегда, bass с 0.25, drums с 0.5, vocals с 0.75
+  setIntensity(v) {
+    this.intensity = v;
+    if (!this.stemGains || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const layer = (gn, on) => {
+      const target = on ? 1 : 0;
+      gn.gain.cancelScheduledValues(now);
+      gn.gain.setValueAtTime(gn.gain.value, now);
+      gn.gain.linearRampToValueAtTime(target, now + 0.4);
+    };
+    layer(this.stemGains.other, true);
+    layer(this.stemGains.bass, v >= 0.25);
+    layer(this.stemGains.drums, v >= 0.5);
+    layer(this.stemGains.vocals, v >= 0.75);
+  }
+  // Стингер: одиночный звук на моменте перехода
+  _playStinger(when) {
+    const buf = this.stingerBuffers[this.stinger];
+    if (!buf) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.9;
+    src.connect(g);
+    g.connect(this.master);
+    // райзер должен ЗАКОНЧИТЬСЯ на границе, удар/тарелка — начаться на ней
+    const t = this.stinger === 'riser' ? Math.max(this.ctx.currentTime, when - buf.duration) : when;
+    src.start(t);
+  }
+  // Post-exit: хвост старой части дозвучивает поверх начала новой с затуханием
+  _schedulePostExitTail(fromPos, when) {
+    if (!this.tailEnabled) return;
+    const end = Math.min(fromPos + this.TAIL, this.buffer.duration);
+    const dur = end - fromPos;
+    if (dur <= 0.05) return;
     const src = this.ctx.createBufferSource();
     src.buffer = this.buffer;
     const g = this.ctx.createGain();
-    const N = 8,
-      dur = end - from;
-    g.gain.setValueAtTime(1, when);
-    for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(Math.cos(k / N * Math.PI / 2), when + dur * k / N);
+    const N = 8;
+    g.gain.setValueAtTime(0.9, when);
+    for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(0.9 * Math.cos(k / N * Math.PI / 2), when + dur * k / N);
     src.connect(g);
     g.connect(this.master);
-    src.start(when, from, dur);
+    src.start(when, fromPos, dur);
     const rec = {
       src,
+      srcs: [src],
       g,
       when,
-      from,
+      from: fromPos,
       end,
-      isTail: true
+      isTail: true,
+      stopAll: t => {
+        try {
+          t != null ? src.stop(t) : src.stop();
+        } catch (e) {}
+      }
     };
     this.sources.push(rec);
     src.onended = () => {
@@ -512,7 +701,7 @@ class LoopPlayer {
   _restartAt(pos) {
     this.sources.forEach(s => {
       try {
-        s.src.stop();
+        (s.stopAll || (() => s.src.stop()))();
       } catch (e) {}
     });
     this.sources = [];
@@ -571,7 +760,20 @@ class LoopPlayer {
       // повторах лупа (сглаживает стык конец->начало), и на переходах.
       const chunkDur = seg.end - from;
       const xf = this.crossfade > 0.02 ? Math.min(this.crossfade, chunkDur / 3) : 0;
-      const dur = this._scheduleChunkRange(from, seg.end, this.nextTime, xf > 0 ? xf : null, xf > 0 ? xf : null);
+      const isSectionChange = !isRepeat && this.lastPlannedIndex !== idx;
+      const opts = {};
+      if (isSectionChange && this.bassSwap) {
+        // бас входящей части включается ровно на границе (не в кроссфейде)
+        opts.bassDelay = Math.max(xf, 0.01);
+      }
+      const dur = this._scheduleChunkRange(from, seg.end, this.nextTime, xf > 0 ? xf : null, xf > 0 ? xf : null, opts);
+      if (isSectionChange) {
+        // post-exit: хвост прошлой части дозвучивает поверх новой
+        const prev = this.segments[this.lastPlannedIndex];
+        if (prev) this._schedulePostExitTail(prev.end, this.nextTime);
+        // стингер на моменте перехода
+        if (this.stinger !== 'none') this._playStinger(this.nextTime);
+      }
       this.queue.push({
         t0: this.nextTime,
         t1: this.nextTime + dur,
@@ -671,7 +873,7 @@ class LoopPlayer {
     const olds = this.sources.slice();
     setTimeout(() => olds.forEach(s => {
       try {
-        s.src.stop();
+        (s.stopAll || (() => s.src.stop()))();
       } catch (e) {}
     }), (Tt - now + xf + 0.1) * 1000);
     this.sources = [];
@@ -704,7 +906,7 @@ class LoopPlayer {
     }
     this.sources.forEach(s => {
       try {
-        s.src.stop();
+        (s.stopAll || (() => s.src.stop()))();
       } catch (e) {}
     });
     this.sources = [];
@@ -1396,6 +1598,9 @@ function App() {
   const [nSeg, setNSeg] = useState('');
   const [aiWorking, setAiWorking] = useState(false); // ИИ-анализ в процессе
   const [exportOpen, setExportOpen] = useState(false);
+  const [tailOn, setTailOn] = useState(true);
+  const [bassSwapOn, setBassSwapOn] = useState(true);
+  const [stinger, setStinger] = useState('none');
   const [volume, setVolumeState] = useState(() => {
     const v = parseFloat(localStorage.getItem('musslop_volume'));
     return isFinite(v) ? v : 1;
@@ -1426,6 +1631,28 @@ function App() {
   useEffect(() => {
     player.onState = () => force(x => x + 1);
   }, []);
+  // асинхронная догрузка стингеров (не блокирует старт)
+  useEffect(() => {
+    (async () => {
+      try {
+        player._ensureCtx();
+      } catch (e) {
+        return;
+      } // до первого клика ctx может не создаться — ок
+      for (const name of ['cymbal', 'boom', 'riser']) {
+        try {
+          const ab = await (await fetch(`stingers/${name}.wav`)).arrayBuffer();
+          player.stingerBuffers[name] = await player.ctx.decodeAudioData(ab);
+        } catch (e) {}
+      }
+    })();
+  }, []);
+  // смена трека -> стемы старого трека неактуальны
+  useEffect(() => {
+    player.stems = null;
+    player.stemGains = null;
+    setStemsState('none');
+  }, [trackId]);
   useEffect(() => {
     player.setSegments(segments);
   }, [segments]);
@@ -1471,6 +1698,90 @@ function App() {
     }, 800);
     return () => clearTimeout(loopQT.current);
   }, [trackId, segments.map(s => `${s.start.toFixed(2)}_${s.end.toFixed(2)}`).join('|')]);
+
+  // --- Стемы (vertical layering) -------------------------------------------
+  const [stemsState, setStemsState] = useState('none'); // none|loading|ready
+  const [intensity, setIntensityState] = useState(1);
+  const setIntensity = v => {
+    setIntensityState(v);
+    player.setIntensity(v);
+  };
+  const loadStems = async () => {
+    if (!trackId || stemsState === 'loading') return;
+    setStemsState('loading');
+    setLoading(t.stems_loading);
+    try {
+      const r = await fetch(`/api/stems/${trackId}`, {
+        method: 'POST'
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
+      player._ensureCtx();
+      const names = ['drums', 'bass', 'other', 'vocals'];
+      const bufs = {};
+      for (let i = 0; i < names.length; i++) {
+        setLoading(`${t.stems_downloading} ${i + 1}/4…`);
+        const ab = await (await fetch(`/api/stems/${trackId}/${names[i]}`)).arrayBuffer();
+        bufs[names[i]] = await player.ctx.decodeAudioData(ab);
+      }
+      player.stems = bufs;
+      player.stemGains = null; // пересоздать с текущей интенсивностью
+      setStemsState('ready');
+      // перезапустить воспроизведение на стемах с текущей позиции
+      if (player.playing) {
+        const pos = player.position();
+        if (pos != null) player._softRestartAt(pos);
+      }
+    } catch (e) {
+      setError(String(e.message || e));
+      setStemsState('none');
+    } finally {
+      setLoading(null);
+    }
+  };
+  const unloadStems = () => {
+    player.stems = null;
+    player.stemGains = null;
+    setStemsState('none');
+    if (player.playing) {
+      const pos = player.position();
+      if (pos != null) player._softRestartAt(pos);
+    }
+  };
+
+  // --- Импорт по URL ---------------------------------------------------------
+  const [importUrl, setImportUrl] = useState('');
+  const importFromUrl = async () => {
+    const url = importUrl.trim();
+    if (!url) return;
+    setError(null);
+    setLoading(t.url_downloading);
+    try {
+      const r = await fetch('/api/import_url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url
+        })
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || t.err_upload);
+      const {
+        track_id,
+        name
+      } = await r.json();
+      setImportUrl('');
+      loadHistory();
+      await openFromHistory({
+        track_id,
+        name
+      });
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setLoading(null);
+    }
+  };
   const exportLoops = async () => {
     if (!trackId) return;
     setLoading(t.exporting);
@@ -1901,7 +2212,33 @@ function App() {
       display: 'none'
     },
     onChange: e => e.target.files[0] && upload(e.target.files[0])
-  })), loading && /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: t.url_placeholder,
+    value: importUrl,
+    onChange: e => setImportUrl(e.target.value),
+    onKeyDown: e => e.key === 'Enter' && importFromUrl(),
+    style: {
+      flex: 1,
+      minWidth: 200,
+      background: 'var(--panel2)',
+      color: 'var(--text)',
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      padding: '9px 12px',
+      fontSize: 13.5,
+      fontFamily: 'inherit',
+      outline: 'none'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: importFromUrl,
+    disabled: !importUrl.trim() || !!loading
+  }, "\uD83D\uDD17 ", t.url_btn)), loading && /*#__PURE__*/React.createElement("div", {
     className: "status",
     style: {
       marginTop: 12
@@ -2222,6 +2559,86 @@ function App() {
       color: 'var(--muted)'
     }
   }, crossfade.toFixed(1), "s")), /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "chk",
+    title: t.tail_tip
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: tailOn,
+    onChange: e => {
+      setTailOn(e.target.checked);
+      player.tailEnabled = e.target.checked;
+    }
+  }), t.tail_label), /*#__PURE__*/React.createElement("label", {
+    className: "chk",
+    title: t.bass_swap_tip
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: bassSwapOn,
+    onChange: e => {
+      setBassSwapOn(e.target.checked);
+      player.bassSwap = e.target.checked;
+    }
+  }), t.bass_swap_label), /*#__PURE__*/React.createElement("span", {
+    className: "badge",
+    style: {
+      marginLeft: 12
+    },
+    title: t.stinger_tip
+  }, t.stinger_label), /*#__PURE__*/React.createElement("div", {
+    className: "lang-switch"
+  }, ['none', 'cymbal', 'boom', 'riser'].map(sg => /*#__PURE__*/React.createElement("button", {
+    key: sg,
+    className: stinger === sg ? 'on' : '',
+    onClick: () => {
+      setStinger(sg);
+      player.stinger = sg;
+    }
+  }, t['stinger_' + sg])))), deepAvailable && /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "badge",
+    title: t.stems_tip
+  }, t.stems_label), stemsState !== 'ready' ? /*#__PURE__*/React.createElement("button", {
+    className: "ai-btn",
+    onClick: loadStems,
+    disabled: stemsState === 'loading' || !!loading
+  }, "\uD83C\uDF9A ", stemsState === 'loading' ? t.stems_working : t.stems_btn) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+    className: "badge",
+    style: {
+      color: 'var(--accent2)'
+    }
+  }, "\u2713 ", t.stems_ready), /*#__PURE__*/React.createElement("span", {
+    className: "badge"
+  }, t.intensity_label), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: "0",
+    max: "1",
+    step: "0.01",
+    value: intensity,
+    style: {
+      width: 160,
+      accentColor: '#a06bff'
+    },
+    onChange: e => setIntensity(+e.target.value)
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "time",
+    style: {
+      fontFamily: '"JetBrains Mono", monospace',
+      fontSize: 12,
+      color: 'var(--muted)'
+    }
+  }, intensity < 0.25 ? t.int_calm : intensity < 0.5 ? t.int_low : intensity < 0.75 ? t.int_mid : t.int_full), /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: unloadStems
+  }, t.stems_off))), /*#__PURE__*/React.createElement("div", {
     className: "hint"
   }, t.keys_hint)), /*#__PURE__*/React.createElement("footer", null, t.footer, " \xB7 ", /*#__PURE__*/React.createElement("a", {
     href: "https://github.com/Siziff/musslop",

@@ -279,6 +279,86 @@ def loopability(track_id: str, segments: list[dict] = Body(...)):
     return {"loopability": loop_quality(track["wav"], segments)}
 
 
+STEM_NAMES = ("drums", "bass", "other", "vocals")
+
+
+@app.post("/api/stems/{track_id}")
+def make_stems(track_id: str):
+    """Разделить трек на 4 стема (Demucs в ИИ-venv). Кэшируется на диске."""
+    track = TRACKS.get(track_id)
+    if not track:
+        raise HTTPException(404, "Трек не найден")
+    if not DEEP_AVAILABLE:
+        raise HTTPException(503, "Стемы недоступны: нет ИИ-окружения (./setup-ai.sh)")
+
+    stem_dir = os.path.join(UPLOAD_DIR, f"{track_id}.stems")
+    done = all(os.path.exists(os.path.join(stem_dir, f"{n}.wav"))
+               for n in STEM_NAMES)
+    if not done:
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        proc = subprocess.run(
+            [DEEP_PY, os.path.join(base, "tools", "demix.py"),
+             track["orig"], stem_dir],
+            capture_output=True, text=True, timeout=1800,
+        )
+        if proc.returncode != 0:
+            raise HTTPException(500, f"Ошибка разделения: {(proc.stderr or '')[-500:]}")
+        track["stems"] = stem_dir
+        with open(_meta_path(track_id), "w") as f:
+            json.dump(track, f)
+    return {"ok": True, "stems": list(STEM_NAMES)}
+
+
+@app.get("/api/stems/{track_id}/{stem}")
+def get_stem(track_id: str, stem: str):
+    if stem not in STEM_NAMES:
+        raise HTTPException(404, "Нет такого стема")
+    path = os.path.join(UPLOAD_DIR, f"{track_id}.stems", f"{stem}.wav")
+    if not os.path.exists(path):
+        raise HTTPException(404, "Стем не готов")
+    return FileResponse(path, media_type="audio/wav")
+
+
+@app.post("/api/import_url")
+def import_url(body: dict = Body(...)):
+    """Импорт трека по ссылке (YouTube и всё, что умеет yt-dlp)."""
+    url = (body.get("url") or "").strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(400, "Некорректная ссылка")
+
+    track_id = uuid.uuid4().hex[:12]
+    out_tpl = os.path.join(UPLOAD_DIR, f"{track_id}.%(ext)s")
+    proc = subprocess.run(
+        [os.sys.executable, "-m", "yt_dlp", "-x", "--audio-format", "mp3",
+         "--audio-quality", "0", "--no-playlist", "--max-filesize", "200M",
+         "-o", out_tpl, "--print", "after_move:filepath",
+         "--print", "title", url],
+        capture_output=True, text=True, timeout=600,
+    )
+    if proc.returncode != 0:
+        raise HTTPException(400, f"Не удалось скачать: {(proc.stderr or '')[-400:]}")
+    lines = [l for l in proc.stdout.strip().splitlines() if l.strip()]
+    title = lines[0] if lines else "track"
+    orig_path = os.path.join(UPLOAD_DIR, f"{track_id}.mp3")
+    if not os.path.exists(orig_path):
+        raise HTTPException(500, "Файл не появился после скачивания")
+
+    wav_path = os.path.join(UPLOAD_DIR, f"{track_id}.analysis.wav")
+    try:
+        _to_wav(orig_path, wav_path)
+    except subprocess.CalledProcessError:
+        os.remove(orig_path)
+        raise HTTPException(400, "Не удалось декодировать скачанное аудио")
+
+    meta = {"id": track_id, "orig": orig_path, "wav": wav_path,
+            "name": f"{title}.mp3", "mime": "audio/mpeg",
+            "uploaded_at": int(__import__("time").time())}
+    TRACKS[track_id] = meta
+    with open(_meta_path(track_id), "w") as f:
+        json.dump(meta, f)
+    return {"track_id": track_id, "name": meta["name"]}
+
+
 @app.post("/api/export/{track_id}")
 def export_loops(track_id: str, segments: list[dict] = Body(...)):
     """Нарезать трек на лупы по границам и вернуть zip с WAV-файлами.
