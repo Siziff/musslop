@@ -32,10 +32,14 @@ const STR = {
     n_parts_ph: 'авто',
     n_parts_tip: 'Число частей',
     reanalyze: 'Переанализировать',
-    engine_fast: 'быстрый',
-    engine_deep: 'нейросеть',
-    engine_tip: 'Быстрый — эвристика (2с). Нейросеть (All-In-One, обучена на 912 размеченных треках) — точнее границы и названия секций, ~1мин на первый анализ трека',
-    loading_deep: 'Глубокий анализ нейросетью (~1 мин: разделение на стемы + сегментация)…',
+    ai_split_btn: 'Разделить с ИИ',
+    engine_tip: 'Нейросеть All-In-One (обучена на 912 профессионально размеченных треках): точные границы и названия секций. Первый анализ ~1 мин, повторный — мгновенно',
+    loading_deep: 'ИИ анализирует трек…',
+    ai_working: 'ИИ анализирует трек',
+    ai_stage1: 'Подготовка аудио…',
+    ai_stage2: 'Разделение на стемы (барабаны, бас, вокал)…',
+    ai_stage3: 'Нейросеть ищет структуру…',
+    ai_stage4: 'Оценка качества лупов…',
     export_markup: '⤓ Разметка',
     import_markup: '⤒ Разметка',
     export_tip: 'Скачать разметку частей в JSON',
@@ -111,10 +115,14 @@ const STR = {
     n_parts_ph: 'auto',
     n_parts_tip: 'Number of parts',
     reanalyze: 'Re-analyze',
-    engine_fast: 'fast',
-    engine_deep: 'neural',
-    engine_tip: 'Fast — heuristic (2s). Neural (All-In-One, trained on 912 annotated tracks) — better boundaries and section names, ~1min for the first analysis',
-    loading_deep: 'Deep neural analysis (~1 min: stem separation + segmentation)…',
+    ai_split_btn: 'Split with AI',
+    engine_tip: 'All-In-One neural net (trained on 912 professionally annotated tracks): accurate boundaries and section names. First run ~1 min, repeat — instant',
+    loading_deep: 'AI is analyzing the track…',
+    ai_working: 'AI is analyzing the track',
+    ai_stage1: 'Preparing audio…',
+    ai_stage2: 'Separating stems (drums, bass, vocals)…',
+    ai_stage3: 'Neural net is finding the structure…',
+    ai_stage4: 'Scoring loop quality…',
     export_markup: '⤓ Markup',
     import_markup: '⤒ Markup',
     export_tip: 'Download segment markup as JSON',
@@ -190,10 +198,14 @@ const STR = {
     n_parts_ph: '自动',
     n_parts_tip: '段落数量',
     reanalyze: '重新分析',
-    engine_fast: '快速',
-    engine_deep: '神经网络',
-    engine_tip: '快速 — 启发式（2秒）。神经网络（All-In-One，用912首标注曲目训练）— 边界和段落名称更准确，首次分析约1分钟',
-    loading_deep: '正在进行深度神经网络分析（约1分钟：音轨分离+分段）…',
+    ai_split_btn: 'AI 智能分段',
+    engine_tip: 'All-In-One 神经网络（用912首专业标注曲目训练）：边界和段落名称更准确。首次分析约1分钟，之后即时完成',
+    loading_deep: 'AI 正在分析音轨…',
+    ai_working: 'AI 正在分析音轨',
+    ai_stage1: '正在准备音频…',
+    ai_stage2: '正在分离音轨（鼓、贝斯、人声）…',
+    ai_stage3: '神经网络正在识别结构…',
+    ai_stage4: '正在评估循环质量…',
     export_markup: '⤓ 标注',
     import_markup: '⤒ 标注',
     export_tip: '将段落标注下载为 JSON',
@@ -703,7 +715,8 @@ function Waveform({
   onSeekSeg,
   t,
   beginEdit,
-  commitEdit
+  commitEdit,
+  aiWorking
 }) {
   const canvasRef = useRef(null);
   const peaksRef = useRef(null);
@@ -1271,9 +1284,35 @@ function Waveform({
     onMouseDown: onMouseDown,
     onMouseMove: onMouseMove,
     onDoubleClick: onDblClick
+  }), aiWorking && /*#__PURE__*/React.createElement(AiOverlay, {
+    t: t
   }), /*#__PURE__*/React.createElement("div", {
     className: "hint"
   }, t.wave_hint));
+}
+
+// Оверлей ИИ-обработки: сканирующая полоса + сменяющиеся стадии
+function AiOverlay({
+  t
+}) {
+  const stages = [t.ai_stage1, t.ai_stage2, t.ai_stage3, t.ai_stage4];
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    // примерные длительности стадий (сек) при первом прогоне
+    const timers = [setTimeout(() => setIdx(1), 8000), setTimeout(() => setIdx(2), 45000), setTimeout(() => setIdx(3), 70000)];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "ai-overlay"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "scanline"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "ai-bars"
+  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), /*#__PURE__*/React.createElement("div", {
+    className: "ai-title"
+  }, "\u2728 ", t.ai_working), /*#__PURE__*/React.createElement("div", {
+    className: "ai-stage"
+  }, stages[idx]));
 }
 
 // ================================ App ======================================
@@ -1335,7 +1374,7 @@ function App() {
   const [buffer, setBuffer] = useState(null);
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
-  const [engine, setEngine] = useState('fast'); // 'fast' | 'deep'
+  const [aiWorking, setAiWorking] = useState(false); // ИИ-анализ в процессе
   const [deepAvailable, setDeepAvailable] = useState(false);
   useEffect(() => {
     fetch('/api/health').then(r => r.json()).then(h => setDeepAvailable(!!h.deep_available)).catch(() => {});
@@ -1659,12 +1698,14 @@ function App() {
   };
   const currentFav = history.find(h => h.track_id === trackId);
   const doAnalyze = async (id, n, eng) => {
-    const useEngine = eng || engine;
-    setLoading(useEngine === 'deep' ? t.loading_deep : t.loading_analyze);
+    const useEngine = eng || 'fast';
+    const isDeep = useEngine === 'deep';
+    setLoading(isDeep ? t.loading_deep : t.loading_analyze);
+    if (isDeep) setAiWorking(true);
     try {
       const params = new URLSearchParams();
       if (n) params.set('n_segments', n);
-      if (useEngine === 'deep') params.set('engine', 'deep');
+      if (isDeep) params.set('engine', 'deep');
       const qs = params.toString();
       const r = await fetch(`/api/analyze/${id}${qs ? '?' + qs : ''}`);
       if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
@@ -1677,6 +1718,7 @@ function App() {
       return null;
     } finally {
       setLoading(null);
+      setAiWorking(false);
     }
   };
   const onDrop = e => {
@@ -1937,19 +1979,15 @@ function App() {
     value: nSeg,
     onChange: e => setNSeg(e.target.value),
     title: t.n_parts_tip
-  }), deepAvailable && /*#__PURE__*/React.createElement("div", {
-    className: "lang-switch",
-    title: t.engine_tip
-  }, /*#__PURE__*/React.createElement("button", {
-    className: engine === 'fast' ? 'on' : '',
-    onClick: () => setEngine('fast')
-  }, t.engine_fast), /*#__PURE__*/React.createElement("button", {
-    className: engine === 'deep' ? 'on' : '',
-    onClick: () => setEngine('deep')
-  }, t.engine_deep)), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: () => doAnalyze(trackId, nSeg ? +nSeg : null),
     disabled: !!loading
-  }, t.reanalyze), /*#__PURE__*/React.createElement("button", {
+  }, t.reanalyze), deepAvailable && /*#__PURE__*/React.createElement("button", {
+    className: "ai-btn",
+    onClick: () => doAnalyze(trackId, null, 'deep'),
+    disabled: !!loading,
+    title: t.engine_tip
+  }, "\u2728 ", t.ai_split_btn), /*#__PURE__*/React.createElement("button", {
     className: "ghost",
     onClick: exportMarkup,
     title: t.export_tip
@@ -1994,7 +2032,8 @@ function App() {
     t: t,
     onSeekSeg: i => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1)),
     beginEdit: beginEdit,
-    commitEdit: commitEdit
+    commitEdit: commitEdit,
+    aiWorking: aiWorking
   }), /*#__PURE__*/React.createElement("div", {
     className: "seg-list"
   }, segments.map((s, i) => {

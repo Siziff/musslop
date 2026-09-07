@@ -187,6 +187,51 @@
 
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; opacity: .7; }
   footer a { color: var(--accent); text-decoration: none; }
+
+  /* ---------- AI processing ---------- */
+  button.ai-btn {
+    background: linear-gradient(135deg, #a06bff, #6a8dff);
+    border-color: transparent; color: #fff; font-weight: 700;
+    box-shadow: 0 4px 18px rgba(160,107,255,.35);
+  }
+  button.ai-btn:hover:not(:disabled) { box-shadow: 0 4px 26px rgba(160,107,255,.5); border-color: transparent; }
+  .ai-overlay {
+    position: absolute; inset: 0; border-radius: 12px; overflow: hidden;
+    background: rgba(10,13,20,.55); backdrop-filter: blur(2px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; z-index: 5;
+  }
+  .ai-overlay .scanline {
+    position: absolute; top: 0; bottom: 0; width: 140px;
+    background: linear-gradient(90deg, transparent, rgba(160,107,255,.28), rgba(106,141,255,.32), transparent);
+    animation: scan 2.2s ease-in-out infinite;
+  }
+  @keyframes scan {
+    0% { left: -140px; } 50% { left: calc(100% + 0px); } 100% { left: -140px; }
+  }
+  .ai-overlay .ai-title {
+    font-size: 15px; font-weight: 700; letter-spacing: .5px;
+    background: linear-gradient(90deg, #a06bff, #6a8dff, #34d399, #a06bff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 2.5s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: -300% 0; } }
+  .ai-overlay .ai-stage { font-size: 12.5px; color: var(--muted); }
+  .ai-bars { display: flex; gap: 4px; align-items: flex-end; height: 26px; }
+  .ai-bars i {
+    width: 5px; border-radius: 2px;
+    background: linear-gradient(180deg, #a06bff, #6a8dff);
+    animation: aeq 1s ease-in-out infinite;
+  }
+  .ai-bars i:nth-child(1) { height: 40%; animation-delay: 0s; }
+  .ai-bars i:nth-child(2) { height: 75%; animation-delay: .12s; }
+  .ai-bars i:nth-child(3) { height: 100%; animation-delay: .24s; }
+  .ai-bars i:nth-child(4) { height: 65%; animation-delay: .36s; }
+  .ai-bars i:nth-child(5) { height: 85%; animation-delay: .48s; }
+  .ai-bars i:nth-child(6) { height: 50%; animation-delay: .6s; }
+  .ai-bars i:nth-child(7) { height: 70%; animation-delay: .72s; }
+  @keyframes aeq { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
 </style>
 </head>
 <body>
@@ -206,6 +251,6 @@
     }
   });
 </script>
-<script defer src="app.js?v=6451351094"></script>
+<script defer src="app.js?v=e82b978520"></script>
 </body>
 </html>

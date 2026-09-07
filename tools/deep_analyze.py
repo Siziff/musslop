@@ -12,13 +12,26 @@ import sys
 import tempfile
 
 
+def pick_device() -> str:
+    """cuda -> mps (Apple Silicon) -> cpu."""
+    import torch
+    if torch.cuda.is_available():
+        return "cuda"
+    if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 def main() -> None:
     audio, out_path = sys.argv[1], sys.argv[2]
     import allin1
 
+    device = pick_device()
+    print(f"device: {device}", file=sys.stderr)
+
     with tempfile.TemporaryDirectory() as tmp:
         result = allin1.analyze(
-            audio, device="cuda", out_dir=os.path.join(tmp, "struct"),
+            audio, device=device, out_dir=os.path.join(tmp, "struct"),
             demix_dir=os.path.join(tmp, "demix"),
             spec_dir=os.path.join(tmp, "spec"),
             keep_byproducts=False,

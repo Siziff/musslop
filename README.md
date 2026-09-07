@@ -107,6 +107,26 @@ Open http://localhost:8801
 
 `run.sh` frees the port from a stale process, checks dependencies and logs to `server.log`.
 
+### Optional: AI analysis (All-In-One neural net)
+
+The **✨ Split with AI** button uses [All-In-One](https://github.com/mir-aidj/all-in-one)
+(trained on 912 professionally annotated tracks) for noticeably better boundaries
+and functional section names (Intro/Verse/Chorus/Solo). It needs a separate venv:
+
+```bash
+python3 -m venv ~/.venvs/allin1
+~/.venvs/allin1/bin/pip install torch torchaudio       # picks CPU/MPS build on macOS
+~/.venvs/allin1/bin/pip install git+https://github.com/CPJKU/madmom
+~/.venvs/allin1/bin/pip install allin1
+MUSSLOP_DEEP_PY=~/.venvs/allin1/bin/python ./run.sh
+```
+
+Device is auto-selected: CUDA → Apple MPS → CPU. First analysis of a track takes
+~1 min on GPU / a few minutes on CPU; the result is cached, re-opening is instant.
+The AI button appears automatically when the venv is found.
+On Linux+CUDA, NATTEN may need a prebuilt wheel from https://whl.natten.org
+matching your torch/cuda versions.
+
 ## Features
 
 - Drag & drop any audio file (mp3, wav, ogg, flac, m4a...)
