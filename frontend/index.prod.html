@@ -248,6 +248,20 @@
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
     color: var(--muted); width: 34px; text-align: right;
   }
+
+  /* ---------- dropdown ---------- */
+  .dropdown { position: relative; }
+  .dropdown-menu {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 30;
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 5px; min-width: 190px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  }
+  .dropdown-item {
+    padding: 8px 12px; border-radius: 7px; font-size: 13.5px;
+    cursor: pointer; white-space: nowrap;
+  }
+  .dropdown-item:hover { background: rgba(106,141,255,.14); }
 </style>
 </head>
 <body>
@@ -267,6 +281,6 @@
     }
   });
 </script>
-<script defer src="app.js?v=bc4e83660c"></script>
+<script defer src="app.js?v=f80a1bd8c8"></script>
 </body>
 </html>

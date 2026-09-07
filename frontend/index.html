@@ -249,6 +249,20 @@
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
     color: var(--muted); width: 34px; text-align: right;
   }
+
+  /* ---------- dropdown ---------- */
+  .dropdown { position: relative; }
+  .dropdown-menu {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 30;
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 5px; min-width: 190px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  }
+  .dropdown-item {
+    padding: 8px 12px; border-radius: 7px; font-size: 13.5px;
+    cursor: pointer; white-space: nowrap;
+  }
+  .dropdown-item:hover { background: rgba(106,141,255,.14); }
 </style>
 </head>
 <body>
@@ -359,6 +373,7 @@ const STR = {
     history_parts: 'ч.',
     loading_history: 'Загрузка трека из истории…',
     volume_tip: 'Громкость (клик по иконке — выкл/вкл)',
+    files_menu: '⤓⤒ Файлы',
     loading_transcode: 'Браузер обрезал аудио — беру полный WAV с сервера…',
     footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)',
   },
@@ -443,6 +458,7 @@ const STR = {
     history_parts: 'parts',
     loading_history: 'Loading track from history…',
     volume_tip: 'Volume (click icon to mute/unmute)',
+    files_menu: '⤓⤒ Files',
     loading_transcode: 'Browser truncated the audio — fetching full WAV from server…',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)',
   },
@@ -528,6 +544,7 @@ const STR = {
     history_parts: '段',
     loading_history: '正在从历史记录加载音轨…',
     volume_tip: '音量（点击图标静音/取消静音）',
+    files_menu: '⤓⤒ 文件',
     loading_transcode: '浏览器截断了音频 — 正在从服务器获取完整 WAV…',
     footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）',
   },
@@ -1412,6 +1429,7 @@ function App() {
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
   const [aiWorking, setAiWorking] = useState(false);   // ИИ-анализ в процессе
+  const [exportOpen, setExportOpen] = useState(false);
   const [volume, setVolumeState] = useState(() => {
     const v = parseFloat(localStorage.getItem('musslop_volume'));
     return isFinite(v) ? v : 1;
@@ -1855,7 +1873,9 @@ function App() {
 
       {analysis && <div className="panel">
         <div className="panel-title">{t.structure_title}</div>
-        <div className="row between" style={{ marginBottom: 12 }}>
+
+        {/* строка 1: метрики + анализ */}
+        <div className="row between" style={{ marginBottom: 10 }}>
           <div className="row">
             <span className="badge">{t.tempo} <b>{analysis.tempo.toFixed(1)} BPM</b></span>
             <span className="badge">{t.duration} <b>{fmt(duration)}</b></span>
@@ -1866,10 +1886,6 @@ function App() {
             {analysis.fallback && <span className="badge" style={{ color: 'var(--danger)' }}>{t.fallback}</span>}
           </div>
           <div className="row">
-            <label className="chk">
-              <input type="checkbox" checked={snap} onChange={e => setSnap(e.target.checked)} />
-              {t.snap}
-            </label>
             <input type="number" min="2" max="24" placeholder={t.n_parts_ph}
               value={nSeg} onChange={e => setNSeg(e.target.value)} title={t.n_parts_tip} />
             <button onClick={() => doAnalyze(trackId, nSeg ? +nSeg : null)} disabled={!!loading}>
@@ -1879,16 +1895,35 @@ function App() {
               disabled={!!loading} title={t.engine_tip}>
               ✨ {t.ai_split_btn}
             </button>}
-            <button className="ghost" onClick={exportMarkup} title={t.export_tip}>{t.export_markup}</button>
-            <button className="ghost" onClick={() => markupRef.current.click()} title={t.import_tip}>{t.import_markup}</button>
-            <button className="ghost" onClick={exportLoops} title={t.export_loops_tip} disabled={!!loading}>{t.export_loops}</button>
+          </div>
+        </div>
+
+        {/* строка 2: правка + файлы */}
+        <div className="row between" style={{ marginBottom: 12 }}>
+          <div className="row">
             <button onClick={splitAtPlayhead} title={t.split_tip}>{t.split_btn}</button>
+            <label className="chk">
+              <input type="checkbox" checked={snap} onChange={e => setSnap(e.target.checked)} />
+              {t.snap}
+            </label>
+          </div>
+          <div className="row">
             <button onClick={() => currentFav && toggleFavorite(null, currentFav)}
               disabled={!currentFav}
               title={currentFav && currentFav.favorite ? t.fav_remove_tip : t.fav_add_tip}
               style={currentFav && currentFav.favorite ? { color: '#ffb84f', borderColor: '#ffb84f66' } : {}}>
               {currentFav && currentFav.favorite ? '★ ' + t.fav_in_lib : '☆ ' + t.fav_btn}
             </button>
+            <div className="dropdown">
+              <button className="ghost" onClick={() => setExportOpen(o => !o)}>
+                {t.files_menu} ▾
+              </button>
+              {exportOpen && <div className="dropdown-menu" onClick={() => setExportOpen(false)}>
+                <div className="dropdown-item" onClick={exportLoops}>{t.export_loops}</div>
+                <div className="dropdown-item" onClick={exportMarkup}>{t.export_markup}</div>
+                <div className="dropdown-item" onClick={() => markupRef.current.click()}>{t.import_markup}</div>
+              </div>}
+            </div>
             <input ref={markupRef} type="file" accept=".json" style={{ display: 'none' }}
               onChange={e => e.target.files[0] && importMarkup(e.target.files[0])} />
           </div>

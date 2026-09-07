@@ -90,6 +90,7 @@ const STR = {
     history_parts: 'ч.',
     loading_history: 'Загрузка трека из истории…',
     volume_tip: 'Громкость (клик по иконке — выкл/вкл)',
+    files_menu: '⤓⤒ Файлы',
     loading_transcode: 'Браузер обрезал аудио — беру полный WAV с сервера…',
     footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)'
   },
@@ -174,6 +175,7 @@ const STR = {
     history_parts: 'parts',
     loading_history: 'Loading track from history…',
     volume_tip: 'Volume (click icon to mute/unmute)',
+    files_menu: '⤓⤒ Files',
     loading_transcode: 'Browser truncated the audio — fetching full WAV from server…',
     footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)'
   },
@@ -259,6 +261,7 @@ const STR = {
     history_parts: '段',
     loading_history: '正在从历史记录加载音轨…',
     volume_tip: '音量（点击图标静音/取消静音）',
+    files_menu: '⤓⤒ 文件',
     loading_transcode: '浏览器截断了音频 — 正在从服务器获取完整 WAV…',
     footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）'
   }
@@ -1392,6 +1395,7 @@ function App() {
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
   const [aiWorking, setAiWorking] = useState(false); // ИИ-анализ в процессе
+  const [exportOpen, setExportOpen] = useState(false);
   const [volume, setVolumeState] = useState(() => {
     const v = parseFloat(localStorage.getItem('musslop_volume'));
     return isFinite(v) ? v : 1;
@@ -1973,7 +1977,7 @@ function App() {
   }, t.structure_title), /*#__PURE__*/React.createElement("div", {
     className: "row between",
     style: {
-      marginBottom: 12
+      marginBottom: 10
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "row"
@@ -1994,13 +1998,7 @@ function App() {
     }
   }, t.fallback)), /*#__PURE__*/React.createElement("div", {
     className: "row"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "chk"
   }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: snap,
-    onChange: e => setSnap(e.target.checked)
-  }), t.snap), /*#__PURE__*/React.createElement("input", {
     type: "number",
     min: "2",
     max: "24",
@@ -2016,23 +2014,25 @@ function App() {
     onClick: () => doAnalyze(trackId, null, 'deep'),
     disabled: !!loading,
     title: t.engine_tip
-  }, "\u2728 ", t.ai_split_btn), /*#__PURE__*/React.createElement("button", {
-    className: "ghost",
-    onClick: exportMarkup,
-    title: t.export_tip
-  }, t.export_markup), /*#__PURE__*/React.createElement("button", {
-    className: "ghost",
-    onClick: () => markupRef.current.click(),
-    title: t.import_tip
-  }, t.import_markup), /*#__PURE__*/React.createElement("button", {
-    className: "ghost",
-    onClick: exportLoops,
-    title: t.export_loops_tip,
-    disabled: !!loading
-  }, t.export_loops), /*#__PURE__*/React.createElement("button", {
+  }, "\u2728 ", t.ai_split_btn))), /*#__PURE__*/React.createElement("div", {
+    className: "row between",
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: splitAtPlayhead,
     title: t.split_tip
-  }, t.split_btn), /*#__PURE__*/React.createElement("button", {
+  }, t.split_btn), /*#__PURE__*/React.createElement("label", {
+    className: "chk"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: snap,
+    onChange: e => setSnap(e.target.checked)
+  }), t.snap)), /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: () => currentFav && toggleFavorite(null, currentFav),
     disabled: !currentFav,
     title: currentFav && currentFav.favorite ? t.fav_remove_tip : t.fav_add_tip,
@@ -2040,7 +2040,24 @@ function App() {
       color: '#ffb84f',
       borderColor: '#ffb84f66'
     } : {}
-  }, currentFav && currentFav.favorite ? '★ ' + t.fav_in_lib : '☆ ' + t.fav_btn), /*#__PURE__*/React.createElement("input", {
+  }, currentFav && currentFav.favorite ? '★ ' + t.fav_in_lib : '☆ ' + t.fav_btn), /*#__PURE__*/React.createElement("div", {
+    className: "dropdown"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: () => setExportOpen(o => !o)
+  }, t.files_menu, " \u25BE"), exportOpen && /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-menu",
+    onClick: () => setExportOpen(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-item",
+    onClick: exportLoops
+  }, t.export_loops), /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-item",
+    onClick: exportMarkup
+  }, t.export_markup), /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-item",
+    onClick: () => markupRef.current.click()
+  }, t.import_markup))), /*#__PURE__*/React.createElement("input", {
     ref: markupRef,
     type: "file",
     accept: ".json",
