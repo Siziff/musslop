@@ -34,6 +34,11 @@ section loops forever; when you move on, the music seamlessly evolves with you.
 
 ## Use cases
 
+- 🎲 **Tabletop RPG / D&D sessions** — the flagship use case: turn any track into a
+  *location theme*. The party explores a tavern? The tavern section loops for as long
+  as the scene lasts. They descend into the dungeon — hit **Next** and the music darkens
+  with them, seamlessly, mid-session, no audio editing skills required. Build-up
+  sections fire once as dramatic transitions between scenes
 - **Game development / prototyping** — audition how any licensed or reference track would
   behave as an adaptive layer before implementing it in FMOD/Wwise; export the loops as
   WAV stems ready for your audio middleware
