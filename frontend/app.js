@@ -58,7 +58,7 @@ const STR = {
     phrase_len_tip: 'Длина фразы: переход произойдёт на кратной границе от начала лупа',
     bars: 'такта',
     crossfade: 'Кроссфейд:',
-    wave_hint: /*#__PURE__*/React.createElement("span", null, "\u041A\u043B\u0438\u043A \u2014 \u043F\u0435\u0440\u0435\u043C\u043E\u0442\u043A\u0430 \xB7 \u0417\u0435\u043B\u0451\u043D\u044B\u0439 \u043F\u043E\u043B\u0437\u0443\u043D\u043E\u043A \u2014 \u043F\u043E\u0437\u0438\u0446\u0438\u044F \xB7 \u0411\u0435\u043B\u0430\u044F \u0433\u0440\u0430\u043D\u0438\u0446\u0430 \u2014 \u043F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u044C \xB7 \u0414\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u2014 \u0440\u0430\u0437\u0440\u0435\u0437\u0430\u0442\u044C \xB7 Alt+\u043A\u043B\u0438\u043A \u2014 \u043D\u0430\u0447\u0430\u043B\u043E \u043F\u043E\u0432\u0442\u043E\u0440\u0430 \u043B\u0443\u043F\u0430 (\u0436\u0451\u043B\u0442\u044B\u0439 \u043C\u0430\u0440\u043A\u0435\u0440) \xB7 \u041A\u043E\u043B\u0435\u0441\u043E \u2014 \u0437\u0443\u043C, \u043F\u043E\u043B\u0437\u0443\u043D\u043E\u043A \u0441\u043D\u0438\u0437\u0443 \u2014 \u043F\u0440\u043E\u043A\u0440\u0443\u0442\u043A\u0430 \xB7 \u0428\u0442\u0440\u0438\u0445\u043E\u0432\u043A\u0430 \u2014 \u043F\u0440\u043E\u0438\u0433\u0440\u043E\u0432\u043A\u0430 (\u0438\u0433\u0440\u0430\u0435\u0442 1 \u0440\u0430\u0437)"),
+    wave_hint: /*#__PURE__*/React.createElement("span", null, "\u041A\u043B\u0438\u043A \u2014 \u043F\u0435\u0440\u0435\u043C\u043E\u0442\u043A\u0430 \xB7 \u0417\u0435\u043B\u0451\u043D\u044B\u0439 \u043F\u043E\u043B\u0437\u0443\u043D\u043E\u043A \u2014 \u043F\u043E\u0437\u0438\u0446\u0438\u044F \xB7 \u0411\u0435\u043B\u0430\u044F \u0433\u0440\u0430\u043D\u0438\u0446\u0430 \u2014 \u043F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u044C \xB7 \u0414\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u2014 \u0440\u0430\u0437\u0440\u0435\u0437\u0430\u0442\u044C \xB7 Alt+\u043A\u043B\u0438\u043A \u2014 \u043D\u0430\u0447\u0430\u043B\u043E \u043F\u043E\u0432\u0442\u043E\u0440\u0430 \u043B\u0443\u043F\u0430 (\u0436\u0451\u043B\u0442\u044B\u0439 \u043C\u0430\u0440\u043A\u0435\u0440) \xB7 \u041A\u043E\u043B\u0435\u0441\u043E \u2014 \u0437\u0443\u043C, \u043F\u043E\u043B\u0437\u0443\u043D\u043E\u043A \u0441\u043D\u0438\u0437\u0443 \u2014 \u043F\u0440\u043E\u043A\u0440\u0443\u0442\u043A\u0430 \xB7 \u0416\u0451\u043B\u0442\u044B\u0435 \u043C\u0435\u0442\u043A\u0438 \u2014 \u043A\u0430\u0436\u0434\u044B\u0435 4 \u0442\u0430\u043A\u0442\u0430 (\u043D\u043E\u043C\u0435\u0440 \u0444\u0440\u0430\u0437\u044B) \xB7 \u0428\u0442\u0440\u0438\u0445\u043E\u0432\u043A\u0430 \u2014 \u043F\u0440\u043E\u0438\u0433\u0440\u043E\u0432\u043A\u0430 (\u0438\u0433\u0440\u0430\u0435\u0442 1 \u0440\u0430\u0437)"),
     del_seg: 'Удалить границу (слить с предыдущей)',
     player_title: 'Плеер',
     play: '▶ Играть (зациклить часть)',
@@ -72,6 +72,11 @@ const STR = {
     keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u041F\u0440\u043E\u0431\u0435\u043B"), " \u2014 \u0438\u0433\u0440\u0430\u0442\u044C/\u0441\u0442\u043E\u043F \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \xAB\u0414\u0430\u043B\u044C\u0448\u0435\xBB \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u0440\u0430\u0437\u0440\u0435\u0437\u0430\u0442\u044C \u0432 \u043F\u043E\u0437\u0438\u0446\u0438\u0438 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0440\u0430\u0432\u043A\u0443. \u041F\u0435\u0440\u0435\u0445\u043E\u0434 \u043F\u0440\u043E\u0438\u0441\u0445\u043E\u0434\u0438\u0442 \u0431\u0435\u0441\u0448\u043E\u0432\u043D\u043E \u043D\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0435 \u043B\u0443\u043F\u0430, \u043A\u0430\u043A \u0432 \u0438\u0433\u0440\u043E\u0432\u044B\u0445 \u0441\u0430\u0443\u043D\u0434\u0442\u0440\u0435\u043A\u0430\u0445."),
     part: 'Часть',
     history_title: 'История',
+    library_title: 'Библиотека ★',
+    fav_btn: 'В библиотеку',
+    fav_in_lib: 'В библиотеке',
+    fav_add_tip: 'Сохранить в библиотеку — понравившиеся треки с разметкой всегда под рукой',
+    fav_remove_tip: 'Убрать из библиотеки',
     history_open_tip: 'Открыть трек с сохранённой разметкой',
     history_del_tip: 'Удалить трек из истории',
     history_parts: 'ч.',
@@ -128,7 +133,7 @@ const STR = {
     phrase_len_tip: 'Phrase length: transition happens on a multiple of this from the loop start',
     bars: 'bars',
     crossfade: 'Crossfade:',
-    wave_hint: /*#__PURE__*/React.createElement("span", null, "Click \u2014 seek \xB7 Green handle \u2014 position \xB7 White boundary \u2014 drag \xB7 Double click \u2014 split \xB7 Alt+click \u2014 loop repeat start (yellow marker) \xB7 Wheel \u2014 zoom, bottom scrollbar \u2014 pan \xB7 Hatching \u2014 build-up (plays once)"),
+    wave_hint: /*#__PURE__*/React.createElement("span", null, "Click \u2014 seek \xB7 Green handle \u2014 position \xB7 White boundary \u2014 drag \xB7 Double click \u2014 split \xB7 Alt+click \u2014 loop repeat start (yellow marker) \xB7 Wheel \u2014 zoom, bottom scrollbar \u2014 pan \xB7 Yellow ticks \u2014 every 4 bars (phrase number) \xB7 Hatching \u2014 build-up (plays once)"),
     del_seg: 'Remove boundary (merge with previous)',
     player_title: 'Player',
     play: '▶ Play (loop part)',
@@ -142,6 +147,11 @@ const STR = {
     keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "Space"), " \u2014 play/stop \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u201CNext\u201D \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 split at position \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 undo edit. The transition is seamless at the loop boundary, just like in game soundtracks."),
     part: 'Part',
     history_title: 'History',
+    library_title: 'Library ★',
+    fav_btn: 'Add to library',
+    fav_in_lib: 'In library',
+    fav_add_tip: 'Save to library — keep favorite tracks with their markup at hand',
+    fav_remove_tip: 'Remove from library',
     history_open_tip: 'Open track with saved markup',
     history_del_tip: 'Remove track from history',
     history_parts: 'parts',
@@ -198,7 +208,7 @@ const STR = {
     phrase_len_tip: '乐句长度：切换发生在距循环起点该长度的整数倍处',
     bars: '小节',
     crossfade: '交叉淡化：',
-    wave_hint: /*#__PURE__*/React.createElement("span", null, "\u70B9\u51FB \u2014 \u5B9A\u4F4D \xB7 \u7EFF\u8272\u6ED1\u5757 \u2014 \u64AD\u653E\u4F4D\u7F6E \xB7 \u767D\u8272\u8FB9\u754C \u2014 \u62D6\u52A8\u8C03\u6574 \xB7 \u53CC\u51FB \u2014 \u5207\u5206 \xB7 Alt+\u70B9\u51FB \u2014 \u5FAA\u73AF\u8D77\u70B9\uFF08\u9EC4\u8272\u6807\u8BB0\uFF09 \xB7 \u6EDA\u8F6E \u2014 \u7F29\u653E\uFF0C\u5E95\u90E8\u6ED1\u5757 \u2014 \u5E73\u79FB \xB7 \u659C\u7EBF\u9634\u5F71 \u2014 \u8FC7\u6E21\u6BB5\uFF08\u53EA\u64AD\u4E00\u6B21\uFF09"),
+    wave_hint: /*#__PURE__*/React.createElement("span", null, "\u70B9\u51FB \u2014 \u5B9A\u4F4D \xB7 \u7EFF\u8272\u6ED1\u5757 \u2014 \u64AD\u653E\u4F4D\u7F6E \xB7 \u767D\u8272\u8FB9\u754C \u2014 \u62D6\u52A8\u8C03\u6574 \xB7 \u53CC\u51FB \u2014 \u5207\u5206 \xB7 Alt+\u70B9\u51FB \u2014 \u5FAA\u73AF\u8D77\u70B9\uFF08\u9EC4\u8272\u6807\u8BB0\uFF09 \xB7 \u6EDA\u8F6E \u2014 \u7F29\u653E\uFF0C\u5E95\u90E8\u6ED1\u5757 \u2014 \u5E73\u79FB \xB7 \u9EC4\u8272\u523B\u5EA6 \u2014 \u6BCF 4 \u5C0F\u8282\uFF08\u4E50\u53E5\u7F16\u53F7\uFF09 \xB7 \u659C\u7EBF\u9634\u5F71 \u2014 \u8FC7\u6E21\u6BB5\uFF08\u53EA\u64AD\u4E00\u6B21\uFF09"),
     del_seg: '删除边界（与前一段合并）',
     player_title: '播放器',
     play: '▶ 播放（循环此段）',
@@ -213,6 +223,11 @@ const STR = {
     keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u7A7A\u683C"), " \u2014 \u64AD\u653E/\u505C\u6B62 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u300C\u4E0B\u4E00\u6BB5\u300D \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u5728\u5F53\u524D\u4F4D\u7F6E\u5207\u5206 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u64A4\u9500\u7F16\u8F91\u3002\u5207\u6362\u5728\u5FAA\u73AF\u8FB9\u754C\u5904\u65E0\u7F1D\u5B8C\u6210\uFF0C\u5C31\u50CF\u6E38\u620F\u914D\u4E50\u4E00\u6837\u3002"),
     part: '段落',
     history_title: '历史记录',
+    library_title: '收藏库 ★',
+    fav_btn: '加入收藏库',
+    fav_in_lib: '已收藏',
+    fav_add_tip: '保存到收藏库 — 随时快速打开喜欢的音轨及其标注',
+    fav_remove_tip: '从收藏库移除',
     history_open_tip: '打开带有已保存标注的音轨',
     history_del_tip: '从历史记录中删除',
     history_parts: '段',
@@ -814,6 +829,28 @@ function Waveform({
         ctx.lineTo(tx(b), H);
       }
       ctx.stroke();
+      // каждые 4 такта — фразовая метка повыше и заметнее + номер группы
+      ctx.strokeStyle = '#ffb84f55';
+      ctx.beginPath();
+      for (let i = 0; i < downbeats.length; i += 4) {
+        const b = downbeats[i];
+        if (b < t0 || b > t1) continue;
+        ctx.moveTo(tx(b), H - 44);
+        ctx.lineTo(tx(b), H);
+      }
+      ctx.stroke();
+      // мелкая нумерация фразовых групп (1, 2, 3...) — при умеренном зуме,
+      // чтобы цифры не слипались на полном обзоре длинного трека
+      const groupPx = ((downbeats[4] || duration) - (downbeats[0] || 0)) / span * W;
+      if (groupPx > 26) {
+        ctx.fillStyle = '#ffb84f88';
+        ctx.font = '9px "JetBrains Mono", monospace';
+        for (let i = 0; i < downbeats.length; i += 4) {
+          const b = downbeats[i];
+          if (b < t0 || b > t1) continue;
+          ctx.fillText(String(i / 4 + 1), tx(b) + 3, H - 34);
+        }
+      }
     }
 
     // waveform
@@ -1588,6 +1625,22 @@ function App() {
       loadHistory();
     } catch (er) {}
   };
+  const toggleFavorite = async (e, item) => {
+    if (e) e.stopPropagation();
+    try {
+      await fetch(`/api/favorite/${item.track_id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          favorite: !item.favorite
+        })
+      });
+      loadHistory();
+    } catch (er) {}
+  };
+  const currentFav = history.find(h => h.track_id === trackId);
   const doAnalyze = async (id, n) => {
     setLoading(t.loading_analyze);
     try {
@@ -1765,24 +1818,45 @@ function App() {
     style: {
       marginTop: 14
     }
+  }, [{
+    key: 'lib',
+    title: t.library_title,
+    items: history.filter(h => h.favorite)
+  }, {
+    key: 'hist',
+    title: t.history_title,
+    items: history.filter(h => !h.favorite)
+  }].map(group => group.items.length > 0 && /*#__PURE__*/React.createElement("div", {
+    key: group.key,
+    style: {
+      marginBottom: 10
+    }
   }, /*#__PURE__*/React.createElement("div", {
     className: "panel-title",
     style: {
       marginBottom: 8
     }
-  }, t.history_title), /*#__PURE__*/React.createElement("div", {
+  }, group.title), /*#__PURE__*/React.createElement("div", {
     className: "seg-list",
     style: {
       marginTop: 0
     }
-  }, history.map(item => /*#__PURE__*/React.createElement("div", {
+  }, group.items.map(item => /*#__PURE__*/React.createElement("div", {
     key: item.track_id,
     className: 'seg-chip' + (item.track_id === trackId ? ' active' : ''),
     onClick: () => openFromHistory(item),
     title: t.history_open_tip
   }, /*#__PURE__*/React.createElement("span", {
+    className: "x",
     style: {
+      color: item.favorite ? '#ffb84f' : 'var(--muted)',
       fontSize: 14
+    },
+    title: item.favorite ? t.fav_remove_tip : t.fav_add_tip,
+    onClick: e => toggleFavorite(e, item)
+  }, item.favorite ? '★' : '☆'), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13
     }
   }, item.has_markup ? '💾' : '♫'), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1800,7 +1874,7 @@ function App() {
     className: "x",
     title: t.history_del_tip,
     onClick: e => deleteFromHistory(e, item)
-  }, "\u2715")))))), analysis && /*#__PURE__*/React.createElement("div", {
+  }, "\u2715")))))))), analysis && /*#__PURE__*/React.createElement("div", {
     className: "panel"
   }, /*#__PURE__*/React.createElement("div", {
     className: "panel-title"
@@ -1861,7 +1935,15 @@ function App() {
   }, t.export_loops), /*#__PURE__*/React.createElement("button", {
     onClick: splitAtPlayhead,
     title: t.split_tip
-  }, t.split_btn), /*#__PURE__*/React.createElement("input", {
+  }, t.split_btn), /*#__PURE__*/React.createElement("button", {
+    onClick: () => currentFav && toggleFavorite(null, currentFav),
+    disabled: !currentFav,
+    title: currentFav && currentFav.favorite ? t.fav_remove_tip : t.fav_add_tip,
+    style: currentFav && currentFav.favorite ? {
+      color: '#ffb84f',
+      borderColor: '#ffb84f66'
+    } : {}
+  }, currentFav && currentFav.favorite ? '★ ' + t.fav_in_lib : '☆ ' + t.fav_btn), /*#__PURE__*/React.createElement("input", {
     ref: markupRef,
     type: "file",
     accept: ".json",

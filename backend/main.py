@@ -121,11 +121,25 @@ def list_tracks():
             "name": m.get("name"),
             "uploaded_at": m.get("uploaded_at", 0),
             "has_markup": bool(m.get("markup")),
+            "favorite": bool(m.get("favorite")),
             "duration": (m.get("markup") or {}).get("duration"),
             "n_segments": len((m.get("markup") or {}).get("segments", []) or []),
         })
-    items.sort(key=lambda x: -x["uploaded_at"])
+    # библиотека сверху, внутри групп — по свежести
+    items.sort(key=lambda x: (not x["favorite"], -x["uploaded_at"]))
     return {"tracks": items}
+
+
+@app.post("/api/favorite/{track_id}")
+def toggle_favorite(track_id: str, body: dict = Body(...)):
+    """Добавить/убрать трек из библиотеки (favorite=true/false)."""
+    track = TRACKS.get(track_id)
+    if not track:
+        raise HTTPException(404, "Трек не найден")
+    track["favorite"] = bool(body.get("favorite"))
+    with open(_meta_path(track_id), "w") as f:
+        json.dump(track, f)
+    return {"ok": True, "favorite": track["favorite"]}
 
 
 @app.post("/api/markup/{track_id}")

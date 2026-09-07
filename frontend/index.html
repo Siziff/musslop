@@ -266,7 +266,7 @@ const STR = {
     phrase_len_tip: 'Длина фразы: переход произойдёт на кратной границе от начала лупа',
     bars: 'такта',
     crossfade: 'Кроссфейд:',
-    wave_hint: <span>Клик — перемотка · Зелёный ползунок — позиция · Белая граница — перетащить · Двойной клик — разрезать · Alt+клик — начало повтора лупа (жёлтый маркер) · Колесо — зум, ползунок снизу — прокрутка · Штриховка — проигровка (играет 1 раз)</span>,
+    wave_hint: <span>Клик — перемотка · Зелёный ползунок — позиция · Белая граница — перетащить · Двойной клик — разрезать · Alt+клик — начало повтора лупа (жёлтый маркер) · Колесо — зум, ползунок снизу — прокрутка · Жёлтые метки — каждые 4 такта (номер фразы) · Штриховка — проигровка (играет 1 раз)</span>,
     del_seg: 'Удалить границу (слить с предыдущей)',
     player_title: 'Плеер',
     play: '▶ Играть (зациклить часть)',
@@ -280,6 +280,11 @@ const STR = {
     keys_hint: <span><kbd>Пробел</kbd> — играть/стоп · <kbd>→</kbd> / <kbd>Enter</kbd> — «Дальше» · <kbd>S</kbd> — разрезать в позиции · <kbd>Ctrl+Z</kbd> — отменить правку. Переход происходит бесшовно на границе лупа, как в игровых саундтреках.</span>,
     part: 'Часть',
     history_title: 'История',
+    library_title: 'Библиотека ★',
+    fav_btn: 'В библиотеку',
+    fav_in_lib: 'В библиотеке',
+    fav_add_tip: 'Сохранить в библиотеку — понравившиеся треки с разметкой всегда под рукой',
+    fav_remove_tip: 'Убрать из библиотеки',
     history_open_tip: 'Открыть трек с сохранённой разметкой',
     history_del_tip: 'Удалить трек из истории',
     history_parts: 'ч.',
@@ -336,7 +341,7 @@ const STR = {
     phrase_len_tip: 'Phrase length: transition happens on a multiple of this from the loop start',
     bars: 'bars',
     crossfade: 'Crossfade:',
-    wave_hint: <span>Click — seek · Green handle — position · White boundary — drag · Double click — split · Alt+click — loop repeat start (yellow marker) · Wheel — zoom, bottom scrollbar — pan · Hatching — build-up (plays once)</span>,
+    wave_hint: <span>Click — seek · Green handle — position · White boundary — drag · Double click — split · Alt+click — loop repeat start (yellow marker) · Wheel — zoom, bottom scrollbar — pan · Yellow ticks — every 4 bars (phrase number) · Hatching — build-up (plays once)</span>,
     del_seg: 'Remove boundary (merge with previous)',
     player_title: 'Player',
     play: '▶ Play (loop part)',
@@ -350,6 +355,11 @@ const STR = {
     keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next” · <kbd>S</kbd> — split at position · <kbd>Ctrl+Z</kbd> — undo edit. The transition is seamless at the loop boundary, just like in game soundtracks.</span>,
     part: 'Part',
     history_title: 'History',
+    library_title: 'Library ★',
+    fav_btn: 'Add to library',
+    fav_in_lib: 'In library',
+    fav_add_tip: 'Save to library — keep favorite tracks with their markup at hand',
+    fav_remove_tip: 'Remove from library',
     history_open_tip: 'Open track with saved markup',
     history_del_tip: 'Remove track from history',
     history_parts: 'parts',
@@ -406,7 +416,7 @@ const STR = {
     phrase_len_tip: '乐句长度：切换发生在距循环起点该长度的整数倍处',
     bars: '小节',
     crossfade: '交叉淡化：',
-    wave_hint: <span>点击 — 定位 · 绿色滑块 — 播放位置 · 白色边界 — 拖动调整 · 双击 — 切分 · Alt+点击 — 循环起点（黄色标记） · 滚轮 — 缩放，底部滑块 — 平移 · 斜线阴影 — 过渡段（只播一次）</span>,
+    wave_hint: <span>点击 — 定位 · 绿色滑块 — 播放位置 · 白色边界 — 拖动调整 · 双击 — 切分 · Alt+点击 — 循环起点（黄色标记） · 滚轮 — 缩放，底部滑块 — 平移 · 黄色刻度 — 每 4 小节（乐句编号） · 斜线阴影 — 过渡段（只播一次）</span>,
     del_seg: '删除边界（与前一段合并）',
     player_title: '播放器',
     play: '▶ 播放（循环此段）',
@@ -421,6 +431,11 @@ const STR = {
     keys_hint: <span><kbd>空格</kbd> — 播放/停止 · <kbd>→</kbd> / <kbd>Enter</kbd> — 「下一段」 · <kbd>S</kbd> — 在当前位置切分 · <kbd>Ctrl+Z</kbd> — 撤销编辑。切换在循环边界处无缝完成，就像游戏配乐一样。</span>,
     part: '段落',
     history_title: '历史记录',
+    library_title: '收藏库 ★',
+    fav_btn: '加入收藏库',
+    fav_in_lib: '已收藏',
+    fav_add_tip: '保存到收藏库 — 随时快速打开喜欢的音轨及其标注',
+    fav_remove_tip: '从收藏库移除',
     history_open_tip: '打开带有已保存标注的音轨',
     history_del_tip: '从历史记录中删除',
     history_parts: '段',
@@ -889,6 +904,26 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.strokeStyle = '#ffffff30'; ctx.beginPath();
       for (const b of downbeats) { if (b < t0 || b > t1) continue; ctx.moveTo(tx(b), H - 26); ctx.lineTo(tx(b), H); }
       ctx.stroke();
+      // каждые 4 такта — фразовая метка повыше и заметнее + номер группы
+      ctx.strokeStyle = '#ffb84f55'; ctx.beginPath();
+      for (let i = 0; i < downbeats.length; i += 4) {
+        const b = downbeats[i];
+        if (b < t0 || b > t1) continue;
+        ctx.moveTo(tx(b), H - 44); ctx.lineTo(tx(b), H);
+      }
+      ctx.stroke();
+      // мелкая нумерация фразовых групп (1, 2, 3...) — при умеренном зуме,
+      // чтобы цифры не слипались на полном обзоре длинного трека
+      const groupPx = ((downbeats[4] || duration) - (downbeats[0] || 0)) / span * W;
+      if (groupPx > 26) {
+        ctx.fillStyle = '#ffb84f88';
+        ctx.font = '9px "JetBrains Mono", monospace';
+        for (let i = 0; i < downbeats.length; i += 4) {
+          const b = downbeats[i];
+          if (b < t0 || b > t1) continue;
+          ctx.fillText(String(i / 4 + 1), tx(b) + 3, H - 34);
+        }
+      }
     }
 
     // waveform
@@ -1500,6 +1535,18 @@ function App() {
     } catch (er) {}
   };
 
+  const toggleFavorite = async (e, item) => {
+    if (e) e.stopPropagation();
+    try {
+      await fetch(`/api/favorite/${item.track_id}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite: !item.favorite }),
+      });
+      loadHistory();
+    } catch (er) {}
+  };
+  const currentFav = history.find(h => h.track_id === trackId);
+
   const doAnalyze = async (id, n) => {
     setLoading(t.loading_analyze);
     try {
@@ -1625,23 +1672,33 @@ function App() {
         {loading && <div className="status" style={{ marginTop: 12 }}><div className="spinner"></div>{loading}</div>}
         {error && <div className="error-box">{t.err_prefix} {error}</div>}
         {history.length > 0 && <div style={{ marginTop: 14 }}>
-          <div className="panel-title" style={{ marginBottom: 8 }}>{t.history_title}</div>
-          <div className="seg-list" style={{ marginTop: 0 }}>
-            {history.map(item => (
-              <div key={item.track_id}
-                className={'seg-chip' + (item.track_id === trackId ? ' active' : '')}
-                onClick={() => openFromHistory(item)}
-                title={t.history_open_tip}>
-                <span style={{ fontSize: 14 }}>{item.has_markup ? '💾' : '♫'}</span>
-                <span style={{ fontWeight: 600, maxWidth: 220, overflow: 'hidden',
-                               textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-                {item.duration != null && <span className="time">{fmt(item.duration)}</span>}
-                {item.n_segments > 0 && <span className="time">{item.n_segments} {t.history_parts}</span>}
-                <span className="x" title={t.history_del_tip}
-                  onClick={e => deleteFromHistory(e, item)}>✕</span>
+          {[
+            { key: 'lib', title: t.library_title, items: history.filter(h => h.favorite) },
+            { key: 'hist', title: t.history_title, items: history.filter(h => !h.favorite) },
+          ].map(group => group.items.length > 0 && (
+            <div key={group.key} style={{ marginBottom: 10 }}>
+              <div className="panel-title" style={{ marginBottom: 8 }}>{group.title}</div>
+              <div className="seg-list" style={{ marginTop: 0 }}>
+                {group.items.map(item => (
+                  <div key={item.track_id}
+                    className={'seg-chip' + (item.track_id === trackId ? ' active' : '')}
+                    onClick={() => openFromHistory(item)}
+                    title={t.history_open_tip}>
+                    <span className="x" style={{ color: item.favorite ? '#ffb84f' : 'var(--muted)', fontSize: 14 }}
+                      title={item.favorite ? t.fav_remove_tip : t.fav_add_tip}
+                      onClick={e => toggleFavorite(e, item)}>{item.favorite ? '★' : '☆'}</span>
+                    <span style={{ fontSize: 13 }}>{item.has_markup ? '💾' : '♫'}</span>
+                    <span style={{ fontWeight: 600, maxWidth: 220, overflow: 'hidden',
+                                   textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                    {item.duration != null && <span className="time">{fmt(item.duration)}</span>}
+                    {item.n_segments > 0 && <span className="time">{item.n_segments} {t.history_parts}</span>}
+                    <span className="x" title={t.history_del_tip}
+                      onClick={e => deleteFromHistory(e, item)}>✕</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>}
       </div>
 
@@ -1671,6 +1728,12 @@ function App() {
             <button className="ghost" onClick={() => markupRef.current.click()} title={t.import_tip}>{t.import_markup}</button>
             <button className="ghost" onClick={exportLoops} title={t.export_loops_tip} disabled={!!loading}>{t.export_loops}</button>
             <button onClick={splitAtPlayhead} title={t.split_tip}>{t.split_btn}</button>
+            <button onClick={() => currentFav && toggleFavorite(null, currentFav)}
+              disabled={!currentFav}
+              title={currentFav && currentFav.favorite ? t.fav_remove_tip : t.fav_add_tip}
+              style={currentFav && currentFav.favorite ? { color: '#ffb84f', borderColor: '#ffb84f66' } : {}}>
+              {currentFav && currentFav.favorite ? '★ ' + t.fav_in_lib : '☆ ' + t.fav_btn}
+            </button>
             <input ref={markupRef} type="file" accept=".json" style={{ display: 'none' }}
               onChange={e => e.target.files[0] && importMarkup(e.target.files[0])} />
           </div>
