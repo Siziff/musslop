@@ -14,17 +14,28 @@ from fastapi.staticfiles import StaticFiles
 
 from .analysis import analyze, analyze_deep_merge, loop_quality
 
-# Python из отдельного venv c allin1 (torch+NATTEN). Если нет — deep недоступен
-DEEP_PY = os.environ.get(
-    "MUSSLOP_DEEP_PY",
-    "/workspace-SR008.fs2/mikheev-kandy/.envs/allin1/bin/python",
-)
-DEEP_AVAILABLE = os.path.exists(DEEP_PY)
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+# Python из venv c allin1 (torch+NATTEN). Приоритет: env-переменная ->
+# локальный .venv-ai (создаётся ./setup-ai.sh) -> путь на dev-сервере.
+def _find_deep_py() -> str | None:
+    cands = [
+        os.environ.get("MUSSLOP_DEEP_PY"),
+        os.path.join(BASE_DIR, ".venv-ai", "bin", "python"),
+        "/workspace-SR008.fs2/mikheev-kandy/.envs/allin1/bin/python",
+    ]
+    for c in cands:
+        if c and os.path.exists(c):
+            return c
+    return None
+
+
+DEEP_PY = _find_deep_py()
+DEEP_AVAILABLE = DEEP_PY is not None
 
 app = FastAPI(title="Musslop")
 

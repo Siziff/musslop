@@ -114,11 +114,8 @@ The **✨ Split with AI** button uses [All-In-One](https://github.com/mir-aidj/a
 and functional section names (Intro/Verse/Chorus/Solo). It needs a separate venv:
 
 ```bash
-python3 -m venv ~/.venvs/allin1
-~/.venvs/allin1/bin/pip install torch torchaudio       # picks CPU/MPS build on macOS
-~/.venvs/allin1/bin/pip install git+https://github.com/CPJKU/madmom
-~/.venvs/allin1/bin/pip install allin1
-MUSSLOP_DEEP_PY=~/.venvs/allin1/bin/python ./run.sh
+./setup-ai.sh    # one-time, ~10 min / ~2.5 GB (torch, demucs, madmom, allin1)
+./run.sh         # the AI button appears automatically
 ```
 
 Device is auto-selected: CUDA → Apple MPS → CPU. First analysis of a track takes

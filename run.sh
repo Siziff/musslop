@@ -16,6 +16,16 @@ command -v ffmpeg >/dev/null || { echo "ОШИБКА: ffmpeg не найден �
 python3 -c "import fastapi, uvicorn, librosa" 2>/dev/null || {
   echo "Зависимости не установлены. Выполните: pip install -r requirements.txt"; exit 1; }
 
+# ИИ-анализ: автоматически подхватываем локальный .venv-ai (см. ./setup-ai.sh)
+if [ -z "$MUSSLOP_DEEP_PY" ] && [ -x ".venv-ai/bin/python" ]; then
+  export MUSSLOP_DEEP_PY="$(pwd)/.venv-ai/bin/python"
+fi
+if [ -n "$MUSSLOP_DEEP_PY" ] && [ -x "$MUSSLOP_DEEP_PY" ]; then
+  echo "ИИ-анализ: доступен ($MUSSLOP_DEEP_PY)"
+else
+  echo "ИИ-анализ: недоступен (установка: ./setup-ai.sh)"
+fi
+
 # Прекомпиляция JSX (необязательно: собранный app.js уже лежит в репозитории).
 # Пересборка нужна только после правок frontend/index.html.
 if [ frontend/index.html -nt frontend/index.prod.html ] 2>/dev/null; then
