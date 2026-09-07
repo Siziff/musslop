@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Musslop</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0d14'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%236a8dff'%3E%E2%99%AB%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<script src="vendor/react.min.js"></script>
+<script src="vendor/react-dom.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0d14;
+    --panel: rgba(23, 28, 40, .72);
+    --panel2: #1d2433;
+    --text: #eef1f8; --muted: #8b94a8;
+    --accent: #6a8dff; --accent2: #34d399; --danger: #fb6a6a;
+    --border: #2a3245; --border-soft: #232a3b;
+    --glow: rgba(106, 141, 255, .35);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Manrope', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+    background-image:
+      radial-gradient(900px 480px at 12% -8%, rgba(106,141,255,.14), transparent 62%),
+      radial-gradient(800px 460px at 92% -6%, rgba(52,211,153,.10), transparent 60%),
+      radial-gradient(700px 700px at 50% 118%, rgba(106,141,255,.07), transparent 60%);
+    background-attachment: fixed;
+  }
+  #root { max-width: 1180px; margin: 0 auto; padding: 28px 22px 60px; }
+
+  /* ---------- header ---------- */
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .logo { display: flex; align-items: baseline; gap: 12px; }
+  h1 {
+    font-size: 26px; margin: 0; letter-spacing: 3px; font-weight: 800;
+    background: linear-gradient(90deg, #eef1f8 0%, #9db4ff 55%, #6a8dff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { color: var(--muted); font-size: 13px; }
+  .lang-switch {
+    display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    background: var(--panel2);
+  }
+  .lang-switch button {
+    border: none; border-radius: 0; background: transparent; padding: 7px 14px;
+    font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .5px;
+  }
+  .lang-switch button.on { background: var(--accent); color: #fff; }
+  .lang-switch button:hover:not(.on) { color: var(--text); border-color: transparent; }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px; padding: 18px; margin-bottom: 16px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 30px rgba(0,0,0,.28);
+  }
+  .panel-title {
+    font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+  }
+
+  /* ---------- dropzone ---------- */
+  .dropzone {
+    position: relative;
+    border: 1.5px dashed var(--border); border-radius: 14px;
+    padding: 38px 20px; text-align: center; color: var(--muted);
+    cursor: pointer; transition: border-color .2s, background .2s, box-shadow .2s;
+    font-size: 14px;
+  }
+  .dropzone:hover, .dropzone.over {
+    border-color: var(--accent); background: rgba(106,141,255,.06);
+    box-shadow: inset 0 0 40px rgba(106,141,255,.05);
+  }
+  .dropzone .dz-icon { font-size: 26px; display: block; margin-bottom: 8px; opacity: .8; }
+  .dropzone b { color: var(--text); }
+
+  /* ---------- buttons & inputs ---------- */
+  button {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 16px; font-size: 14px; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+    transition: border-color .15s, background .15s, transform .06s, box-shadow .15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(106,141,255,.12); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .35; cursor: default; }
+  button.primary {
+    background: linear-gradient(135deg, #6a8dff, #4f6fe0); border-color: transparent; color: #fff;
+    box-shadow: 0 4px 18px var(--glow);
+  }
+  button.primary:hover:not(:disabled) { box-shadow: 0 4px 26px var(--glow); border-color: transparent; }
+  button.go {
+    background: linear-gradient(135deg, #34d399, #1fae7c); border-color: transparent;
+    color: #06231a; font-weight: 800;
+    box-shadow: 0 4px 18px rgba(52,211,153,.3);
+  }
+  button.go:hover:not(:disabled) { box-shadow: 0 4px 26px rgba(52,211,153,.45); border-color: transparent; }
+  button.go.armed { animation: pulse 1.1s infinite; }
+  button.ghost { background: transparent; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(52,211,153,.22); } }
+
+  input[type=number] {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 10px; width: 68px; font-size: 13px; font-family: inherit;
+  }
+  input[type=number]:focus { outline: none; border-color: var(--accent); }
+  label.chk {
+    display: inline-flex; gap: 7px; align-items: center; font-size: 13px;
+    color: var(--muted); cursor: pointer; font-weight: 600;
+  }
+  label.chk input { accent-color: var(--accent); width: 15px; height: 15px; }
+
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row.between { justify-content: space-between; }
+
+  /* ---------- waveform ---------- */
+  .canvas-wrap { position: relative; user-select: none; }
+  canvas { display: block; width: 100%; border-radius: 12px; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 8px; line-height: 1.5; }
+  kbd {
+    background: var(--panel2); border: 1px solid var(--border); border-bottom-width: 2px;
+    border-radius: 5px; padding: 1px 6px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text);
+  }
+
+  /* ---------- segment chips ---------- */
+  .seg-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .seg-chip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--panel2); border: 1px solid var(--border-soft);
+    border-radius: 10px; padding: 6px 10px; font-size: 13px; cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .seg-chip:hover { border-color: var(--border); }
+  .seg-chip.active {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 1px var(--accent2), 0 0 16px rgba(52,211,153,.18);
+  }
+  .seg-chip .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .seg-chip input {
+    background: transparent; border: none; color: var(--text);
+    font-size: 13px; width: 88px; outline: none; font-family: inherit; font-weight: 600;
+  }
+  .seg-chip .time { color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+  .seg-chip .x { color: var(--muted); cursor: pointer; padding: 0 2px; border-radius: 4px; }
+  .seg-chip .x:hover { color: var(--danger); }
+
+  /* ---------- badges / status ---------- */
+  .badge {
+    background: var(--panel2); border: 1px solid var(--border-soft);
+    border-radius: 8px; padding: 4px 10px; font-size: 12px; color: var(--muted); font-weight: 600;
+  }
+  .badge b { color: var(--text); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .status { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; color: var(--muted); }
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .8s linear infinite; flex: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-box {
+    margin-top: 12px; padding: 10px 14px; border-radius: 10px; font-size: 13px;
+    background: rgba(251,106,106,.08); border: 1px solid rgba(251,106,106,.35); color: var(--danger);
+  }
+
+  /* ---------- now playing ---------- */
+  .now {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; padding: 9px 14px; border-radius: 10px;
+    background: var(--panel2); border: 1px solid var(--border-soft);
+  }
+  .now b { color: var(--accent2); }
+  .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+  .eq i {
+    width: 3px; background: var(--accent2); border-radius: 1px;
+    animation: eq 1s ease-in-out infinite;
+  }
+  .eq i:nth-child(1) { height: 60%; animation-delay: 0s; }
+  .eq i:nth-child(2) { height: 100%; animation-delay: .25s; }
+  .eq i:nth-child(3) { height: 40%; animation-delay: .5s; }
+  @keyframes eq { 0%,100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; opacity: .7; }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  // Если React/Babel не загрузились — показать понятную ошибку вместо пустой страницы
+  window.addEventListener('load', function () {
+    // Babel нужен только в dev-режиме (inline text/babel скрипт)
+    var needBabel = !!document.querySelector('script[type="text/babel"]');
+    if (!window.React || !window.ReactDOM || (needBabel && !window.Babel)) {
+      document.getElementById('root').innerHTML =
+        '<div style="padding:40px;text-align:center;color:#fb6a6a;font-size:15px">' +
+        'Не удалось загрузить скрипты (vendor/*.js). Обновите страницу (Ctrl+F5) ' +
+        'или проверьте консоль браузера (F12).<br>' +
+        'Failed to load scripts (vendor/*.js). Hard-refresh (Ctrl+F5) or check the browser console (F12).' +
+        '</div>';
+    }
+  });
+</script>
+<script defer src="app.js?v=b14b6a0399"></script>
+</body>
+</html>
