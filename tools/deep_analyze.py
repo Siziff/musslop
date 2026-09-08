@@ -29,13 +29,24 @@ def main() -> None:
     device = pick_device()
     print(f"device: {device}", file=sys.stderr)
 
-    with tempfile.TemporaryDirectory() as tmp:
-        result = allin1.analyze(
-            audio, device=device, out_dir=os.path.join(tmp, "struct"),
-            demix_dir=os.path.join(tmp, "demix"),
-            spec_dir=os.path.join(tmp, "spec"),
-            keep_byproducts=False,
-        )
+    def run(dev):
+        with tempfile.TemporaryDirectory() as tmp:
+            return allin1.analyze(
+                audio, device=dev, out_dir=os.path.join(tmp, "struct"),
+                demix_dir=os.path.join(tmp, "demix"),
+                spec_dir=os.path.join(tmp, "spec"),
+                keep_byproducts=False,
+            )
+
+    try:
+        result = run(device)
+    except Exception as e:
+        # NATTEN на macOS собирается CPU-only: MPS может не поддерживаться
+        if device != "cpu":
+            print(f"{device} failed ({e}), retrying on cpu", file=sys.stderr)
+            result = run("cpu")
+        else:
+            raise
 
     segments = [
         {"start": float(s.start), "end": float(s.end), "label": str(s.label)}

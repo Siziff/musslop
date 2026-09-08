@@ -25,30 +25,40 @@ $PY -m venv "$VENV"
 
 echo "[2/4] Устанавливаю PyTorch (CPU/MPS на macOS, CUDA — если есть) ..."
 OS="$(uname -s)"
+# Пин torch 2.6: allin1 требует NATTEN 0.17.x, который собран/собирается под torch<=2.6
 if [ "$OS" = "Darwin" ]; then
-  "$VENV/bin/pip" install --quiet torch torchaudio
+  "$VENV/bin/pip" install --quiet torch==2.6.0 torchaudio==2.6.0
 else
   # Linux: если есть nvidia-smi — CUDA-сборка, иначе CPU
   if command -v nvidia-smi >/dev/null 2>&1; then
     "$VENV/bin/pip" install --quiet torch==2.6.0 torchaudio==2.6.0 \
       --index-url https://download.pytorch.org/whl/cu126
   else
-    "$VENV/bin/pip" install --quiet torch torchaudio \
+    "$VENV/bin/pip" install --quiet torch==2.6.0 torchaudio==2.6.0 \
       --index-url https://download.pytorch.org/whl/cpu
   fi
 fi
 
-echo "[3/4] Устанавливаю madmom и allin1 ..."
+echo "[3/4] Устанавливаю madmom, allin1 и совместимый NATTEN ..."
 "$VENV/bin/pip" install --quiet "git+https://github.com/CPJKU/madmom"
-
-if [ "$OS" = "Linux" ] && command -v nvidia-smi >/dev/null 2>&1; then
-  # NATTEN: на Linux+CUDA нужно готовое колесо под конкретный torch
-  PYTAG=$("$VENV/bin/python" -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')")
-  "$VENV/bin/pip" install --quiet \
-    "https://github.com/SHI-Labs/NATTEN/releases/download/v0.17.5/natten-0.17.5%2Btorch260cu126-${PYTAG}-${PYTAG}-linux_x86_64.whl" \
-    || echo "ВНИМАНИЕ: колесо NATTEN не подошло — см. https://whl.natten.org"
-fi
 "$VENV/bin/pip" install --quiet allin1
+
+# allin1 тянет свежий natten (0.21+), где нет нужного API — заменяем на 0.17.5
+PYTAG=$("$VENV/bin/python" -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')")
+if [ "$OS" = "Linux" ] && command -v nvidia-smi >/dev/null 2>&1; then
+  "$VENV/bin/pip" install --quiet --force-reinstall \
+    "https://github.com/SHI-Labs/NATTEN/releases/download/v0.17.5/natten-0.17.5%2Btorch260cu126-${PYTAG}-${PYTAG}-linux_x86_64.whl" \
+    || { echo "ОШИБКА: колесо NATTEN не подошло — см. https://whl.natten.org"; exit 1; }
+else
+  # macOS/CPU: сборка из исходников (нужен компилятор; на маке — Xcode CLT)
+  if [ "$OS" = "Darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
+    echo "ОШИБКА: нужен Xcode Command Line Tools: xcode-select --install"; exit 1
+  fi
+  echo "  (сборка NATTEN 0.17.5 из исходников, 2-5 минут...)"
+  "$VENV/bin/pip" install --quiet --force-reinstall --no-build-isolation \
+    "natten==0.17.5" \
+    || { echo "ОШИБКА: NATTEN не собрался. Проверьте компилятор (clang/gcc)"; exit 1; }
+fi
 
 # allin1 может требовать старый API natten — шим совместимости
 SITE=$("$VENV/bin/python" -c "import site; print(site.getsitepackages()[0])")
