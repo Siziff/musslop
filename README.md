@@ -95,10 +95,3 @@ Infinite Jukebox, Mixxx AutoDJ — see commit history for the research notes.
 3. Port busy → `./run.sh` frees it; manually: `lsof -ti tcp:8801 | xargs kill`
 4. No sound → click the ♪? self-test in the volume box (bottom-right)
 5. Server errors → `server.log`
-
-## Roadmap
-
-- [ ] Similarity-based jump points (Infinite Jukebox-style, within-section)
-- [ ] Fine-tuning boundary weights on user markups (`tools/tune.py` is ready)
-- [ ] Section auto-labels themed per UI theme (Tavern: "Gate", "Battle"…)
-- [ ] Cross-track transitions (location → location with key matching)
