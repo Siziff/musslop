@@ -43,10 +43,11 @@ echo "[3/4] Устанавливаю madmom, allin1 и совместимый NA
 "$VENV/bin/pip" install --quiet "git+https://github.com/CPJKU/madmom"
 "$VENV/bin/pip" install --quiet allin1
 
-# allin1 тянет свежий natten (0.21+), где нет нужного API — заменяем на 0.17.5
+# allin1 тянет свежий natten (0.21+), где нет нужного API — заменяем на 0.17.5.
+# ВАЖНО: --no-deps, иначе pip обновит torch до последнего и всё сломает
 PYTAG=$("$VENV/bin/python" -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')")
 if [ "$OS" = "Linux" ] && command -v nvidia-smi >/dev/null 2>&1; then
-  "$VENV/bin/pip" install --quiet --force-reinstall \
+  "$VENV/bin/pip" install --quiet --force-reinstall --no-deps \
     "https://github.com/SHI-Labs/NATTEN/releases/download/v0.17.5/natten-0.17.5%2Btorch260cu126-${PYTAG}-${PYTAG}-linux_x86_64.whl" \
     || { echo "ОШИБКА: колесо NATTEN не подошло — см. https://whl.natten.org"; exit 1; }
 else
@@ -58,9 +59,28 @@ else
   "$VENV/bin/pip" install --quiet cmake ninja
   export PATH="$(pwd)/$VENV/bin:$PATH"
   echo "  (сборка NATTEN 0.17.5 из исходников, 2-5 минут...)"
-  "$VENV/bin/pip" install --quiet --force-reinstall --no-build-isolation \
-    "natten==0.17.5" \
+  "$VENV/bin/pip" install --quiet --force-reinstall --no-deps --no-cache-dir \
+    --no-build-isolation "natten==0.17.5" \
     || { echo "ОШИБКА: NATTEN не собрался. Проверьте компилятор (clang/gcc)"; exit 1; }
+fi
+
+# страховка: если что-то всё же сдвинуло torch с 2.6 — вернуть на место
+TV=$("$VENV/bin/python" -c "import torch; print(torch.__version__)" 2>/dev/null | cut -d+ -f1)
+if [ "$TV" != "2.6.0" ]; then
+  echo "  (torch сдвинулся на $TV — возвращаю 2.6.0)"
+  if [ "$OS" = "Linux" ] && command -v nvidia-smi >/dev/null 2>&1; then
+    "$VENV/bin/pip" install --quiet --force-reinstall --no-deps torch==2.6.0 torchaudio==2.6.0 \
+      --index-url https://download.pytorch.org/whl/cu126
+  else
+    "$VENV/bin/pip" install --quiet --force-reinstall --no-deps torch==2.6.0 torchaudio==2.6.0
+  fi
+  # NATTEN мог собраться под другой torch — пересобрать начисто
+  if ! "$VENV/bin/python" -c "import natten" 2>/dev/null; then
+    echo "  (пересборка NATTEN под torch 2.6, без кэша...)"
+    "$VENV/bin/pip" install --quiet --force-reinstall --no-deps --no-cache-dir \
+      --no-build-isolation "natten==0.17.5" \
+      || { echo "ОШИБКА: NATTEN не пересобрался"; exit 1; }
+  fi
 fi
 
 # allin1 может требовать старый API natten — шим совместимости
