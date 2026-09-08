@@ -2,188 +2,103 @@
   <img src="assets/banner.png" alt="musslop — adaptive game-style loops from any track" width="100%">
 </p>
 
-<h3 align="center">Turn any music track into an adaptive, game-style soundtrack</h3>
+<h3 align="center">Any track becomes a game soundtrack</h3>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/python-3.10+-4f8cff?style=flat-square">
-  <img src="https://img.shields.io/badge/backend-FastAPI%20%2B%20librosa-34d399?style=flat-square">
-  <img src="https://img.shields.io/badge/frontend-React%20%2B%20Web%20Audio-4f8cff?style=flat-square">
-  <img src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
+  <img src="https://img.shields.io/badge/python-3.10+-d8ff3e?style=flat-square&labelColor=111">
+  <img src="https://img.shields.io/badge/FastAPI%20%2B%20librosa-backend-d8ff3e?style=flat-square&labelColor=111">
+  <img src="https://img.shields.io/badge/React%20%2B%20Web%20Audio-frontend-d8ff3e?style=flat-square&labelColor=111">
+  <img src="https://img.shields.io/badge/All--In--One-neural%20analysis-d8ff3e?style=flat-square&labelColor=111">
+  <img src="https://img.shields.io/badge/license-MIT-d8ff3e?style=flat-square&labelColor=111">
 </p>
 
 <p align="center">
-  <b>Loop any section forever · hit «Next» · the track evolves — seamlessly, on the beat</b>
+  <b>Loop any section forever · hit «Next» · the music evolves — seamlessly, on the beat</b>
 </p>
 
 ---
 
-Game soundtracks don't just play — they *react*. While you stay in one location, a musical
-section loops forever; when you move on, the music seamlessly evolves with you.
-**musslop** brings this behaviour to any track:
+In games, music *reacts*: stay in the tavern and its theme loops forever; descend into
+the dungeon and the score darkens with you. **musslop** does this with any mp3.
 
-- 🎼 **Understands the music** — tempo, beats, bars and section structure detected
-  automatically (~2 s for a 4-minute track), boundaries snapped to bar lines
-- 🔁 **Loops without seams** — sample-accurate Web Audio scheduling, equal-power
-  crossfades, per-section loop-quality score (⟳%)
-- 🎮 **Evolves on demand** — press **Next** and the transition lands exactly on the
-  loop or phrase boundary, like in FMOD/Wwise horizontal re-sequencing
-- 📈 **Knows what not to loop** — build-ups/risers are detected by their crescendo
-  shape and play once instead of looping
-- ✂️ **Fully editable** — drag boundaries, split, merge, set loop-repeat markers;
-  export loops as WAV or markup as JSON
+Drop a track → AI finds the musical structure → every section becomes a perfect loop →
+you drive the music live, like a game audio engine — no editing skills required.
 
-## Use cases
+## Why it feels magic
 
-- 🎲 **Tabletop RPG / D&D sessions** — the flagship use case: turn any track into a
-  *location theme*. The party explores a tavern? The tavern section loops for as long
-  as the scene lasts. They descend into the dungeon — hit **Next** and the music darkens
-  with them, seamlessly, mid-session, no audio editing skills required. Build-up
-  sections fire once as dramatic transitions between scenes
-- **Game development / prototyping** — audition how any licensed or reference track would
-  behave as an adaptive layer before implementing it in FMOD/Wwise; export the loops as
-  WAV stems ready for your audio middleware
-- **Streaming / content creation** — hold a musical mood for as long as a scene needs,
-  advance the track when the moment changes
-- **Study & practice** — loop a verse or a solo section endlessly, snapped to bars
-- **DJ / live sets** — quick structural map of a track with per-section loop quality scores
-- **Focus music** — stretch the part of a track you like to any length
+| | |
+|---|---|
+| 🧠 **AI structure analysis** | [All-In-One](https://github.com/mir-aidj/all-in-one) neural net (trained on 912 hand-annotated tracks) finds sections *and names them*: Intro, Verse, Chorus, Solo. Fast heuristic fallback (~2 s) works everywhere |
+| 🔁 **Seamless loops** | sample-accurate Web Audio scheduling, bar-snapped boundaries, per-section loop-quality score (⟳%), equal-power crossfades |
+| 🎚 **Intensity layers** | Demucs splits the track into drums / bass / vocals / backing — toggle and mix layers live: calm exploration → full combat, same track |
+| 🎬 **Pro transitions** | post-exit tails ring out over the next section, bass-swap keeps exactly one bassline at any moment, one-shot stingers (cymbal / boom / riser) punctuate scene changes |
+| 📈 **Knows what not to loop** | build-ups are detected by their crescendo shape and play once, as dramatic bridges |
+| ✂️ **Full editor** | drag boundaries with bar snapping, split/merge, loop-start markers, Ctrl+Z, zoom + scrollbar, everything auto-saved |
 
-## How it works
+## Built for the game table 🎲
 
-**Automatic slicing** (server, `librosa`) is grounded in music-theory-aware MIR
-techniques:
+The flagship use case is **tabletop RPG**: turn any track into a *location theme*.
+The party lingers in the tavern — the tavern section loops. They open the dungeon door —
+one keypress, and the music descends with them, on the beat, mid-session.
+There is even a **Tavern UI theme** (wood, parchment & gold) switchable in the header.
 
-1. **Beat tracking** — onset strength envelope + dynamic programming (Ellis, 2007)
-   yields tempo and beat positions
-2. **Downbeats** — assuming 4/4, the strong-beat phase is chosen as the shift that
-   maximizes onset strength on every 4th beat
-3. **Structural segmentation** (Foote, 2000) — beat-synchronous features
-   (CQT chroma for harmony, MFCC for timbre, RMS for dynamics) → self-similarity
-   matrix → checkerboard-kernel novelty curve → peaks become section boundaries
-   (intro / verse / chorus / bridge...)
-4. **Boundary refinement** — each boundary searches downbeats within ±1 bar of the
-   novelty peak and picks the one with the strongest onset and the biggest RMS jump —
-   this handles sections that start with a pickup (anacrusis)
-5. **Musical quantization** — boundaries snap to downbeats; sections are never shorter
-   than a musical phrase (2–4 bars)
-6. **Section labelling** — agglomerative clustering of per-section features names
-   repeated sections alike (`A1, B1, C1, B2...`)
-7. **Loop quality score** — spectral similarity between each section's head and tail
-   plus level continuity estimates how seamlessly it will loop (shown as ⟳%)
-
-**Playback** (browser, Web Audio API): every loop pass is scheduled as a separate
-`AudioBufferSourceNode` with sample-accurate timing; 6 ms micro-fades remove clicks.
-Press **Next** and the upcoming chunk is taken from the next section — the transition
-lands exactly on the loop boundary (or on the next phrase boundary in `phrase end`
-mode), optionally with a crossfade.
-
-### What is a crossfade?
-
-A **crossfade** is overlapping two pieces of audio while the first *fades out*
-and the second *fades in*. Instead of a hard cut at the seam (which can sound
-jerky when the waveforms don't line up), the two signals coexist for a short
-time — the ear hears a smooth blend instead of a jump.
-
-musslop uses an **equal-power** crossfade: gain follows cosine/sine curves so
-that the *combined loudness* stays constant during the overlap (a naive linear
-fade dips in the middle, which is audible). The crossfade slider (0–2 s) applies
-to both **loop repeats** (the tail of a pass overlaps the head of the next pass,
-masking an imperfect seam) and **section transitions**. Rules of thumb:
-
-- `0 s` — pure gapless splice with 6 ms anti-click micro-fades; best when the
-  boundary sits exactly on a bar line and the loop quality score (⟳%) is high
-- `0.3–0.8 s` — hides most seam artifacts in dense/ambient material
-- `1–2 s` — cinematic blend for pads and atmospheres; too long for rhythmic
-  music (transients from both parts overlap and can smear the groove)
+Also great for: game dev prototyping (audition adaptive behaviour before wiring
+FMOD/Wwise, export loop WAVs), streaming, practice looping, focus music.
 
 ## Quick start
 
 ```bash
 pip install -r requirements.txt   # ffmpeg must be in PATH
-./run.sh                          # default port 8801; or: ./run.sh 9000
+./run.sh                          # → http://localhost:8801
 ```
 
-Open http://localhost:8801
-
-`run.sh` frees the port from a stale process, checks dependencies and logs to `server.log`.
-
-### Optional: AI analysis (All-In-One neural net)
-
-The **✨ Split with AI** button uses [All-In-One](https://github.com/mir-aidj/all-in-one)
-(trained on 912 professionally annotated tracks) for noticeably better boundaries
-and functional section names (Intro/Verse/Chorus/Solo). It needs a separate venv:
+**Optional AI** (neural sectioning + stem layers), one command:
 
 ```bash
-./setup-ai.sh    # one-time, ~10 min / ~2.5 GB (torch, demucs, madmom, allin1)
-./run.sh         # the AI button appears automatically
+./setup-ai.sh   # ~10 min, ~2.5 GB; CUDA / Apple MPS / CPU auto-detected
+./run.sh        # ✨ AI buttons appear automatically
 ```
 
-Device is auto-selected: CUDA → Apple MPS → CPU. First analysis of a track takes
-~1 min on GPU / a few minutes on CPU; the result is cached, re-opening is instant.
-The AI button appears automatically when the venv is found.
-On Linux+CUDA, NATTEN may need a prebuilt wheel from https://whl.natten.org
-matching your torch/cuda versions.
+Works fully offline after setup. First AI analysis of a track: ~1 min on GPU,
+a few minutes on CPU; results are cached — reopening is instant.
 
-## Features
+## Under the hood
 
-- Drag & drop any audio file (mp3, wav, ogg, flac, m4a...)
-- Automatic structure analysis: tempo, beats, bars, sections — ~2 s for a 4-minute track
-- Waveform editor:
-  - drag boundaries (with snap-to-bar), double-click to split, ✕ to merge
-  - mouse wheel zoom + Shift+wheel pan, with minimap
-  - draggable playhead, click-to-seek
-  - live editing — boundary changes apply to playback immediately
-- Player: seamless looping, **Next** button, two transition modes
-  (*loop end* / *phrase end* — advance on a 4/8-bar phrase boundary),
-  adjustable crossfade (0–2 s)
-- Build-up detection: sections with a directed crescendo (rising RMS +
-  spectral brightness) are flagged as *transitions* and play once instead
-  of looping; per-section loop toggle and a draggable *loop repeat start*
-  marker (first pass plays the whole part, repeats start from the marker)
-- Suggested and maximum part counts reported by the analyzer; the user
-  picks the actual number
-- Per-section loop quality indicator (⟳%), auto-recomputed after edits
-- Section labels by similarity clustering (A/B/A/C)
-- Export: segment markup as JSON (re-importable), all loops as a zip of WAVs
-- UI in English and Russian
-- Keyboard: `Space` — play/stop, `→`/`Enter` — next
+1. **Beat & downbeat tracking** — onset envelope + dynamic programming (Ellis 2007)
+2. **Structure** — neural (All-In-One, WASPAA 2023) or Foote novelty on
+   beat-synced chroma+MFCC+RMS self-similarity
+3. **Loop-aware refinement** — boundaries move along downbeats maximizing loop
+   closure quality (head/tail spectral similarity), phrase lengths (4/8 bars) and
+   transition audibility
+4. **Build-up detection** — normalized RMS slope + trend R² + spectral-centroid rise
+5. **Playback** — every loop pass is an independent `AudioBufferSourceNode`;
+   transitions land on loop/phrase boundaries with micro-fades, tails and bass-swap
+
+Details and references: [Ellis 2007], [Foote 2000], [Kim & Nam 2023 (All-In-One)],
+Infinite Jukebox, Mixxx AutoDJ — see commit history for the research notes.
 
 ## API
 
-| Endpoint | Description |
+| Endpoint | Purpose |
 |---|---|
-| `POST /api/upload` | multipart upload, returns `track_id` |
-| `GET /api/analyze/{id}?n_segments=N` | structure analysis (N optional) |
-| `GET /api/audio/{id}` | original audio file |
-| `POST /api/loopability/{id}` | loop quality for a custom segment list |
-| `POST /api/export/{id}` | zip of WAV loops for a custom segment list |
-| `GET /api/health` | liveness check |
-
-## Project layout
-
-```
-backend/
-  main.py       # FastAPI: upload, analyze, export, static
-  analysis.py   # beat tracking, downbeats, novelty segmentation, labelling
-frontend/
-  index.html    # React (self-hosted CDN-free) + Web Audio player & editor
-  vendor/       # react, react-dom, babel-standalone (pinned versions)
-run.sh          # launcher with port cleanup
-```
+| `POST /api/upload` · `POST /api/import_url` | file upload / yt-dlp import |
+| `GET /api/analyze/{id}?engine=fast\|deep` | structure analysis |
+| `POST /api/stems/{id}` · `GET /api/stems/{id}/{stem}` | Demucs 4-stem split |
+| `POST /api/export/{id}` | zip of full-quality loop WAVs |
+| `GET/POST /api/markup/{id}` | segment markup persistence |
+| `GET /api/tracks` · `POST /api/favorite/{id}` | history & library |
 
 ## Troubleshooting
 
-1. **Is the server alive?** `curl http://localhost:8801/api/health` →
-   should return `{"status": "ok", ...}`
-2. **Blank page / no buttons** — open the browser console (`F12` → Console) for JS
-   errors; hard-refresh with `Ctrl+F5`
-3. **Port busy** — `./run.sh` kills the stale process itself; manually:
-   `lsof -ti tcp:8801 | xargs kill`
-4. **Analysis/upload errors** — check `server.log` for the Python traceback
-5. **File fails to decode** — verify `ffmpeg -i yourfile` works in a terminal
+1. `curl http://localhost:8801/api/health` → expect `{"status":"ok", ...}`
+2. Blank page → hard-refresh (`Ctrl+F5`), check browser console (`F12`)
+3. Port busy → `./run.sh` frees it; manually: `lsof -ti tcp:8801 | xargs kill`
+4. No sound → click the ♪? self-test in the volume box (bottom-right)
+5. Server errors → `server.log`
 
-## References
+## Roadmap
 
-- D. Ellis. *Beat Tracking by Dynamic Programming*, 2007
-- J. Foote. *Automatic Audio Segmentation Using a Measure of Audio Novelty*, 2000
-- librosa: https://librosa.org
+- [ ] Similarity-based jump points (Infinite Jukebox-style, within-section)
+- [ ] Fine-tuning boundary weights on user markups (`tools/tune.py` is ready)
+- [ ] Section auto-labels themed per UI theme (Tavern: "Gate", "Battle"…)
+- [ ] Cross-track transitions (location → location with key matching)
