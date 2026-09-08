@@ -11,12 +11,22 @@ if [ -f ".env" ]; then
   echo "Загружен .env"
 fi
 
-# Освободить порт, если занят старым процессом
+# Освободить порт, если занят старым процессом (может быть несколько pid)
 OLD=$(lsof -ti tcp:"$PORT" 2>/dev/null || ss -tlnp 2>/dev/null | grep ":$PORT " | grep -o 'pid=[0-9]*' | cut -d= -f2 | head -1)
 if [ -n "$OLD" ]; then
-  echo "Порт $PORT занят (pid $OLD) — останавливаю старый процесс"
-  kill "$OLD" 2>/dev/null || true
+  echo "Порт $PORT занят (pid: $(echo $OLD | tr '\n' ' ')) — останавливаю"
+  for pid in $OLD; do kill "$pid" 2>/dev/null || true; done
   sleep 1
+  # если не умерли — жёстко
+  STILL=$(lsof -ti tcp:"$PORT" 2>/dev/null || true)
+  if [ -n "$STILL" ]; then
+    for pid in $STILL; do kill -9 "$pid" 2>/dev/null || true; done
+    sleep 1
+  fi
+  if [ -n "$(lsof -ti tcp:"$PORT" 2>/dev/null || true)" ]; then
+    echo "ОШИБКА: порт $PORT так и занят — освободите вручную: lsof -ti tcp:$PORT | xargs kill -9"
+    exit 1
+  fi
 fi
 
 command -v ffmpeg >/dev/null || { echo "ОШИБКА: ffmpeg не найден в PATH"; exit 1; }
