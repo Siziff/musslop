@@ -262,6 +262,47 @@
     cursor: pointer; white-space: nowrap;
   }
   .dropdown-item:hover { background: rgba(106,141,255,.14); }
+
+  /* ---------- custom tooltips ---------- */
+  .tip { position: relative; cursor: help; }
+  .tip::after {
+    content: attr(data-tip);
+    position: absolute; left: 50%; bottom: calc(100% + 8px);
+    transform: translateX(-50%) translateY(4px);
+    background: #232c40; color: var(--text);
+    border: 1px solid var(--border); border-radius: 9px;
+    padding: 9px 12px; font-size: 12.5px; font-weight: 400; line-height: 1.45;
+    width: max-content; max-width: 300px; white-space: normal;
+    opacity: 0; pointer-events: none; z-index: 60;
+    transition: opacity .15s, transform .15s;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  }
+  .tip:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- stem layers ---------- */
+  .layer-grid { display: flex; flex-direction: column; gap: 5px; }
+  .layer-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel2); border: 1px solid var(--border-soft);
+    border-radius: 9px; padding: 5px 12px;
+  }
+  .layer-row.off { opacity: .45; }
+  .layer-name { font-weight: 700; font-size: 13px; width: 86px; }
+
+  /* ---------- collapsible sections ---------- */
+  .collapse-head {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    user-select: none; padding: 4px 0;
+  }
+  .collapse-head:hover .panel-title { color: var(--text); }
+  .collapse-head .caret {
+    font-size: 10px; color: var(--muted); transition: transform .15s;
+  }
+  .collapse-head .caret.open { transform: rotate(90deg); }
+  .collapse-head .count {
+    font-size: 11px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
 </style>
 </head>
 <body>
@@ -281,6 +322,6 @@
     }
   });
 </script>
-<script defer src="app.js?v=c5330d5c26"></script>
+<script defer src="app.js?v=3e0cb14c7c"></script>
 </body>
 </html>

@@ -97,7 +97,7 @@ const STR = {
     bass_swap_label: 'бас-своп',
     bass_swap_tip: 'Бас новой части включается ровно на границе, а не в кроссфейде — не будет каши из двух басов',
     stinger_label: 'Стингер:',
-    stinger_tip: 'Одиночный звук-акцент на переходе — как удар при входе в новую локацию',
+    stinger_tip: 'Стингер — короткий звук-акцент, который накладывается в момент перехода между частями и маскирует стык, делая его «нарочным»: тарелка — нарастающий звон, удар — низкий бум, райзер — нарастание, заканчивающееся ровно на границе. Приём из игрового аудио: «партия вошла в подземелье — бум!»',
     stinger_none: 'нет',
     stinger_cymbal: 'тарелка',
     stinger_boom: 'удар',
@@ -110,11 +110,11 @@ const STR = {
     stems_off: 'выкл',
     stems_loading: 'ИИ разделяет трек на слои (~1 мин)…',
     stems_downloading: 'Загрузка слоя',
-    intensity_label: 'Интенсивность:',
-    int_calm: 'фон',
-    int_low: '+бас',
-    int_mid: '+ритм',
-    int_full: 'всё',
+    layer_drums: 'Барабаны',
+    layer_bass: 'Бас',
+    layer_other: 'Фон',
+    layer_vocals: 'Вокал',
+    crossfade_tip: 'Кроссфейд — плавное наложение конца и начала: старый кусок затухает, пока новый нарастает. 0 = чистый стык по такту; 0.3-0.8с прячет артефакты склейки; 1-2с — киношное перетекание для эмбиента (в ритмичной музыке смажет грув)',
     url_placeholder: 'Ссылка на YouTube / прямая ссылка на аудио…',
     url_btn: 'Импорт',
     url_downloading: 'Скачивание по ссылке…',
@@ -209,7 +209,7 @@ const STR = {
     bass_swap_label: 'bass swap',
     bass_swap_tip: 'The incoming bass enters exactly on the boundary, not inside the crossfade — no two-bass mud',
     stinger_label: 'Stinger:',
-    stinger_tip: 'One-shot accent on the transition — like a hit when entering a new location',
+    stinger_tip: 'A stinger is a short accent sound overlaid at the moment of a section transition — it masks the seam and makes it feel intentional: cymbal — a swelling crash, boom — a low hit, riser — a build-up that ends exactly on the boundary. A game-audio trick: "the party enters the dungeon — boom!"',
     stinger_none: 'none',
     stinger_cymbal: 'cymbal',
     stinger_boom: 'boom',
@@ -222,11 +222,11 @@ const STR = {
     stems_off: 'off',
     stems_loading: 'AI is splitting the track into layers (~1 min)…',
     stems_downloading: 'Downloading layer',
-    intensity_label: 'Intensity:',
-    int_calm: 'ambient',
-    int_low: '+bass',
-    int_mid: '+drums',
-    int_full: 'full',
+    layer_drums: 'Drums',
+    layer_bass: 'Bass',
+    layer_other: 'Backing',
+    layer_vocals: 'Vocals',
+    crossfade_tip: 'Crossfade smoothly overlaps the end and the start: the old chunk fades out while the new one fades in. 0 = clean bar-aligned splice; 0.3-0.8s hides seam artifacts; 1-2s — cinematic blend for ambient (smears the groove in rhythmic music)',
     url_placeholder: 'YouTube link / direct audio URL…',
     url_btn: 'Import',
     url_downloading: 'Downloading from URL…',
@@ -322,7 +322,7 @@ const STR = {
     bass_swap_label: '贝斯切换',
     bass_swap_tip: '新段落的贝斯恰好在边界处进入，而非在交叉淡化中 — 避免双贝斯浑浊',
     stinger_label: '重音音效:',
-    stinger_tip: '过渡时的单次重音 — 如同进入新场景时的音效',
+    stinger_tip: '重音音效（stinger）是在段落切换瞬间叠加的短促音效，用来掩盖接缝并让过渡显得刻意为之：镲片 — 渐强的镲声，低音鼓 — 低沉的轰击，上升音 — 恰好在边界处结束的渐强音。游戏音频技巧：「队伍进入地牢 — 轰！」',
     stinger_none: '无',
     stinger_cymbal: '镲片',
     stinger_boom: '低音鼓',
@@ -335,11 +335,11 @@ const STR = {
     stems_off: '关闭',
     stems_loading: 'AI 正在分层（约1分钟）…',
     stems_downloading: '正在下载分层',
-    intensity_label: '强度:',
-    int_calm: '氛围',
-    int_low: '+贝斯',
-    int_mid: '+鼓点',
-    int_full: '全部',
+    layer_drums: '鼓',
+    layer_bass: '贝斯',
+    layer_other: '伴奏',
+    layer_vocals: '人声',
+    crossfade_tip: '交叉淡化让结尾与开头平滑重叠：旧片段淡出的同时新片段淡入。0 = 按小节对齐的干净拼接；0.3-0.8秒可掩盖接缝瑕疵；1-2秒 — 适合氛围音乐的电影式过渡（节奏音乐会模糊律动）',
     url_placeholder: 'YouTube 链接 / 音频直链…',
     url_btn: '导入',
     url_downloading: '正在从链接下载…',
@@ -399,6 +399,13 @@ class LoopPlayer {
       if (this.loadStingers) this.loadStingers();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  // Safari (webkit): decodeAudioData может быть callback-only — промис-обёртка
+  decode(arrayBuffer) {
+    return new Promise((resolve, reject) => {
+      const p = this.ctx.decodeAudioData(arrayBuffer, resolve, reject);
+      if (p && p.then) p.then(resolve, reject);
+    });
   }
   setVolume(v) {
     this.volume = v;
@@ -635,23 +642,25 @@ class LoopPlayer {
       const gn = this.ctx.createGain();
       this.stemGains[name] = gn;
     }
-    this.setIntensity(this.intensity);
+    this.setLayers(this.layers || {});
   }
   // Интенсивность 0..1 -> слои: other всегда, bass с 0.25, drums с 0.5, vocals с 0.75
-  setIntensity(v) {
-    this.intensity = v;
+  // Пер-слойное управление: {drums: {on: true, vol: 1}, ...}
+  setLayers(layers) {
+    this.layers = layers;
     if (!this.stemGains || !this.ctx) return;
     const now = this.ctx.currentTime;
-    const layer = (gn, on) => {
-      const target = on ? 1 : 0;
+    for (const name of ['drums', 'bass', 'other', 'vocals']) {
+      const gn = this.stemGains[name];
+      const st = layers[name] || {
+        on: true,
+        vol: 1
+      };
+      const target = st.on ? st.vol : 0;
       gn.gain.cancelScheduledValues(now);
       gn.gain.setValueAtTime(gn.gain.value, now);
-      gn.gain.linearRampToValueAtTime(target, now + 0.4);
-    };
-    layer(this.stemGains.other, true);
-    layer(this.stemGains.bass, v >= 0.25);
-    layer(this.stemGains.drums, v >= 0.5);
-    layer(this.stemGains.vocals, v >= 0.75);
+      gn.gain.linearRampToValueAtTime(target, now + 0.35);
+    }
   }
   // Стингер: одиночный звук на моменте перехода
   _playStinger(when) {
@@ -1602,6 +1611,10 @@ function App() {
   const [nSeg, setNSeg] = useState('');
   const [aiWorking, setAiWorking] = useState(false); // ИИ-анализ в процессе
   const [exportOpen, setExportOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState({
+    lib: true,
+    hist: false
+  });
   const [tailOn, setTailOn] = useState(true);
   const [bassSwapOn, setBassSwapOn] = useState(true);
   const [stinger, setStinger] = useState('none');
@@ -1656,7 +1669,7 @@ function App() {
       for (const [name, ab] of Object.entries(stingerRaw.current)) {
         if (!player.stingerBuffers[name] && ab) {
           try {
-            player.stingerBuffers[name] = await player.ctx.decodeAudioData(ab.slice(0));
+            player.stingerBuffers[name] = await player.decode(ab.slice(0));
           } catch (e) {}
         }
       }
@@ -1716,10 +1729,37 @@ function App() {
 
   // --- Стемы (vertical layering) -------------------------------------------
   const [stemsState, setStemsState] = useState('none'); // none|loading|ready
-  const [intensity, setIntensityState] = useState(1);
-  const setIntensity = v => {
-    setIntensityState(v);
-    player.setIntensity(v);
+  const defaultLayers = () => ({
+    drums: {
+      on: true,
+      vol: 1
+    },
+    bass: {
+      on: true,
+      vol: 1
+    },
+    other: {
+      on: true,
+      vol: 1
+    },
+    vocals: {
+      on: true,
+      vol: 1
+    }
+  });
+  const [layers, setLayersState] = useState(defaultLayers);
+  const updateLayer = (name, patch) => {
+    setLayersState(prev => {
+      const next = {
+        ...prev,
+        [name]: {
+          ...prev[name],
+          ...patch
+        }
+      };
+      player.setLayers(next);
+      return next;
+    });
   };
   const loadStems = async () => {
     if (!trackId || stemsState === 'loading') return;
@@ -1736,7 +1776,7 @@ function App() {
       for (let i = 0; i < names.length; i++) {
         setLoading(`${t.stems_downloading} ${i + 1}/4…`);
         const ab = await (await fetch(`/api/stems/${trackId}/${names[i]}`)).arrayBuffer();
-        bufs[names[i]] = await player.ctx.decodeAudioData(ab);
+        bufs[names[i]] = await player.decode(ab);
       }
       player.stems = bufs;
       player.stemGains = null; // пересоздать с текущей интенсивностью
@@ -1895,7 +1935,7 @@ function App() {
       player._ensureCtx();
       let buf = null;
       try {
-        buf = await player.ctx.decodeAudioData(ab.slice(0));
+        buf = await player.decode(ab.slice(0));
       } catch (e) {
         buf = null;
       }
@@ -1925,7 +1965,7 @@ function App() {
         const wavR = await fetch(`/api/audio/${track_id}?transcode=1`);
         if (!wavR.ok) throw new Error(t.err_upload);
         const wavAb = await wavR.arrayBuffer();
-        const wavBuf = await player.ctx.decodeAudioData(wavAb);
+        const wavBuf = await player.decode(wavAb);
         player.buffer = wavBuf;
         setBuffer(wavBuf);
       }
@@ -1985,7 +2025,7 @@ function App() {
       player._ensureCtx();
       let buf = null;
       try {
-        buf = await player.ctx.decodeAudioData(ab);
+        buf = await player.decode(ab);
       } catch (e) {
         buf = null;
       }
@@ -2021,7 +2061,7 @@ function App() {
         setLoading(t.loading_transcode);
         const wavR = await fetch(`/api/audio/${item.track_id}?transcode=1`);
         if (!wavR.ok) throw new Error(t.err_upload);
-        const wavBuf = await player.ctx.decodeAudioData(await wavR.arrayBuffer());
+        const wavBuf = await player.decode(await wavR.arrayBuffer());
         player.buffer = wavBuf;
         setBuffer(wavBuf);
       }
@@ -2277,17 +2317,27 @@ function App() {
   }].map(group => group.items.length > 0 && /*#__PURE__*/React.createElement("div", {
     key: group.key,
     style: {
-      marginBottom: 10
+      marginBottom: 6
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "collapse-head",
+    onClick: () => setOpenGroups(o => ({
+      ...o,
+      [group.key]: !o[group.key]
+    }))
+  }, /*#__PURE__*/React.createElement("span", {
+    className: 'caret' + (openGroups[group.key] ? ' open' : '')
+  }, "\u25B6"), /*#__PURE__*/React.createElement("div", {
     className: "panel-title",
     style: {
-      marginBottom: 8
+      marginBottom: 0
     }
-  }, group.title), /*#__PURE__*/React.createElement("div", {
+  }, group.title), /*#__PURE__*/React.createElement("span", {
+    className: "count"
+  }, "(", group.items.length, ")")), openGroups[group.key] && /*#__PURE__*/React.createElement("div", {
     className: "seg-list",
     style: {
-      marginTop: 0
+      marginTop: 6
     }
   }, group.items.map(item => /*#__PURE__*/React.createElement("div", {
     key: item.track_id,
@@ -2551,10 +2601,11 @@ function App() {
     className: phraseBars === 8 ? 'on' : '',
     onClick: () => setPhraseBars(8)
   }, "8 ", t.bars)), /*#__PURE__*/React.createElement("span", {
-    className: "badge",
+    className: "badge tip",
     style: {
       marginLeft: 12
-    }
+    },
+    "data-tip": t.crossfade_tip
   }, t.crossfade), /*#__PURE__*/React.createElement("input", {
     type: "range",
     min: "0",
@@ -2579,8 +2630,8 @@ function App() {
       marginTop: 10
     }
   }, /*#__PURE__*/React.createElement("label", {
-    className: "chk",
-    title: t.tail_tip
+    className: "chk tip",
+    "data-tip": t.tail_tip
   }, /*#__PURE__*/React.createElement("input", {
     type: "checkbox",
     checked: tailOn,
@@ -2589,8 +2640,8 @@ function App() {
       player.tailEnabled = e.target.checked;
     }
   }), t.tail_label), /*#__PURE__*/React.createElement("label", {
-    className: "chk",
-    title: t.bass_swap_tip
+    className: "chk tip",
+    "data-tip": t.bass_swap_tip
   }, /*#__PURE__*/React.createElement("input", {
     type: "checkbox",
     checked: bassSwapOn,
@@ -2599,11 +2650,11 @@ function App() {
       player.bassSwap = e.target.checked;
     }
   }), t.bass_swap_label), /*#__PURE__*/React.createElement("span", {
-    className: "badge",
+    className: "badge tip",
     style: {
       marginLeft: 12
     },
-    title: t.stinger_tip
+    "data-tip": t.stinger_tip
   }, t.stinger_label), /*#__PURE__*/React.createElement("div", {
     className: "lang-switch"
   }, ['none', 'cymbal', 'boom', 'riser'].map(sg => /*#__PURE__*/React.createElement("button", {
@@ -2616,41 +2667,48 @@ function App() {
   }, t['stinger_' + sg])))), deepAvailable && /*#__PURE__*/React.createElement("div", {
     className: "row",
     style: {
-      marginTop: 10
+      marginTop: 10,
+      alignItems: 'flex-start'
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "badge",
-    title: t.stems_tip
+    className: "badge tip",
+    "data-tip": t.stems_tip
   }, t.stems_label), stemsState !== 'ready' ? /*#__PURE__*/React.createElement("button", {
     className: "ai-btn",
     onClick: loadStems,
     disabled: stemsState === 'loading' || !!loading
-  }, "\uD83C\uDF9A ", stemsState === 'loading' ? t.stems_working : t.stems_btn) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
-    className: "badge",
-    style: {
-      color: 'var(--accent2)'
-    }
-  }, "\u2713 ", t.stems_ready), /*#__PURE__*/React.createElement("span", {
-    className: "badge"
-  }, t.intensity_label), /*#__PURE__*/React.createElement("input", {
+  }, "\uD83C\uDF9A ", stemsState === 'loading' ? t.stems_working : t.stems_btn) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "layer-grid"
+  }, ['drums', 'bass', 'other', 'vocals'].map(name => /*#__PURE__*/React.createElement("div", {
+    key: name,
+    className: 'layer-row' + (layers[name].on ? '' : ' off')
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "chk"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: layers[name].on,
+    onChange: e => updateLayer(name, {
+      on: e.target.checked
+    })
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "layer-name"
+  }, t['layer_' + name])), /*#__PURE__*/React.createElement("input", {
     type: "range",
     min: "0",
-    max: "1",
+    max: "1.5",
     step: "0.01",
-    value: intensity,
+    value: layers[name].vol,
+    disabled: !layers[name].on,
     style: {
-      width: 160,
+      width: 110,
       accentColor: '#a06bff'
     },
-    onChange: e => setIntensity(+e.target.value)
+    onChange: e => updateLayer(name, {
+      vol: +e.target.value
+    })
   }), /*#__PURE__*/React.createElement("span", {
-    className: "time",
-    style: {
-      fontFamily: '"JetBrains Mono", monospace',
-      fontSize: 12,
-      color: 'var(--muted)'
-    }
-  }, intensity < 0.25 ? t.int_calm : intensity < 0.5 ? t.int_low : intensity < 0.75 ? t.int_mid : t.int_full), /*#__PURE__*/React.createElement("button", {
+    className: "vol-num"
+  }, Math.round(layers[name].vol * 100), "%")))), /*#__PURE__*/React.createElement("button", {
     className: "ghost",
     onClick: unloadStems
   }, t.stems_off))), /*#__PURE__*/React.createElement("div", {
