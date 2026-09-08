@@ -373,6 +373,7 @@ const STR = {
     history_parts: 'ч.',
     loading_history: 'Загрузка трека из истории…',
     volume_tip: 'Громкость (клик по иконке — выкл/вкл)',
+    beep_tip: 'Тест звука: короткий бип напрямую в аудиовыход',
     files_menu: '⤓⤒ Файлы',
     tail_label: 'хвост перехода',
     tail_tip: 'Реверберация/затухание старой части дозвучивает поверх новой (~1.2с) — главный убийца «дёрганых» стыков',
@@ -484,6 +485,7 @@ const STR = {
     history_parts: 'parts',
     loading_history: 'Loading track from history…',
     volume_tip: 'Volume (click icon to mute/unmute)',
+    beep_tip: 'Sound test: a short beep straight to the audio output',
     files_menu: '⤓⤒ Files',
     tail_label: 'transition tail',
     tail_tip: 'Reverb/decay of the old section rings out over the new one (~1.2s) — the main cure for jerky seams',
@@ -596,6 +598,7 @@ const STR = {
     history_parts: '段',
     loading_history: '正在从历史记录加载音轨…',
     volume_tip: '音量（点击图标静音/取消静音）',
+    beep_tip: '声音测试：直接向音频输出发送短促提示音',
     files_menu: '⤓⤒ 文件',
     tail_label: '过渡尾音',
     tail_tip: '旧段落的混响/衰减在新段落上延续（约1.2秒）— 消除生硬接缝的关键',
@@ -1624,7 +1627,9 @@ function App() {
   const [stinger, setStinger] = useState('none');
   const [volume, setVolumeState] = useState(() => {
     const v = parseFloat(localStorage.getItem('musslop_volume'));
-    return isFinite(v) ? v : 1;
+    // сохранённый mute (0) не восстанавливаем: после перезагрузки страницы
+    // «тихий» плеер выглядит как сломанный звук
+    return isFinite(v) && v > 0.02 ? v : 1;
   });
   const setVolume = v => {
     setVolumeState(v);
@@ -2380,6 +2385,22 @@ function App() {
         <input type="range" min="0" max="1" step="0.01" value={volume}
           onChange={e => setVolume(+e.target.value)} />
         <span className="vol-num">{Math.round(volume * 100)}%</span>
+        <span className="vol-icon" title={t.beep_tip}
+          onClick={() => {
+            // тест-бип напрямую в destination, минуя master/стемы/фильтры
+            player._ensureCtx();
+            const o = player.ctx.createOscillator();
+            const g = player.ctx.createGain();
+            g.gain.value = 0.25;
+            o.frequency.value = 660;
+            o.connect(g); g.connect(player.ctx.destination);
+            o.start(); o.stop(player.ctx.currentTime + 0.25);
+            setTimeout(() => force(x => x + 1), 300);
+          }}>♪?</span>
+        {player.ctx && player.ctx.state !== 'running' &&
+          <span className="vol-num" style={{ color: 'var(--danger)', width: 'auto' }}>
+            {player.ctx.state}
+          </span>}
       </div>
     </div>
   );
