@@ -54,6 +54,9 @@ else
   if [ "$OS" = "Darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
     echo "ОШИБКА: нужен Xcode Command Line Tools: xcode-select --install"; exit 1
   fi
+  # cmake/ninja для сборки берём pip-пакетами прямо в venv (без brew)
+  "$VENV/bin/pip" install --quiet cmake ninja
+  export PATH="$(pwd)/$VENV/bin:$PATH"
   echo "  (сборка NATTEN 0.17.5 из исходников, 2-5 минут...)"
   "$VENV/bin/pip" install --quiet --force-reinstall --no-build-isolation \
     "natten==0.17.5" \
