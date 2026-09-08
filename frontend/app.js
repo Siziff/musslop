@@ -90,6 +90,8 @@ const STR = {
     history_parts: 'ч.',
     loading_history: 'Загрузка трека из истории…',
     volume_tip: 'Громкость (клик по иконке — выкл/вкл)',
+    theme_mono: 'Тема: минимал',
+    theme_tavern: 'Тема: таверна (D&D)',
     beep_tip: 'Тест звука: короткий бип напрямую в аудиовыход',
     files_menu: '⤓⤒ Файлы',
     tail_label: 'хвост перехода',
@@ -202,6 +204,8 @@ const STR = {
     history_parts: 'parts',
     loading_history: 'Loading track from history…',
     volume_tip: 'Volume (click icon to mute/unmute)',
+    theme_mono: 'Theme: minimal',
+    theme_tavern: 'Theme: tavern (D&D)',
     beep_tip: 'Sound test: a short beep straight to the audio output',
     files_menu: '⤓⤒ Files',
     tail_label: 'transition tail',
@@ -315,6 +319,8 @@ const STR = {
     history_parts: '段',
     loading_history: '正在从历史记录加载音轨…',
     volume_tip: '音量（点击图标静音/取消静音）',
+    theme_mono: '主题：极简',
+    theme_tavern: '主题：酒馆（D&D）',
     beep_tip: '声音测试：直接向音频输出发送短促提示音',
     files_menu: '⤓⤒ 文件',
     tail_label: '过渡尾音',
@@ -347,6 +353,23 @@ const STR = {
     footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）'
   }
 };
+
+// цвета текущей темы из CSS-переменных (для canvas)
+function themeColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = name => cs.getPropertyValue(name).trim();
+  return {
+    waveBg: v('--wave-bg') || '#141414',
+    waveLine: v('--wave-line') || '#f2f2f2',
+    playhead: v('--wave-playhead') || '#d8ff3e',
+    bound: v('--wave-bound') || 'rgba(242,242,242,.75)',
+    bar: v('--wave-bar') || 'rgba(242,242,242,.1)',
+    downbeat: v('--wave-downbeat') || 'rgba(242,242,242,.22)',
+    phrase: v('--wave-phrase') || 'rgba(216,255,62,.4)',
+    accent2: v('--accent2') || '#d8ff3e',
+    danger: v('--danger') || '#ff6b6b'
+  };
+}
 function fmt(t) {
   if (t == null || isNaN(t)) return '–';
   const m = Math.floor(t / 60),
@@ -1018,7 +1041,8 @@ function Waveform({
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
     const W = rect.width;
-    ctx.fillStyle = '#10141d';
+    const TC = themeColors();
+    ctx.fillStyle = TC.waveBg;
     ctx.fillRect(0, 0, W, H);
     if (!duration) return;
     const {
@@ -1071,7 +1095,7 @@ function Waveform({
 
     // beats / downbeats (биты рисуем только при достаточном зуме)
     if (beats && span < duration * 0.6) {
-      ctx.strokeStyle = '#ffffff14';
+      ctx.strokeStyle = TC.bar;
       ctx.beginPath();
       for (const b of beats) {
         if (b < t0 || b > t1) continue;
@@ -1081,7 +1105,7 @@ function Waveform({
       ctx.stroke();
     }
     if (downbeats) {
-      ctx.strokeStyle = '#ffffff30';
+      ctx.strokeStyle = TC.downbeat;
       ctx.beginPath();
       for (const b of downbeats) {
         if (b < t0 || b > t1) continue;
@@ -1090,7 +1114,7 @@ function Waveform({
       }
       ctx.stroke();
       // каждые 4 такта — фразовая метка повыше и заметнее + номер группы
-      ctx.strokeStyle = '#ffb84f55';
+      ctx.strokeStyle = TC.phrase;
       ctx.beginPath();
       for (let i = 0; i < downbeats.length; i += 4) {
         const b = downbeats[i];
@@ -1103,7 +1127,7 @@ function Waveform({
       // чтобы цифры не слипались на полном обзоре длинного трека
       const groupPx = ((downbeats[4] || duration) - (downbeats[0] || 0)) / span * W;
       if (groupPx > 26) {
-        ctx.fillStyle = '#ffb84f88';
+        ctx.fillStyle = TC.phrase;
         ctx.font = '9px "JetBrains Mono", monospace';
         for (let i = 0; i < downbeats.length; i += 4) {
           const b = downbeats[i];
@@ -1119,8 +1143,8 @@ function Waveform({
         peaks,
         W: PW
       } = peaksRef.current;
-      ctx.strokeStyle = '#8fb0ec';
-      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = TC.waveLine;
+      ctx.globalAlpha = 0.7;
       ctx.beginPath();
       const mid = H / 2,
         amp = H / 2 - 10;
@@ -1138,14 +1162,14 @@ function Waveform({
     segments.forEach((s, i) => {
       if (i === 0 || s.start < t0 || s.start > t1) return;
       const x = tx(s.start);
-      ctx.strokeStyle = '#ffffffcc';
+      ctx.strokeStyle = TC.bound;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, H);
       ctx.stroke();
       ctx.lineWidth = 1;
-      ctx.fillStyle = '#ffffffcc';
+      ctx.fillStyle = TC.bound;
       ctx.beginPath();
       ctx.moveTo(x - 5, 0);
       ctx.lineTo(x + 5, 0);
@@ -1163,7 +1187,7 @@ function Waveform({
       ctx.fillText(s.label, lx, 15);
       if (s.loopability != null) {
         const q = s.loopability;
-        ctx.fillStyle = q > 0.75 ? '#34d399' : q > 0.55 ? '#ffb84f' : '#fb6a6a';
+        ctx.fillStyle = q > 0.75 ? TC.accent2 : q > 0.55 ? '#ffb84f' : TC.danger;
         ctx.font = '600 10px "JetBrains Mono", monospace';
         ctx.fillText('\u27F3' + Math.round(q * 100) + '%', lx, 28);
       }
@@ -1172,7 +1196,7 @@ function Waveform({
     // скроллбар при зуме: дорожка + перетаскиваемый бегунок
     if (span < duration * 0.999) {
       const SB_H = 12;
-      ctx.fillStyle = '#ffffff14';
+      ctx.fillStyle = TC.bar;
       ctx.fillRect(0, H - SB_H, W, SB_H);
       const bx = t0 / duration * W;
       const bw = Math.max(24, span / duration * W);
@@ -1202,19 +1226,19 @@ function Waveform({
     if (pos != null && pos >= t0 && pos <= t1) {
       const x = tx(pos);
       const grad = ctx.createLinearGradient(x - 8, 0, x + 8, 0);
-      grad.addColorStop(0, 'rgba(52,211,153,0)');
-      grad.addColorStop(.5, 'rgba(52,211,153,.25)');
-      grad.addColorStop(1, 'rgba(52,211,153,0)');
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(.5, TC.phrase);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
       ctx.fillRect(x - 8, 0, 16, H);
-      ctx.strokeStyle = '#34d399';
+      ctx.strokeStyle = TC.playhead;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, H);
       ctx.stroke();
       // ручка плейхеда
-      ctx.fillStyle = '#34d399';
+      ctx.fillStyle = TC.playhead;
       ctx.beginPath();
       ctx.arc(x, 6, 5, 0, Math.PI * 2);
       ctx.fill();
@@ -1562,6 +1586,16 @@ function App() {
     localStorage.setItem('musslop_lang', l);
     document.documentElement.lang = l;
   };
+
+  // --- Тема оформления -------------------------------------------------------
+  const [theme, setThemeState] = useState(() => {
+    const t0 = localStorage.getItem('musslop_theme');
+    return t0 === 'tavern' || t0 === 'mono' ? t0 : 'mono';
+  });
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('musslop_theme', theme);
+  }, [theme]);
   const [trackId, setTrackId] = useState(null);
   const [trackName, setTrackName] = useState('');
   const [loading, setLoading] = useState(null);
@@ -2226,9 +2260,24 @@ function App() {
   }, []);
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("header", null, /*#__PURE__*/React.createElement("div", {
     className: "logo"
-  }, /*#__PURE__*/React.createElement("h1", null, "MUSSLOP"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("h1", null, theme === 'tavern' ? 'Musslop' : 'musslop'), /*#__PURE__*/React.createElement("div", {
     className: "sub"
   }, t.tagline)), /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      gap: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "theme-switch"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: theme === 'mono' ? 'on' : '',
+    title: t.theme_mono,
+    onClick: () => setThemeState('mono')
+  }, "\u25AA"), /*#__PURE__*/React.createElement("button", {
+    className: theme === 'tavern' ? 'on' : '',
+    title: t.theme_tavern,
+    onClick: () => setThemeState('tavern')
+  }, "\u2694")), /*#__PURE__*/React.createElement("div", {
     className: "lang-switch"
   }, /*#__PURE__*/React.createElement("button", {
     className: lang === 'ru' ? 'on' : '',
@@ -2239,7 +2288,7 @@ function App() {
   }, "EN"), /*#__PURE__*/React.createElement("button", {
     className: lang === 'zh' ? 'on' : '',
     onClick: () => setLanguage('zh')
-  }, "\u4E2D\u6587"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u4E2D\u6587")))), /*#__PURE__*/React.createElement("div", {
     className: "panel"
   }, /*#__PURE__*/React.createElement("div", {
     className: "panel-title"
