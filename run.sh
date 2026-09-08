@@ -4,6 +4,13 @@ set -e
 cd "$(dirname "$0")"
 PORT="${1:-${PORT:-8801}}"
 
+# Локальные секреты/настройки: .env в корне проекта (не коммитится).
+# Пример: HF_TOKEN=hf_xxxxx
+if [ -f ".env" ]; then
+  set -a; . ./.env; set +a
+  echo "Загружен .env"
+fi
+
 # Освободить порт, если занят старым процессом
 OLD=$(lsof -ti tcp:"$PORT" 2>/dev/null || ss -tlnp 2>/dev/null | grep ":$PORT " | grep -o 'pid=[0-9]*' | cut -d= -f2 | head -1)
 if [ -n "$OLD" ]; then

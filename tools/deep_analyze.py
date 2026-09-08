@@ -13,12 +13,11 @@ import tempfile
 
 
 def pick_device() -> str:
-    """cuda -> mps (Apple Silicon) -> cpu."""
+    """cuda -> cpu. MPS намеренно пропущен: NATTEN (ядро allin1) не
+    поддерживает MPS — на Apple Silicon работаем на CPU."""
     import torch
     if torch.cuda.is_available():
         return "cuda"
-    if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
-        return "mps"
     return "cpu"
 
 

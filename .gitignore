@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 demix/
 .venv-ai/
+.env
