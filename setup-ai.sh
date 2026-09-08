@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Установка опциональных ИИ-компонентов (All-In-One structure analyzer).
-# Создаёт отдельный venv в .venv-ai/ — run.sh подхватит его автоматически.
+# Optional AI components setup (All-In-One structure analyzer).
+# Creates a dedicated venv in .venv-ai/ — run.sh picks it up automatically.
 #
-# Использование: ./setup-ai.sh
-# Займёт ~10 минут и ~2.5 GB диска (torch, demucs, madmom, allin1).
+# Usage: ./setup-ai.sh
+# Takes ~10 minutes and ~2.5 GB of disk (torch, demucs, madmom, allin1).
 set -e
 cd "$(dirname "$0")"
 
@@ -11,25 +11,25 @@ VENV=".venv-ai"
 PY="${PYTHON:-python3}"
 
 echo "== musslop AI setup =="
-$PY -c 'import sys; assert sys.version_info >= (3, 10), "нужен Python 3.10+"' \
-  || { echo "ОШИБКА: нужен Python 3.10+"; exit 1; }
+$PY -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"' \
+  || { echo "ERROR: Python 3.10+ required"; exit 1; }
 
 if [ -x "$VENV/bin/python" ] && "$VENV/bin/python" -c "import allin1" 2>/dev/null; then
-  echo "Уже установлено ($VENV). Для переустановки удалите каталог: rm -rf $VENV"
+  echo "Already installed ($VENV). To reinstall: rm -rf $VENV"
   exit 0
 fi
 
-echo "[1/4] Создаю venv в $VENV ..."
+echo "[1/4] Creating venv in $VENV ..."
 $PY -m venv "$VENV"
 "$VENV/bin/pip" install --quiet --upgrade pip
 
-echo "[2/4] Устанавливаю PyTorch (CPU/MPS на macOS, CUDA — если есть) ..."
+echo "[2/4] Installing PyTorch (CPU/MPS on macOS, CUDA if available) ..."
 OS="$(uname -s)"
-# Пин torch 2.6: allin1 требует NATTEN 0.17.x, который собран/собирается под torch<=2.6
+# Pin torch 2.6: allin1 needs NATTEN 0.17.x which is built for torch<=2.6
 if [ "$OS" = "Darwin" ]; then
   "$VENV/bin/pip" install --quiet torch==2.6.0 torchaudio==2.6.0
 else
-  # Linux: если есть nvidia-smi — CUDA-сборка, иначе CPU
+  # Linux: CUDA build when nvidia-smi is present, CPU otherwise
   if command -v nvidia-smi >/dev/null 2>&1; then
     "$VENV/bin/pip" install --quiet torch==2.6.0 torchaudio==2.6.0 \
       --index-url https://download.pytorch.org/whl/cu126
@@ -39,52 +39,77 @@ else
   fi
 fi
 
-echo "[3/4] Устанавливаю madmom, allin1 и совместимый NATTEN ..."
+echo "[3/4] Installing madmom, allin1 and a compatible NATTEN ..."
 "$VENV/bin/pip" install --quiet "git+https://github.com/CPJKU/madmom"
 "$VENV/bin/pip" install --quiet allin1
 
-# allin1 тянет свежий natten (0.21+), где нет нужного API — заменяем на 0.17.5.
-# ВАЖНО: --no-deps, иначе pip обновит torch до последнего и всё сломает
+# allin1 pulls a fresh natten (0.21+) that dropped the needed API — replace with 0.17.5.
+# IMPORTANT: --no-deps, otherwise pip upgrades torch to latest and breaks everything
 PYTAG=$("$VENV/bin/python" -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')")
 if [ "$OS" = "Linux" ] && command -v nvidia-smi >/dev/null 2>&1; then
   "$VENV/bin/pip" install --quiet --force-reinstall --no-deps \
     "https://github.com/SHI-Labs/NATTEN/releases/download/v0.17.5/natten-0.17.5%2Btorch260cu126-${PYTAG}-${PYTAG}-linux_x86_64.whl" \
-    || { echo "ОШИБКА: колесо NATTEN не подошло — см. https://whl.natten.org"; exit 1; }
+    || { echo "ERROR: NATTEN wheel did not match — see https://whl.natten.org"; exit 1; }
 else
-  # macOS/CPU: сборка из исходников (нужен компилятор; на маке — Xcode CLT)
+  # macOS/CPU: source build (needs a compiler; on mac — Xcode CLT)
   if [ "$OS" = "Darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
-    echo "ОШИБКА: нужен Xcode Command Line Tools: xcode-select --install"; exit 1
+    echo "ERROR: Xcode Command Line Tools required: xcode-select --install"; exit 1
   fi
-  # cmake/ninja для сборки берём pip-пакетами прямо в venv (без brew)
+  # cmake/ninja come as pip packages inside the venv (no brew needed)
   "$VENV/bin/pip" install --quiet cmake ninja
   export PATH="$(pwd)/$VENV/bin:$PATH"
-  echo "  (сборка NATTEN 0.17.5 из исходников, 2-5 минут...)"
+  echo "  (building NATTEN 0.17.5 from source, 2-5 minutes...)"
   "$VENV/bin/pip" install --quiet --force-reinstall --no-deps --no-cache-dir \
     --no-build-isolation "natten==0.17.5" \
-    || { echo "ОШИБКА: NATTEN не собрался. Проверьте компилятор (clang/gcc)"; exit 1; }
+    || { echo "ERROR: NATTEN build failed. Check your compiler (clang/gcc)"; exit 1; }
 fi
 
-# страховка: если что-то всё же сдвинуло torch с 2.6 — вернуть на место
+# safety net: if anything moved torch off 2.6 — put it back
 TV=$("$VENV/bin/python" -c "import torch; print(torch.__version__)" 2>/dev/null | cut -d+ -f1)
 if [ "$TV" != "2.6.0" ]; then
-  echo "  (torch сдвинулся на $TV — возвращаю 2.6.0)"
+  echo "  (torch drifted to $TV — re-pinning 2.6.0)"
   if [ "$OS" = "Linux" ] && command -v nvidia-smi >/dev/null 2>&1; then
     "$VENV/bin/pip" install --quiet --force-reinstall --no-deps torch==2.6.0 torchaudio==2.6.0 \
       --index-url https://download.pytorch.org/whl/cu126
   else
     "$VENV/bin/pip" install --quiet --force-reinstall --no-deps torch==2.6.0 torchaudio==2.6.0
   fi
-  # NATTEN мог собраться под другой torch — пересобрать начисто
+  # NATTEN may have been built against another torch — rebuild from scratch
   if ! "$VENV/bin/python" -c "import natten" 2>/dev/null; then
-    echo "  (пересборка NATTEN под torch 2.6, без кэша...)"
+    echo "  (rebuilding NATTEN for torch 2.6, no cache...)"
     "$VENV/bin/pip" install --quiet --force-reinstall --no-deps --no-cache-dir \
       --no-build-isolation "natten==0.17.5" \
-      || { echo "ОШИБКА: NATTEN не пересобрался"; exit 1; }
+      || { echo "ERROR: NATTEN rebuild failed"; exit 1; }
   fi
 fi
 
-# allin1 может требовать старый API natten — шим совместимости
+# allin1 may need the old natten API — compatibility shim
 SITE=$("$VENV/bin/python" -c "import site; print(site.getsitepackages()[0])")
+
+# natten 0.17.5 bug: on CPU-only machines it calls torch.cuda.get_device_capability
+# at import time and crashes ("Torch not compiled with CUDA enabled") — patch it
+if [ -f "$SITE/natten/utils/misc.py" ]; then
+  "$VENV/bin/python" - <<'EOF'
+import site, os
+site_dir = site.getsitepackages()[0]
+p = os.path.join(site_dir, "natten", "utils", "misc.py")
+s = open(p).read()
+old = "def get_device_cc("
+guard = '''def get_device_cc(device_index=None):
+    import torch
+    if not torch.cuda.is_available():
+        return 0
+    return _get_device_cc_orig(device_index)
+
+
+def _get_device_cc_orig('''
+if "_get_device_cc_orig" not in s and old in s:
+    s = s.replace(old, guard, 1)
+    open(p, "w").write(s)
+    print("  (patched natten CPU import bug)")
+EOF
+fi
+
 if ! "$VENV/bin/python" -c "from natten.functional import natten1dav" 2>/dev/null \
    && "$VENV/bin/python" -c "from natten.functional import na1d_qk" 2>/dev/null; then
   cat > "$SITE/natten_compat.py" <<'EOF'
@@ -96,16 +121,16 @@ def natten2dav(a, v, ks, dil): return na2d_av(a, v, ks, dil)
 EOF
   sed -i.bak 's/from natten.functional import natten1dav, natten1dqkrpb, natten2dav, natten2dqkrpb/from natten_compat import natten1dav, natten1dqkrpb, natten2dav, natten2dqkrpb/' \
     "$SITE/allin1/models/dinat.py" && rm -f "$SITE/allin1/models/dinat.py.bak"
-  echo "  (применён шим совместимости NATTEN)"
+  echo "  (NATTEN compatibility shim applied)"
 fi
 
-echo "[4/4] Проверяю ..."
+echo "[4/4] Verifying ..."
 "$VENV/bin/python" - <<'EOF'
 import allin1, torch
 dev = 'cuda' if torch.cuda.is_available() else \
       'mps' if getattr(torch.backends, 'mps', None) and torch.backends.mps.is_available() else 'cpu'
-print(f"OK: allin1 работает, устройство: {dev}")
+print(f"OK: allin1 works, device: {dev}")
 EOF
 
 echo
-echo "Готово! Запустите ./run.sh — кнопка '✨ Разделить с ИИ' появится автоматически."
+echo "Done! Start ./run.sh — the AI split button will appear automatically."

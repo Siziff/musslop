@@ -393,6 +393,7 @@ class LoopPlayer {
       this.master = this.ctx.createGain();
       this.master.gain.value = this.volume != null ? this.volume : 1;
       this.master.connect(this.ctx.destination);
+      if (this.loadStingers) this.loadStingers();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
   }
@@ -1631,21 +1632,30 @@ function App() {
   useEffect(() => {
     player.onState = () => force(x => x + 1);
   }, []);
-  // асинхронная догрузка стингеров (не блокирует старт)
+  // стингеры: скачиваем сразу (байты), декодируем лениво — при первом
+  // воспроизведении. НЕ создаём AudioContext без жеста пользователя:
+  // авто-созданный suspended-контекст ломает звук в некоторых браузерах.
+  const stingerRaw = useRef({});
   useEffect(() => {
     (async () => {
-      try {
-        player._ensureCtx();
-      } catch (e) {
-        return;
-      } // до первого клика ctx может не создаться — ок
       for (const name of ['cymbal', 'boom', 'riser']) {
         try {
-          const ab = await (await fetch(`stingers/${name}.wav`)).arrayBuffer();
-          player.stingerBuffers[name] = await player.ctx.decodeAudioData(ab);
+          stingerRaw.current[name] = await (await fetch(`stingers/${name}.wav`)).arrayBuffer();
         } catch (e) {}
       }
     })();
+  }, []);
+  useEffect(() => {
+    player.loadStingers = async () => {
+      if (!player.ctx) return;
+      for (const [name, ab] of Object.entries(stingerRaw.current)) {
+        if (!player.stingerBuffers[name] && ab) {
+          try {
+            player.stingerBuffers[name] = await player.ctx.decodeAudioData(ab.slice(0));
+          } catch (e) {}
+        }
+      }
+    };
   }, []);
   // смена трека -> стемы старого трека неактуальны
   useEffect(() => {
