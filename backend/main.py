@@ -280,11 +280,57 @@ def loopability(track_id: str, segments: list[dict] = Body(...)):
 
 
 STEM_NAMES = ("drums", "bass", "other", "vocals")
+STEM_JOBS: dict[str, dict] = {}  # track_id -> {"status", "progress", "error"}
+
+
+def _stems_done(stem_dir: str) -> bool:
+    return all(os.path.exists(os.path.join(stem_dir, f"{n}.wav"))
+               for n in STEM_NAMES)
+
+
+def _run_demix(track_id: str, orig: str, stem_dir: str) -> None:
+    """Фоновая задача: demucs с парсингом прогресса из stderr."""
+    import re as _re
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    job = STEM_JOBS[track_id]
+    try:
+        proc = subprocess.Popen(
+            [DEEP_PY, os.path.join(base, "tools", "demix.py"), orig, stem_dir],
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+        )
+        # demucs обновляет прогресс-бар через \r — читаем посимвольно
+        buf = ""
+        while True:
+            ch = proc.stderr.read(1)
+            if ch == "" and proc.poll() is not None:
+                break
+            if ch in ("\r", "\n"):
+                m = _re.search(r"(\d+)%\|", buf)
+                if m:
+                    job["progress"] = int(m.group(1))
+                buf = ""
+            else:
+                buf += ch
+        proc.wait(timeout=3600)
+        if proc.returncode != 0 or not _stems_done(stem_dir):
+            job["status"] = "error"
+            job["error"] = "Разделение не удалось (см. server.log)"
+            return
+        track = TRACKS.get(track_id)
+        if track is not None:
+            track["stems"] = stem_dir
+            with open(_meta_path(track_id), "w") as f:
+                json.dump(track, f)
+        job["status"] = "done"
+        job["progress"] = 100
+    except Exception as e:  # noqa: BLE001
+        job["status"] = "error"
+        job["error"] = str(e)[:300]
 
 
 @app.post("/api/stems/{track_id}")
 def make_stems(track_id: str):
-    """Разделить трек на 4 стема (Demucs в ИИ-venv). Кэшируется на диске."""
+    """Запустить разделение на стемы (фон). Статус — GET /api/stems/{id}/status."""
     track = TRACKS.get(track_id)
     if not track:
         raise HTTPException(404, "Трек не найден")
@@ -292,21 +338,31 @@ def make_stems(track_id: str):
         raise HTTPException(503, "Стемы недоступны: нет ИИ-окружения (./setup-ai.sh)")
 
     stem_dir = os.path.join(UPLOAD_DIR, f"{track_id}.stems")
-    done = all(os.path.exists(os.path.join(stem_dir, f"{n}.wav"))
-               for n in STEM_NAMES)
-    if not done:
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        proc = subprocess.run(
-            [DEEP_PY, os.path.join(base, "tools", "demix.py"),
-             track["orig"], stem_dir],
-            capture_output=True, text=True, timeout=1800,
-        )
-        if proc.returncode != 0:
-            raise HTTPException(500, f"Ошибка разделения: {(proc.stderr or '')[-500:]}")
-        track["stems"] = stem_dir
-        with open(_meta_path(track_id), "w") as f:
-            json.dump(track, f)
-    return {"ok": True, "stems": list(STEM_NAMES)}
+    if _stems_done(stem_dir):
+        STEM_JOBS[track_id] = {"status": "done", "progress": 100, "error": None}
+        return {"ok": True, "status": "done", "stems": list(STEM_NAMES)}
+
+    job = STEM_JOBS.get(track_id)
+    if job and job.get("status") == "running":
+        return {"ok": True, "status": "running", "progress": job.get("progress", 0)}
+
+    STEM_JOBS[track_id] = {"status": "running", "progress": 0, "error": None}
+    import threading
+    threading.Thread(target=_run_demix, args=(track_id, track["orig"], stem_dir),
+                     daemon=True).start()
+    return {"ok": True, "status": "running", "progress": 0}
+
+
+@app.get("/api/stems/{track_id}/status")
+def stems_status(track_id: str):
+    stem_dir = os.path.join(UPLOAD_DIR, f"{track_id}.stems")
+    if _stems_done(stem_dir):
+        return {"status": "done", "progress": 100}
+    job = STEM_JOBS.get(track_id)
+    if not job:
+        return {"status": "none", "progress": 0}
+    return {"status": job["status"], "progress": job.get("progress", 0),
+            "error": job.get("error")}
 
 
 @app.get("/api/stems/{track_id}/{stem}")

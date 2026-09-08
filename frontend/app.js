@@ -110,7 +110,11 @@ const STR = {
     stems_working: 'Разделение…',
     stems_ready: 'слои готовы',
     stems_off: 'выкл',
-    stems_loading: 'ИИ разделяет трек на слои (~1 мин)…',
+    stems_loading: 'Запуск разделения на слои…',
+    stems_loading_pct: 'ИИ разделяет трек на слои:',
+    ai_done: 'ИИ-разметка готова. Частей:',
+    ai_badge: 'ИИ',
+    ai_badge_tip: 'Эта разметка сделана нейросетью All-In-One (границы и названия секций)',
     stems_downloading: 'Загрузка слоя',
     layer_drums: 'Барабаны',
     layer_bass: 'Бас',
@@ -224,7 +228,11 @@ const STR = {
     stems_working: 'Splitting…',
     stems_ready: 'layers ready',
     stems_off: 'off',
-    stems_loading: 'AI is splitting the track into layers (~1 min)…',
+    stems_loading: 'Starting layer separation…',
+    stems_loading_pct: 'AI is splitting the track into layers:',
+    ai_done: 'AI markup ready. Sections:',
+    ai_badge: 'AI',
+    ai_badge_tip: 'This markup was produced by the All-In-One neural net (boundaries and section names)',
     stems_downloading: 'Downloading layer',
     layer_drums: 'Drums',
     layer_bass: 'Bass',
@@ -339,7 +347,11 @@ const STR = {
     stems_working: '正在分离…',
     stems_ready: '分层就绪',
     stems_off: '关闭',
-    stems_loading: 'AI 正在分层（约1分钟）…',
+    stems_loading: '正在启动分层…',
+    stems_loading_pct: 'AI 正在分层:',
+    ai_done: 'AI 分段完成。段落数:',
+    ai_badge: 'AI',
+    ai_badge_tip: '此标注由 All-In-One 神经网络生成（边界与段落名称）',
     stems_downloading: '正在下载分层',
     layer_drums: '鼓',
     layer_bass: '贝斯',
@@ -1804,6 +1816,15 @@ function App() {
         method: 'POST'
       });
       if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
+      // поллинг фоновой задачи с процентами
+      while (true) {
+        const st = await (await fetch(`/api/stems/${trackId}/status`)).json();
+        if (st.status === 'done') break;
+        if (st.status === 'error') throw new Error(st.error || t.err_analyze);
+        if (st.status === 'none') throw new Error(t.err_analyze);
+        setLoading(`${t.stems_loading_pct} ${st.progress || 0}%`);
+        await new Promise(res => setTimeout(res, 1500));
+      }
       player._ensureCtx();
       const names = ['drums', 'bass', 'other', 'vocals'];
       const bufs = {};
@@ -2130,9 +2151,15 @@ function App() {
     } catch (er) {}
   };
   const currentFav = history.find(h => h.track_id === trackId);
+  const [toast, setToast] = useState(null);
+  const showToast = msg => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 6000);
+  };
   const doAnalyze = async (id, n, eng) => {
     const useEngine = eng || 'fast';
     const isDeep = useEngine === 'deep';
+    const prevCount = segments.length;
     setLoading(isDeep ? t.loading_deep : t.loading_analyze);
     if (isDeep) setAiWorking(true);
     try {
@@ -2145,6 +2172,10 @@ function App() {
       const a = await r.json();
       setAnalysis(a);
       setSegments(a.segments);
+      if (isDeep) {
+        const labels = a.segments.slice(0, 5).map(s => s.label).join(', ') + (a.segments.length > 5 ? '…' : '');
+        showToast(`✨ ${t.ai_done} ${prevCount || '—'} → ${a.segments.length}. ${labels}`);
+      }
       return a;
     } catch (e) {
       setError(String(e.message || e));
@@ -2442,7 +2473,14 @@ function App() {
     style: {
       marginLeft: 6
     }
-  }, "\xB7 ", t.n_suggested, " ", /*#__PURE__*/React.createElement("b", null, analysis.n_suggested), " \xB7 ", t.n_max, " ", /*#__PURE__*/React.createElement("b", null, analysis.n_max))), analysis.fallback && /*#__PURE__*/React.createElement("span", {
+  }, "\xB7 ", t.n_suggested, " ", /*#__PURE__*/React.createElement("b", null, analysis.n_suggested), " \xB7 ", t.n_max, " ", /*#__PURE__*/React.createElement("b", null, analysis.n_max))), analysis.engine === 'deep' && /*#__PURE__*/React.createElement("span", {
+    className: "badge tip",
+    "data-tip": t.ai_badge_tip,
+    style: {
+      color: 'var(--accent)',
+      borderColor: 'var(--accent)'
+    }
+  }, "\u2728 ", t.ai_badge), analysis.fallback && /*#__PURE__*/React.createElement("span", {
     className: "badge",
     style: {
       color: 'var(--danger)'
@@ -2765,7 +2803,9 @@ function App() {
   }, t.keys_hint)), /*#__PURE__*/React.createElement("footer", null, t.footer, " \xB7 ", /*#__PURE__*/React.createElement("a", {
     href: "https://github.com/Siziff/musslop",
     target: "_blank"
-  }, "GitHub")), /*#__PURE__*/React.createElement("div", {
+  }, "GitHub")), toast && /*#__PURE__*/React.createElement("div", {
+    className: "toast"
+  }, toast), /*#__PURE__*/React.createElement("div", {
     className: "volume-box",
     title: t.volume_tip
   }, /*#__PURE__*/React.createElement("span", {

@@ -372,6 +372,20 @@
     font-size: 14px; color: var(--muted);
   }
   .theme-switch button.on { background: var(--accent); color: var(--on-accent); }
+
+  /* ---------- toast ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--accent); border-radius: var(--radius-sm);
+    padding: 12px 18px; font-size: 13.5px; z-index: 70;
+    max-width: 640px; box-shadow: 0 10px 40px rgba(0,0,0,.6);
+    animation: toast-in .25s ease-out;
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono&family=IM+Fell+English:ital@0;1&family=Alegreya:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 </head>
@@ -503,7 +517,11 @@ const STR = {
     stems_working: 'Разделение…',
     stems_ready: 'слои готовы',
     stems_off: 'выкл',
-    stems_loading: 'ИИ разделяет трек на слои (~1 мин)…',
+    stems_loading: 'Запуск разделения на слои…',
+    stems_loading_pct: 'ИИ разделяет трек на слои:',
+    ai_done: 'ИИ-разметка готова. Частей:',
+    ai_badge: 'ИИ',
+    ai_badge_tip: 'Эта разметка сделана нейросетью All-In-One (границы и названия секций)',
     stems_downloading: 'Загрузка слоя',
     layer_drums: 'Барабаны',
     layer_bass: 'Бас',
@@ -617,7 +635,11 @@ const STR = {
     stems_working: 'Splitting…',
     stems_ready: 'layers ready',
     stems_off: 'off',
-    stems_loading: 'AI is splitting the track into layers (~1 min)…',
+    stems_loading: 'Starting layer separation…',
+    stems_loading_pct: 'AI is splitting the track into layers:',
+    ai_done: 'AI markup ready. Sections:',
+    ai_badge: 'AI',
+    ai_badge_tip: 'This markup was produced by the All-In-One neural net (boundaries and section names)',
     stems_downloading: 'Downloading layer',
     layer_drums: 'Drums',
     layer_bass: 'Bass',
@@ -732,7 +754,11 @@ const STR = {
     stems_working: '正在分离…',
     stems_ready: '分层就绪',
     stems_off: '关闭',
-    stems_loading: 'AI 正在分层（约1分钟）…',
+    stems_loading: '正在启动分层…',
+    stems_loading_pct: 'AI 正在分层:',
+    ai_done: 'AI 分段完成。段落数:',
+    ai_badge: 'AI',
+    ai_badge_tip: '此标注由 All-In-One 神经网络生成（边界与段落名称）',
     stems_downloading: '正在下载分层',
     layer_drums: '鼓',
     layer_bass: '贝斯',
@@ -1887,6 +1913,15 @@ function App() {
     try {
       const r = await fetch(`/api/stems/${trackId}`, { method: 'POST' });
       if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
+      // поллинг фоновой задачи с процентами
+      while (true) {
+        const st = await (await fetch(`/api/stems/${trackId}/status`)).json();
+        if (st.status === 'done') break;
+        if (st.status === 'error') throw new Error(st.error || t.err_analyze);
+        if (st.status === 'none') throw new Error(t.err_analyze);
+        setLoading(`${t.stems_loading_pct} ${st.progress || 0}%`);
+        await new Promise(res => setTimeout(res, 1500));
+      }
       player._ensureCtx();
       const names = ['drums', 'bass', 'other', 'vocals'];
       const bufs = {};
@@ -2165,9 +2200,16 @@ function App() {
   };
   const currentFav = history.find(h => h.track_id === trackId);
 
+  const [toast, setToast] = useState(null);
+  const showToast = msg => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 6000);
+  };
+
   const doAnalyze = async (id, n, eng) => {
     const useEngine = eng || 'fast';
     const isDeep = useEngine === 'deep';
+    const prevCount = segments.length;
     setLoading(isDeep ? t.loading_deep : t.loading_analyze);
     if (isDeep) setAiWorking(true);
     try {
@@ -2180,6 +2222,11 @@ function App() {
       const a = await r.json();
       setAnalysis(a);
       setSegments(a.segments);
+      if (isDeep) {
+        const labels = a.segments.slice(0, 5).map(s => s.label).join(', ')
+          + (a.segments.length > 5 ? '…' : '');
+        showToast(`✨ ${t.ai_done} ${prevCount || '—'} → ${a.segments.length}. ${labels}`);
+      }
       return a;
     } catch (e) {
       setError(String(e.message || e));
@@ -2363,6 +2410,9 @@ function App() {
               {analysis.n_suggested != null && <span style={{ marginLeft: 6 }}>
                 · {t.n_suggested} <b>{analysis.n_suggested}</b> · {t.n_max} <b>{analysis.n_max}</b></span>}
             </span>
+            {analysis.engine === 'deep' &&
+              <span className="badge tip" data-tip={t.ai_badge_tip}
+                style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }}>✨ {t.ai_badge}</span>}
             {analysis.fallback && <span className="badge" style={{ color: 'var(--danger)' }}>{t.fallback}</span>}
           </div>
           <div className="row">
@@ -2556,6 +2606,8 @@ function App() {
       </div>}
 
       <footer>{t.footer} · <a href="https://github.com/Siziff/musslop" target="_blank">GitHub</a></footer>
+
+      {toast && <div className="toast">{toast}</div>}
 
       <div className="volume-box" title={t.volume_tip}>
         <span className="vol-icon" onClick={() => setVolume(volume > 0 ? 0 : 1)}>
