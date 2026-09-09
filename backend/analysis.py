@@ -541,4 +541,7 @@ def _loopability(y: np.ndarray, sr: int, start: float, end: float,
     rt = float(np.sqrt(np.mean(tail ** 2)) + 1e-8)
     level = min(rh, rt) / max(rh, rt)  # 1 = уровни равны
 
-    return float(np.clip(0.7 * sim + 0.3 * level, 0.0, 1.0))
+    out = 0.7 * sim + 0.3 * level
+    if not np.isfinite(out):  # тишина/NaN в спектре -> нейтральная оценка
+        return 0.5
+    return float(np.clip(out, 0.0, 1.0))

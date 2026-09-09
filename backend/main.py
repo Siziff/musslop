@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import subprocess
 import uuid
+
+log = logging.getLogger("musslop")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s",
+                    datefmt="%H:%M:%S")
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Body
 from fastapi.responses import FileResponse
@@ -150,6 +155,7 @@ async def upload(file: UploadFile = File(...)):
         json.dump(meta, f)
 
     size = os.path.getsize(orig_path)
+    log.info("upload: '%s' -> %s (%.1f MB)", file.filename, track_id, size / 1e6)
     return {"track_id": track_id, "name": file.filename, "size": size}
 
 
@@ -226,6 +232,9 @@ def analyze_track(track_id: str,
     if not track:
         raise HTTPException(404, "Трек не найден")
 
+    log.info("analyze: %s engine=%s", track_id, engine)
+    import time as _time
+    _t0 = _time.time()
     if engine == "deep":
         if not DEEP_AVAILABLE:
             raise HTTPException(503, "Глубокий анализ недоступен (./setup-ai-allin1.sh)")
@@ -236,6 +245,9 @@ def analyze_track(track_id: str,
         result = _songformer_analyze(track)
     else:
         result = analyze(track["wav"], n_segments=n_segments)
+    log.info("analyze: %s done in %.1fs, %d parts, tempo %.1f",
+             track_id, _time.time() - _t0, len(result["segments"]),
+             result.get("tempo") or 0)
 
     result["track_id"] = track_id
     result["name"] = track["name"]
@@ -246,7 +258,11 @@ def _run_engine(track: dict, cache_key: str, script: str, py: str,
                 extra_env: dict | None = None) -> dict:
     """Общий запуск ИИ-раннера subprocess'ом с кэшированием в meta трека."""
     cached = track.get(cache_key)
+    if cached:
+        log.info("engine %s: using cached result for %s", script, track["id"])
     if not cached:
+        log.info("engine %s: running for %s (this can take minutes on CPU; "
+                 "progress in this terminal)", script, track["id"])
         import tempfile
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
             out_json = tmp.name
@@ -356,7 +372,11 @@ def _run_demix(track_id: str, orig: str, stem_dir: str) -> None:
             if ch in ("\r", "\n"):
                 m = _re.search(r"(\d+)%\|", buf)
                 if m:
-                    job["progress"] = int(m.group(1))
+                    p = int(m.group(1))
+                    if p >= job.get("_logged", -10) + 10:
+                        log.info("stems %s: %d%%", track_id, p)
+                        job["_logged"] = p
+                    job["progress"] = p
                 buf = ""
             else:
                 buf += ch
@@ -448,7 +468,8 @@ def _find_ytdlp() -> list[str] | None:
 
 @app.post("/api/import_url")
 def import_url(body: dict = Body(...)):
-    """Импорт трека по ссылке (YouTube и всё, что умеет yt-dlp)."""
+    """Импорт трека по ссылке (YouTube и всё, что умеет yt-dlp).
+    Прогресс скачивания стримится в лог сервера (терминал)."""
     url = (body.get("url") or "").strip()
     if not url.startswith(("http://", "https://")):
         raise HTTPException(400, "Некорректная ссылка")
@@ -459,22 +480,62 @@ def import_url(body: dict = Body(...)):
             503, "yt-dlp не установлен. Выполните: pip install yt-dlp "
                  "(или pip3 install yt-dlp) и перезапустите сервер")
 
+    log.info("import_url: start %s (yt-dlp: %s)", url, " ".join(ytdlp))
     track_id = uuid.uuid4().hex[:12]
     out_tpl = os.path.join(UPLOAD_DIR, f"{track_id}.%(ext)s")
-    proc = subprocess.run(
+
+    # стримим вывод yt-dlp в лог построчно ([download] xx.x% of ...)
+    proc = subprocess.Popen(
         ytdlp + ["-x", "--audio-format", "mp3",
          "--audio-quality", "0", "--no-playlist", "--max-filesize", "200M",
+         "--newline", "--force-overwrites",
          "-o", out_tpl, "--print", "after_move:filepath",
          "--print", "title", url],
-        capture_output=True, text=True, timeout=600,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
-    if proc.returncode != 0:
-        raise HTTPException(400, f"Не удалось скачать: {(proc.stderr or '')[-400:]}")
-    lines = [l for l in proc.stdout.strip().splitlines() if l.strip()]
-    title = lines[0] if lines else "track"
+    lines: list[str] = []
+    last_pct = -10
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        line = line.rstrip()
+        if not line:
+            continue
+        lines.append(line)
+        if line.startswith("[download]") and "%" in line:
+            # печатаем каждые ~10%, не спамим терминал
+            try:
+                pct = float(line.split("%")[0].split()[-1])
+                if pct - last_pct >= 10 or pct >= 100:
+                    log.info("import_url: %s", line)
+                    last_pct = pct
+            except ValueError:
+                pass
+        else:
+            log.info("import_url: %s", line)
+    ret = proc.wait(timeout=600)
+    if ret != 0:
+        tail = "\n".join(lines[-4:])
+        low = tail.lower()
+        if "ssl" in low or "unable to download" in low or "timed out" in low:
+            hint = ("Похоже, у сервера нет доступа к YouTube (сеть/файрвол). "
+                    "Запустите musslop локально на машине с доступом к интернету. ")
+        elif "sign in" in low or "age" in low:
+            hint = "Видео требует входа в аккаунт/подтверждения возраста. "
+        elif "yt-dlp -u" in low or "extract" in low:
+            hint = "Попробуйте обновить yt-dlp: pip install -U yt-dlp. "
+        else:
+            hint = ""
+        log.error("import_url: FAILED\n%s", "\n".join(lines[-10:]))
+        raise HTTPException(400, f"Не удалось скачать. {hint}Детали: {tail[-300:]}")
+
+    # --print выводит title и путь; отфильтруем служебные [строки]
+    printed = [l for l in lines if not l.startswith("[")]
+    title = printed[0] if printed else "track"
     orig_path = os.path.join(UPLOAD_DIR, f"{track_id}.mp3")
     if not os.path.exists(orig_path):
         raise HTTPException(500, "Файл не появился после скачивания")
+    log.info("import_url: downloaded '%s' -> %s (%.1f MB)", title, orig_path,
+             os.path.getsize(orig_path) / 1e6)
 
     wav_path = os.path.join(UPLOAD_DIR, f"{track_id}.analysis.wav")
     try:
