@@ -27,7 +27,7 @@ you drive the music live, like a game audio engine — no editing skills require
 
 ## Why it feels magic
 
-| | |
+| Feature | What it does |
 |---|---|
 | 🧠 **AI structure analysis** | two neural engines find sections *and name them* (Intro, Verse, Chorus, Solo): [SongFormer](https://github.com/ASLP-lab/SongFormer) (2025, faster, best on pop/rock/electronic) and [All-In-One](https://github.com/mir-aidj/all-in-one) (2023, steadier on orchestral); beats/downbeats via [Beat This!](https://github.com/CPJKU/beat_this). Fast heuristic fallback (~2 s) works everywhere |
 | 🔁 **Seamless loops** | sample-accurate Web Audio scheduling, bar-snapped boundaries, per-section loop-quality score (⟳%), equal-power crossfades |
