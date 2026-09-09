@@ -424,6 +424,28 @@ def get_stem(track_id: str, stem: str):
     return FileResponse(path, media_type="audio/wav")
 
 
+import shutil as _shutil
+
+
+def _find_ytdlp() -> list[str] | None:
+    """Команда запуска yt-dlp: модуль в текущем python -> бинарь в PATH ->
+    модуль в python3 из PATH (частый случай: pip install --user)."""
+    try:
+        import yt_dlp  # noqa: F401
+        return [os.sys.executable, "-m", "yt_dlp"]
+    except ImportError:
+        pass
+    exe = _shutil.which("yt-dlp")
+    if exe:
+        return [exe]
+    py3 = _shutil.which("python3")
+    if py3 and py3 != os.sys.executable:
+        chk = subprocess.run([py3, "-c", "import yt_dlp"], capture_output=True)
+        if chk.returncode == 0:
+            return [py3, "-m", "yt_dlp"]
+    return None
+
+
 @app.post("/api/import_url")
 def import_url(body: dict = Body(...)):
     """Импорт трека по ссылке (YouTube и всё, что умеет yt-dlp)."""
@@ -431,10 +453,16 @@ def import_url(body: dict = Body(...)):
     if not url.startswith(("http://", "https://")):
         raise HTTPException(400, "Некорректная ссылка")
 
+    ytdlp = _find_ytdlp()
+    if not ytdlp:
+        raise HTTPException(
+            503, "yt-dlp не установлен. Выполните: pip install yt-dlp "
+                 "(или pip3 install yt-dlp) и перезапустите сервер")
+
     track_id = uuid.uuid4().hex[:12]
     out_tpl = os.path.join(UPLOAD_DIR, f"{track_id}.%(ext)s")
     proc = subprocess.run(
-        [os.sys.executable, "-m", "yt_dlp", "-x", "--audio-format", "mp3",
+        ytdlp + ["-x", "--audio-format", "mp3",
          "--audio-quality", "0", "--no-playlist", "--max-filesize", "200M",
          "-o", out_tpl, "--print", "after_move:filepath",
          "--print", "title", url],

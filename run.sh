@@ -32,6 +32,11 @@ fi
 command -v ffmpeg >/dev/null || { echo "ОШИБКА: ffmpeg не найден в PATH"; exit 1; }
 python3 -c "import fastapi, uvicorn, librosa" 2>/dev/null || {
   echo "Зависимости не установлены. Выполните: pip install -r requirements.txt"; exit 1; }
+if python3 -c "import yt_dlp" 2>/dev/null || command -v yt-dlp >/dev/null; then
+  echo "URL import (yt-dlp): available"
+else
+  echo "URL import (yt-dlp): not installed (pip3 install yt-dlp)"
+fi
 
 # ИИ-движок #1: All-In-One (./setup-ai-allin1.sh -> .venv-ai)
 if [ -z "$MUSSLOP_DEEP_PY" ] && [ -x ".venv-ai/bin/python" ]; then
