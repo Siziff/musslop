@@ -66,7 +66,6 @@ SONGFORMER_AVAILABLE = SONGFORMER_PY is not None
 
 app = FastAPI(title="Musslop")
 
-APP_VERSION = "0.3.0"
 
 
 @app.middleware("http")
