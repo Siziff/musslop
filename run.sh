@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # Запуск musslop. Использование: ./run.sh [порт]  (или PORT=8801 ./run.sh)
+# Первая установка: ./setup.sh
 set -e
 cd "$(dirname "$0")"
 PORT="${1:-${PORT:-8801}}"
+
+# Используем локальный venv, если он создан (./setup.sh)
+if [ -x ".venv/bin/python" ]; then
+  PATH="$(pwd)/.venv/bin:$PATH"
+fi
 
 # Локальные секреты/настройки: .env в корне проекта (не коммитится).
 # Пример: HF_TOKEN=hf_xxxxx
@@ -29,9 +35,10 @@ if [ -n "$OLD" ]; then
   fi
 fi
 
-command -v ffmpeg >/dev/null || { echo "ОШИБКА: ffmpeg не найден в PATH"; exit 1; }
+command -v ffmpeg >/dev/null || {
+  echo "ОШИБКА: ffmpeg не найден в PATH (macOS: brew install ffmpeg; Ubuntu: apt install ffmpeg)"; exit 1; }
 python3 -c "import fastapi, uvicorn, librosa" 2>/dev/null || {
-  echo "Зависимости не установлены. Выполните: pip install -r requirements.txt"; exit 1; }
+  echo "Зависимости не установлены. Выполните: ./setup.sh"; exit 1; }
 if python3 -c "import yt_dlp" 2>/dev/null || command -v yt-dlp >/dev/null; then
   echo "URL import (yt-dlp): available"
 else

@@ -53,8 +53,9 @@ FMOD/Wwise, export loop WAVs), streaming, practice looping, focus music.
 ## Quick start
 
 ```bash
-pip install -r requirements.txt   # ffmpeg must be in PATH
-./run.sh                          # → http://localhost:8801
+git clone https://github.com/Siziff/musslop.git && cd musslop
+./setup.sh   # creates .venv, installs everything (ffmpeg must be in PATH)
+./run.sh     # → http://localhost:8801
 ```
 
 **Optional AI engines** (each is one command, both auto-detected by `run.sh`):

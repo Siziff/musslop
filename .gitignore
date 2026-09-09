@@ -4,5 +4,7 @@ server.log
 __pycache__/
 *.pyc
 demix/
+.venv/
 .venv-ai/
+.venv-songformer/
 .env
