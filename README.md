@@ -5,11 +5,12 @@
 <h3 align="center">Any track becomes a game soundtrack</h3>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/python-3.10+-d8ff3e?style=flat-square&labelColor=111">
-  <img src="https://img.shields.io/badge/FastAPI%20%2B%20librosa-backend-d8ff3e?style=flat-square&labelColor=111">
-  <img src="https://img.shields.io/badge/React%20%2B%20Web%20Audio-frontend-d8ff3e?style=flat-square&labelColor=111">
-  <img src="https://img.shields.io/badge/All--In--One-neural%20analysis-d8ff3e?style=flat-square&labelColor=111">
-  <img src="https://img.shields.io/badge/license-MIT-d8ff3e?style=flat-square&labelColor=111">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10+-d8ff3e?style=flat-square&labelColor=111" alt="Python 3.10+"></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI%20%2B%20librosa-backend-d8ff3e?style=flat-square&labelColor=111" alt="FastAPI + librosa backend"></a>
+  <a href="https://developer.mozilla.org/docs/Web/API/Web_Audio_API"><img src="https://img.shields.io/badge/React%20%2B%20Web%20Audio-frontend-d8ff3e?style=flat-square&labelColor=111" alt="React + Web Audio frontend"></a>
+  <a href="https://github.com/ASLP-lab/SongFormer"><img src="https://img.shields.io/badge/SongFormer-neural%20analysis-d8ff3e?style=flat-square&labelColor=111" alt="SongFormer neural analysis"></a>
+  <a href="https://github.com/mir-aidj/all-in-one"><img src="https://img.shields.io/badge/All--In--One-neural%20analysis-d8ff3e?style=flat-square&labelColor=111" alt="All-In-One neural analysis"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-d8ff3e?style=flat-square&labelColor=111" alt="MIT license"></a>
 </p>
 
 <p align="center">
@@ -28,7 +29,7 @@ you drive the music live, like a game audio engine — no editing skills require
 
 | | |
 |---|---|
-| 🧠 **AI structure analysis** | [All-In-One](https://github.com/mir-aidj/all-in-one) neural net (trained on 912 hand-annotated tracks) finds sections *and names them*: Intro, Verse, Chorus, Solo. Fast heuristic fallback (~2 s) works everywhere |
+| 🧠 **AI structure analysis** | two neural engines find sections *and name them* (Intro, Verse, Chorus, Solo): [SongFormer](https://github.com/ASLP-lab/SongFormer) (2025, faster, best on pop/rock/electronic) and [All-In-One](https://github.com/mir-aidj/all-in-one) (2023, steadier on orchestral); beats/downbeats via [Beat This!](https://github.com/CPJKU/beat_this). Fast heuristic fallback (~2 s) works everywhere |
 | 🔁 **Seamless loops** | sample-accurate Web Audio scheduling, bar-snapped boundaries, per-section loop-quality score (⟳%), equal-power crossfades |
 | 🎚 **Intensity layers** | Demucs splits the track into drums / bass / vocals / backing — toggle and mix layers live: calm exploration → full combat, same track |
 | 🎬 **Pro transitions** | post-exit tails ring out over the next section, bass-swap keeps exactly one bassline at any moment, one-shot stingers (cymbal / boom / riser) punctuate scene changes |
@@ -76,8 +77,11 @@ a few minutes on CPU; results are cached — reopening is instant.
 5. **Playback** — every loop pass is an independent `AudioBufferSourceNode`;
    transitions land on loop/phrase boundaries with micro-fades, tails and bass-swap
 
-Details and references: [Ellis 2007], [Foote 2000], [Kim & Nam 2023 (All-In-One)],
-Infinite Jukebox, Mixxx AutoDJ — see commit history for the research notes.
+Built on the shoulders of: [SongFormer](https://github.com/ASLP-lab/SongFormer) (ASLP-lab, CC-BY-4.0) ·
+[All-In-One](https://github.com/mir-aidj/all-in-one) (Kim & Nam, MIT) ·
+[Beat This!](https://github.com/CPJKU/beat_this) (CPJKU, MIT) ·
+[Demucs](https://github.com/facebookresearch/demucs) · [librosa](https://librosa.org) —
+plus classic MIR: Ellis 2007 (beat tracking), Foote 2000 (novelty segmentation).
 
 ## API
 
