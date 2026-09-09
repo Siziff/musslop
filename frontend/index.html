@@ -194,6 +194,7 @@
   /* ---------- segment chips ---------- */
   .seg-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
   .seg-chip {
+    position: relative;
     display: flex; align-items: center; gap: 7px;
     background: var(--panel2); border: 1px solid var(--border-soft);
     border-radius: var(--radius-sm); padding: 6px 10px; font-size: 13px; cursor: pointer;
@@ -508,7 +509,7 @@ const STR = {
     bass_swap_label: 'бас-своп',
     bass_swap_tip: 'Бас новой части включается ровно на границе, а не в кроссфейде — не будет каши из двух басов',
     stinger_label: 'Стингер:',
-    stinger_tip: 'Стингер — короткий звук-акцент, который накладывается в момент перехода между частями и маскирует стык, делая его «нарочным»: тарелка — нарастающий звон, удар — низкий бум, райзер — нарастание, заканчивающееся ровно на границе. Приём из игрового аудио: «партия вошла в подземелье — бум!»',
+    stinger_tip: 'Звук-вставка при входе в ЭТУ часть: тарелка — нарастающий звон, удар — низкий бум, райзер — нарастание, заканчивающееся ровно на границе. Маскирует стык и делает переход «нарочным». Точка ♪• = звук назначен, значок виден и на границе в волне',
     stinger_none: 'нет',
     stinger_cymbal: 'тарелка',
     stinger_boom: 'удар',
@@ -628,7 +629,7 @@ const STR = {
     bass_swap_label: 'bass swap',
     bass_swap_tip: 'The incoming bass enters exactly on the boundary, not inside the crossfade — no two-bass mud',
     stinger_label: 'Stinger:',
-    stinger_tip: 'A stinger is a short accent sound overlaid at the moment of a section transition — it masks the seam and makes it feel intentional: cymbal — a swelling crash, boom — a low hit, riser — a build-up that ends exactly on the boundary. A game-audio trick: "the party enters the dungeon — boom!"',
+    stinger_tip: 'Accent sound played when entering THIS part: cymbal — swelling crash, boom — low hit, riser — build-up ending exactly on the boundary. Masks the seam and makes the transition intentional. Dot ♪• = assigned; an icon also shows on the waveform boundary',
     stinger_none: 'none',
     stinger_cymbal: 'cymbal',
     stinger_boom: 'boom',
@@ -749,7 +750,7 @@ const STR = {
     bass_swap_label: '贝斯切换',
     bass_swap_tip: '新段落的贝斯恰好在边界处进入，而非在交叉淡化中 — 避免双贝斯浑浊',
     stinger_label: '重音音效:',
-    stinger_tip: '重音音效（stinger）是在段落切换瞬间叠加的短促音效，用来掩盖接缝并让过渡显得刻意为之：镲片 — 渐强的镲声，低音鼓 — 低沉的轰击，上升音 — 恰好在边界处结束的渐强音。游戏音频技巧：「队伍进入地牢 — 轰！」',
+    stinger_tip: '进入【此段落】时播放的音效：镲片 — 渐强镲声，低音鼓 — 低沉轰击，上升音 — 恰好在边界结束的渐强音。掩盖接缝，让过渡显得刻意。♪• = 已指定，波形边界上也会显示图标',
     stinger_none: '无',
     stinger_cymbal: '镲片',
     stinger_boom: '低音鼓',
@@ -1069,9 +1070,9 @@ class LoopPlayer {
       gn.gain.linearRampToValueAtTime(target, now + 0.35);
     }
   }
-  // Стингер: одиночный звук на моменте перехода
-  _playStinger(when) {
-    const buf = this.stingerBuffers[this.stinger];
+  // Стингер: одиночный звук на моменте перехода (имя — из целевой части)
+  _playStinger(name, when) {
+    const buf = this.stingerBuffers[name];
     if (!buf) return;
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
@@ -1079,7 +1080,7 @@ class LoopPlayer {
     g.gain.value = 0.9;
     src.connect(g); g.connect(this.master);
     // райзер должен ЗАКОНЧИТЬСЯ на границе, удар/тарелка — начаться на ней
-    const t = this.stinger === 'riser'
+    const t = name === 'riser'
       ? Math.max(this.ctx.currentTime, when - buf.duration)
       : when;
     src.start(t);
@@ -1168,8 +1169,9 @@ class LoopPlayer {
         // post-exit: хвост прошлой части дозвучивает поверх новой
         const prev = this.segments[this.lastPlannedIndex];
         if (prev) this._schedulePostExitTail(prev.end, this.nextTime);
-        // стингер на моменте перехода
-        if (this.stinger !== 'none') this._playStinger(this.nextTime);
+        // стингер целевой части: звук на входе в неё
+        if (seg.stinger && seg.stinger !== 'none')
+          this._playStinger(seg.stinger, this.nextTime);
       }
       this.queue.push({ t0: this.nextTime, t1: this.nextTime + dur,
                         segIndex: idx, trackStart: from,
@@ -1258,6 +1260,8 @@ class LoopPlayer {
     this.nextTime = Tt;
     const dur = this._scheduleChunkRange(nextSeg.start, nextSeg.end, Tt,
                                          this.crossfade > 0.02 ? xf : null, null);
+    if (nextSeg.stinger && nextSeg.stinger !== 'none')
+      this._playStinger(nextSeg.stinger, Tt);
     this.queue = [
       { t0: now, t1: Tt, segIndex: this.segIndex, trackStart: pos, isLoopRepeat: false },
       { t0: Tt, t1: Tt + dur, segIndex: this.segIndex + 1,
@@ -1449,6 +1453,17 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         ctx.fillStyle = q > 0.75 ? TC.accent2 : q > 0.55 ? '#ffb84f' : TC.danger;
         ctx.font = '600 10px "JetBrains Mono", monospace';
         ctx.fillText('\u27F3' + Math.round(q * 100) + '%', lx, 28);
+      }
+      // значок стингера на левой границе части (звук играет при входе в неё)
+      if (s.stinger && s.stinger !== 'none' && s.start >= t0) {
+        const sx = tx(s.start);
+        ctx.fillStyle = TC.playhead;
+        ctx.font = '11px sans-serif';
+        ctx.fillText('\u266A', sx + 3, H - 34);
+        const glyph = s.stinger === 'cymbal' ? '\u2735'
+          : s.stinger === 'boom' ? '\u25CF' : '\u2197';
+        ctx.font = '9px sans-serif';
+        ctx.fillText(glyph, sx + 14, H - 34);
       }
     });
 
@@ -1805,9 +1820,9 @@ function App() {
   const [aiWorking, setAiWorking] = useState(false);   // ИИ-анализ в процессе
   const [exportOpen, setExportOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState({ lib: true, hist: false });
+  const [stingerMenu, setStingerMenu] = useState(null); // индекс части с открытым меню стингера
   const [tailOn, setTailOn] = useState(true);
   const [bassSwapOn, setBassSwapOn] = useState(true);
-  const [stinger, setStinger] = useState('none');
   const [volume, setVolumeState] = useState(() => {
     const v = parseFloat(localStorage.getItem('musslop_volume'));
     // сохранённый mute (0) не восстанавливаем: после перезагрузки страницы
@@ -2041,7 +2056,8 @@ function App() {
         .map(s => ({ start: +s.start, end: +s.end, label: String(s.label || ''),
                      loop: s.loop !== false,
                      transition: !!s.transition,
-                     loopStart: isFinite(+s.loopStart) ? +s.loopStart : undefined }))
+                     loopStart: isFinite(+s.loopStart) ? +s.loopStart : undefined,
+                     stinger: ['cymbal','boom','riser'].includes(s.stinger) ? s.stinger : undefined }))
         .filter(s => isFinite(s.start) && isFinite(s.end) && s.end > s.start)
         .sort((a, b) => a.start - b.start);
       if (!segs.length) throw new Error('empty markup');
@@ -2511,6 +2527,36 @@ function App() {
                   }}>{s.loop === false ? '→' : '⟳'}</span>
                 {s.loop === false && <span className="time"
                   style={{ color: 'var(--danger)' }}>{t.transition_badge}</span>}
+                <span className="x tip" data-tip={t.stinger_tip}
+                  style={{ color: (s.stinger && s.stinger !== 'none') ? 'var(--accent)' : 'var(--muted)' }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setStingerMenu(stingerMenu === i ? null : i);
+                  }}>♪{s.stinger && s.stinger !== 'none' ? '•' : ''}</span>
+                {stingerMenu === i && <div className="dropdown-menu"
+                  style={{ top: 'calc(100% + 4px)', left: 'auto', right: 0 }}
+                  onClick={e => e.stopPropagation()}>
+                  {['none', 'cymbal', 'boom', 'riser'].map(sg => (
+                    <div key={sg}
+                      className="dropdown-item"
+                      style={s.stinger === sg || (!s.stinger && sg === 'none')
+                        ? { color: 'var(--accent)' } : {}}
+                      onClick={() => {
+                        setSegments(segs => {
+                          const ns = segs.map(x => ({ ...x }));
+                          ns[i].stinger = sg === 'none' ? undefined : sg;
+                          return ns;
+                        });
+                        setStingerMenu(null);
+                        // превью звука при выборе
+                        if (sg !== 'none' && player.ctx && player.stingerBuffers[sg]) {
+                          player._playStinger(sg, player.ctx.currentTime + 0.05);
+                        }
+                      }}>
+                      {t['stinger_' + sg]}{sg !== 'none' ? ' ♪' : ''}
+                    </div>
+                  ))}
+                </div>}
                 <span className="x" title={t.split_seg_tip}
                   onClick={e => { e.stopPropagation(); splitSeg(i); }}>✂</span>
                 <span className="x" title={t.del_seg}
@@ -2578,15 +2624,6 @@ function App() {
               onChange={e => { setBassSwapOn(e.target.checked); player.bassSwap = e.target.checked; }} />
             {t.bass_swap_label}
           </label>
-          <span className="badge tip" style={{ marginLeft: 12 }} data-tip={t.stinger_tip}>{t.stinger_label}</span>
-          <div className="lang-switch">
-            {['none', 'cymbal', 'boom', 'riser'].map(sg => (
-              <button key={sg} className={stinger === sg ? 'on' : ''}
-                onClick={() => { setStinger(sg); player.stinger = sg; }}>
-                {t['stinger_' + sg]}
-              </button>
-            ))}
-          </div>
         </div>
         {/* строка: слои (vertical layering) */}
         {deepAvailable && <div className="row" style={{ marginTop: 10, alignItems: 'flex-start' }}>
