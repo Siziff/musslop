@@ -21,7 +21,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # Python из venv c allin1 (torch+NATTEN). Приоритет: env-переменная ->
-# локальный .venv-ai (создаётся ./setup-ai.sh) -> путь на dev-сервере.
+# локальный .venv-ai (создаётся ./setup-ai-allin1.sh) -> путь на dev-сервере.
 def _find_deep_py() -> str | None:
     cands = [
         os.environ.get("MUSSLOP_DEEP_PY"),
@@ -34,8 +34,30 @@ def _find_deep_py() -> str | None:
     return None
 
 
+# venv c SongFormer + Beat This! (создаётся ./setup-ai-songformer.sh).
+# Кроме python нужен путь к клону исходников SongFormer (infer-код не в pip).
+def _find_songformer() -> tuple[str | None, str | None]:
+    py_cands = [
+        os.environ.get("MUSSLOP_SONGFORMER_PY"),
+        os.path.join(BASE_DIR, ".venv-songformer", "bin", "python"),
+        "/workspace-SR008.fs2/mikheev-kandy/.envs/songformer/bin/python",
+    ]
+    src_cands = [
+        os.environ.get("SONGFORMER_SRC"),
+        os.path.join(BASE_DIR, ".venv-songformer", "src"),
+        "/workspace-SR008.fs2/mikheev-kandy/.envs/songformer-src",
+    ]
+    py = next((c for c in py_cands if c and os.path.exists(c)), None)
+    src = next((c for c in src_cands if c and os.path.isdir(c or "")), None)
+    if py and src and os.path.isdir(os.path.join(src, "src", "SongFormer", "ckpts")):
+        return py, src
+    return None, None
+
+
 DEEP_PY = _find_deep_py()
 DEEP_AVAILABLE = DEEP_PY is not None
+SONGFORMER_PY, SONGFORMER_SRC = _find_songformer()
+SONGFORMER_AVAILABLE = SONGFORMER_PY is not None
 
 app = FastAPI(title="Musslop")
 
@@ -93,7 +115,9 @@ def _to_wav(src: str, dst: str) -> None:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "tracks": len(TRACKS), "deep_available": DEEP_AVAILABLE}
+    return {"status": "ok", "tracks": len(TRACKS),
+            "deep_available": DEEP_AVAILABLE,
+            "songformer_available": SONGFORMER_AVAILABLE}
 
 
 @app.post("/api/upload")
@@ -204,8 +228,12 @@ def analyze_track(track_id: str,
 
     if engine == "deep":
         if not DEEP_AVAILABLE:
-            raise HTTPException(503, "Глубокий анализ недоступен (venv allin1 не найден)")
+            raise HTTPException(503, "Глубокий анализ недоступен (./setup-ai-allin1.sh)")
         result = _deep_analyze(track)
+    elif engine == "songformer":
+        if not SONGFORMER_AVAILABLE:
+            raise HTTPException(503, "SongFormer недоступен (./setup-ai-songformer.sh)")
+        result = _songformer_analyze(track)
     else:
         result = analyze(track["wav"], n_segments=n_segments)
 
@@ -214,32 +242,53 @@ def analyze_track(track_id: str,
     return result
 
 
-def _deep_analyze(track: dict) -> dict:
-    """allin1 в отдельном venv (subprocess), результат кэшируется в meta."""
-    cached = track.get("deep_raw")
+def _run_engine(track: dict, cache_key: str, script: str, py: str,
+                extra_env: dict | None = None) -> dict:
+    """Общий запуск ИИ-раннера subprocess'ом с кэшированием в meta трека."""
+    cached = track.get(cache_key)
     if not cached:
         import tempfile
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
             out_json = tmp.name
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        env = dict(os.environ)
+        if extra_env:
+            env.update(extra_env)
         try:
             proc = subprocess.run(
-                [DEEP_PY, os.path.join(base, "tools", "deep_analyze.py"),
+                [py, os.path.join(base, "tools", script),
                  track["orig"], out_json],
-                capture_output=True, text=True, timeout=1800,
+                capture_output=True, text=True, timeout=1800, env=env,
             )
             if proc.returncode != 0:
                 tail = (proc.stderr or "")[-800:]
-                raise HTTPException(500, f"Ошибка глубокого анализа: {tail}")
+                raise HTTPException(500, f"Ошибка ИИ-анализа: {tail}")
             with open(out_json) as f:
                 cached = json.load(f)
         finally:
             if os.path.exists(out_json):
                 os.remove(out_json)
-        track["deep_raw"] = cached
+        track[cache_key] = cached
         with open(_meta_path(track["id"]), "w") as f:
             json.dump(track, f)
-    return analyze_deep_merge(track["wav"], cached)
+    return cached
+
+
+def _deep_analyze(track: dict) -> dict:
+    """allin1 в отдельном venv (subprocess), результат кэшируется в meta."""
+    cached = _run_engine(track, "deep_raw", "deep_analyze.py", DEEP_PY)
+    result = analyze_deep_merge(track["wav"], cached)
+    result["engine"] = "deep"
+    return result
+
+
+def _songformer_analyze(track: dict) -> dict:
+    """SongFormer + Beat This! в своём venv; слияние с нашими луп-метриками."""
+    cached = _run_engine(track, "songformer_raw", "songformer_analyze.py",
+                         SONGFORMER_PY, {"SONGFORMER_SRC": SONGFORMER_SRC})
+    result = analyze_deep_merge(track["wav"], cached)
+    result["engine"] = "songformer"
+    return result
 
 
 @app.get("/api/audio/{track_id}")

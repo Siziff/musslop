@@ -33,14 +33,24 @@ command -v ffmpeg >/dev/null || { echo "ОШИБКА: ffmpeg не найден �
 python3 -c "import fastapi, uvicorn, librosa" 2>/dev/null || {
   echo "Зависимости не установлены. Выполните: pip install -r requirements.txt"; exit 1; }
 
-# ИИ-анализ: автоматически подхватываем локальный .venv-ai (см. ./setup-ai.sh)
+# ИИ-движок #1: All-In-One (./setup-ai-allin1.sh -> .venv-ai)
 if [ -z "$MUSSLOP_DEEP_PY" ] && [ -x ".venv-ai/bin/python" ]; then
   export MUSSLOP_DEEP_PY="$(pwd)/.venv-ai/bin/python"
 fi
 if [ -n "$MUSSLOP_DEEP_PY" ] && [ -x "$MUSSLOP_DEEP_PY" ]; then
-  echo "ИИ-анализ: доступен ($MUSSLOP_DEEP_PY)"
+  echo "AI engine All-In-One: available"
 else
-  echo "ИИ-анализ: недоступен (установка: ./setup-ai.sh)"
+  echo "AI engine All-In-One: not installed (./setup-ai-allin1.sh)"
+fi
+# ИИ-движок #2: SongFormer + Beat This! (./setup-ai-songformer.sh -> .venv-songformer)
+if [ -z "$MUSSLOP_SONGFORMER_PY" ] && [ -x ".venv-songformer/bin/python" ]; then
+  export MUSSLOP_SONGFORMER_PY="$(pwd)/.venv-songformer/bin/python"
+  export SONGFORMER_SRC="$(pwd)/.venv-songformer/src"
+fi
+if [ -n "$MUSSLOP_SONGFORMER_PY" ] && [ -x "$MUSSLOP_SONGFORMER_PY" ]; then
+  echo "AI engine SongFormer: available"
+else
+  echo "AI engine SongFormer: not installed (./setup-ai-songformer.sh)"
 fi
 
 # Прекомпиляция JSX (необязательно: собранный app.js уже лежит в репозитории).

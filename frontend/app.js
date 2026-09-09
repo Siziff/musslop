@@ -32,7 +32,9 @@ const STR = {
     n_parts_ph: 'авто',
     n_parts_tip: 'Число частей',
     reanalyze: 'Переанализировать',
-    ai_split_btn: 'Разделить с ИИ',
+    ai_split_btn: 'ИИ: All-In-One',
+    songformer_btn: 'ИИ: SongFormer',
+    songformer_tip: 'SongFormer (2025) — новее и быстрее: точнее на поп/рок/электронике, различает pre-chorus. All-In-One устойчивее на оркестровой музыке. Попробуй оба и сравни',
     engine_tip: 'Нейросеть All-In-One (обучена на 912 профессионально размеченных треках): точные границы и названия секций. Первый анализ ~1 мин, повторный — мгновенно',
     loading_deep: 'ИИ анализирует трек…',
     ai_working: 'ИИ анализирует трек',
@@ -150,7 +152,9 @@ const STR = {
     n_parts_ph: 'auto',
     n_parts_tip: 'Number of parts',
     reanalyze: 'Re-analyze',
-    ai_split_btn: 'Split with AI',
+    ai_split_btn: 'AI: All-In-One',
+    songformer_btn: 'AI: SongFormer',
+    songformer_tip: 'SongFormer (2025) — newer and faster: more accurate on pop/rock/electronic, detects pre-chorus. All-In-One is steadier on orchestral music. Try both and compare',
     engine_tip: 'All-In-One neural net (trained on 912 professionally annotated tracks): accurate boundaries and section names. First run ~1 min, repeat — instant',
     loading_deep: 'AI is analyzing the track…',
     ai_working: 'AI is analyzing the track',
@@ -268,7 +272,9 @@ const STR = {
     n_parts_ph: '自动',
     n_parts_tip: '段落数量',
     reanalyze: '重新分析',
-    ai_split_btn: 'AI 智能分段',
+    ai_split_btn: 'AI: All-In-One',
+    songformer_btn: 'AI: SongFormer',
+    songformer_tip: 'SongFormer（2025）更新更快：在流行/摇滚/电子乐上更准确，可识别pre-chorus。All-In-One 在管弦乐上更稳定。建议两者都试试',
     engine_tip: 'All-In-One 神经网络（用912首专业标注曲目训练）：边界和段落名称更准确。首次分析约1分钟，之后即时完成',
     loading_deep: 'AI 正在分析音轨…',
     ai_working: 'AI 正在分析音轨',
@@ -1676,8 +1682,12 @@ function App() {
     if (playerRef.current) playerRef.current.setVolume(v);
   };
   const [deepAvailable, setDeepAvailable] = useState(false);
+  const [songformerAvailable, setSongformerAvailable] = useState(false);
   useEffect(() => {
-    fetch('/api/health').then(r => r.json()).then(h => setDeepAvailable(!!h.deep_available)).catch(() => {});
+    fetch('/api/health').then(r => r.json()).then(h => {
+      setDeepAvailable(!!h.deep_available);
+      setSongformerAvailable(!!h.songformer_available);
+    }).catch(() => {});
   }, []);
   const [dragOver, setDragOver] = useState(false);
   const [crossfade, setCrossfade] = useState(0); // сек
@@ -2158,14 +2168,14 @@ function App() {
   };
   const doAnalyze = async (id, n, eng) => {
     const useEngine = eng || 'fast';
-    const isDeep = useEngine === 'deep';
+    const isDeep = useEngine === 'deep' || useEngine === 'songformer';
     const prevCount = segments.length;
     setLoading(isDeep ? t.loading_deep : t.loading_analyze);
     if (isDeep) setAiWorking(true);
     try {
       const params = new URLSearchParams();
       if (n) params.set('n_segments', n);
-      if (isDeep) params.set('engine', 'deep');
+      if (isDeep) params.set('engine', useEngine);
       const qs = params.toString();
       const r = await fetch(`/api/analyze/${id}${qs ? '?' + qs : ''}`);
       if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
@@ -2473,14 +2483,14 @@ function App() {
     style: {
       marginLeft: 6
     }
-  }, "\xB7 ", t.n_suggested, " ", /*#__PURE__*/React.createElement("b", null, analysis.n_suggested), " \xB7 ", t.n_max, " ", /*#__PURE__*/React.createElement("b", null, analysis.n_max))), analysis.engine === 'deep' && /*#__PURE__*/React.createElement("span", {
+  }, "\xB7 ", t.n_suggested, " ", /*#__PURE__*/React.createElement("b", null, analysis.n_suggested), " \xB7 ", t.n_max, " ", /*#__PURE__*/React.createElement("b", null, analysis.n_max))), (analysis.engine === 'deep' || analysis.engine === 'songformer') && /*#__PURE__*/React.createElement("span", {
     className: "badge tip",
     "data-tip": t.ai_badge_tip,
     style: {
       color: 'var(--accent)',
       borderColor: 'var(--accent)'
     }
-  }, "\u2728 ", t.ai_badge), analysis.fallback && /*#__PURE__*/React.createElement("span", {
+  }, analysis.engine === 'deep' ? '✨ All-In-One' : '⚡ SongFormer'), analysis.fallback && /*#__PURE__*/React.createElement("span", {
     className: "badge",
     style: {
       color: 'var(--danger)'
@@ -2499,11 +2509,16 @@ function App() {
     onClick: () => doAnalyze(trackId, nSeg ? +nSeg : null),
     disabled: !!loading
   }, t.reanalyze), deepAvailable && /*#__PURE__*/React.createElement("button", {
-    className: "ai-btn",
+    className: "ai-btn tip",
+    "data-tip": t.engine_tip,
     onClick: () => doAnalyze(trackId, null, 'deep'),
-    disabled: !!loading,
-    title: t.engine_tip
-  }, "\u2728 ", t.ai_split_btn))), /*#__PURE__*/React.createElement("div", {
+    disabled: !!loading
+  }, "\u2728 ", t.ai_split_btn), songformerAvailable && /*#__PURE__*/React.createElement("button", {
+    className: "ai-btn tip",
+    "data-tip": t.songformer_tip,
+    onClick: () => doAnalyze(trackId, null, 'songformer'),
+    disabled: !!loading
+  }, "\u26A1 ", t.songformer_btn))), /*#__PURE__*/React.createElement("div", {
     className: "row between",
     style: {
       marginBottom: 12

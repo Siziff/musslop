@@ -119,6 +119,21 @@ def analyze_deep_merge(path: str, deep: dict) -> dict:
         segs[0]["start"] = 0.0
         segs[-1]["end"] = duration
 
+    # снап границ к downbeats (SongFormer их не квантует; allin1 — почти)
+    if len(downbeats) > 2 and len(segs) > 1:
+        db = np.asarray(downbeats, dtype=float)
+        bar_dur_est = float(np.median(np.diff(db))) if len(db) > 3 else 2.0
+        for i in range(1, len(segs)):
+            t = segs[i]["start"]
+            j = int(np.argmin(np.abs(db - t)))
+            snapped = float(db[j])
+            # снапим только если рядом (в пределах такта)
+            if abs(snapped - t) <= bar_dur_est * 0.6:
+                segs[i]["start"] = snapped
+                segs[i - 1]["end"] = snapped
+        # убрать выродившиеся после снапа секции
+        segs = [s for s in segs if s["end"] - s["start"] > 1.0]
+
     # функциональные лейблы -> человекочитаемые с нумерацией повторов
     counts: dict[str, int] = {}
     for s in segs:

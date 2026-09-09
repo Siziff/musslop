@@ -52,11 +52,13 @@ pip install -r requirements.txt   # ffmpeg must be in PATH
 ./run.sh                          # → http://localhost:8801
 ```
 
-**Optional AI** (neural sectioning + stem layers), one command:
+**Optional AI engines** (each is one command, both auto-detected by `run.sh`):
 
 ```bash
-./setup-ai.sh   # ~10 min, ~2.5 GB; CUDA / Apple MPS / CPU auto-detected
-./run.sh        # ✨ AI buttons appear automatically
+./setup-ai-songformer.sh  # SongFormer 2025 + Beat This! — newer, faster,
+                          # best on pop/rock/electronic; plain pip, no compilers
+./setup-ai-allin1.sh      # All-In-One 2023 + Demucs — steadier on orchestral,
+                          # also powers the stem "layers" feature
 ```
 
 Works fully offline after setup. First AI analysis of a track: ~1 min on GPU,
