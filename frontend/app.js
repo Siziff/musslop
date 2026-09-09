@@ -1830,6 +1830,7 @@ function App() {
   };
   const loadStems = async () => {
     if (!trackId || stemsState === 'loading') return;
+    setError(null);
     setStemsState('loading');
     setLoading(t.stems_loading);
     try {
@@ -1915,6 +1916,7 @@ function App() {
   };
   const exportLoops = async () => {
     if (!trackId) return;
+    setError(null);
     setLoading(t.exporting);
     try {
       const r = await fetch(`/api/export/${trackId}`, {
@@ -2179,6 +2181,7 @@ function App() {
     setTimeout(() => setToast(null), 6000);
   };
   const doAnalyze = async (id, n, eng) => {
+    setError(null);
     const useEngine = eng || 'fast';
     const isDeep = useEngine === 'deep' || useEngine === 'songformer';
     const prevCount = segments.length;
@@ -2404,7 +2407,15 @@ function App() {
     className: "spinner"
   }), loading), error && /*#__PURE__*/React.createElement("div", {
     className: "error-box"
-  }, t.err_prefix, " ", error), history.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    style: {
+      float: 'right',
+      marginLeft: 10,
+      cursor: 'pointer'
+    },
+    onClick: () => setError(null)
+  }, "\u2715"), t.err_prefix, " ", error), history.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14
     }

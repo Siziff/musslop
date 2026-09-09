@@ -1933,6 +1933,7 @@ function App() {
   };
   const loadStems = async () => {
     if (!trackId || stemsState === 'loading') return;
+    setError(null);
     setStemsState('loading');
     setLoading(t.stems_loading);
     try {
@@ -2006,6 +2007,7 @@ function App() {
 
   const exportLoops = async () => {
     if (!trackId) return;
+    setError(null);
     setLoading(t.exporting);
     try {
       const r = await fetch(`/api/export/${trackId}`, {
@@ -2233,6 +2235,7 @@ function App() {
   };
 
   const doAnalyze = async (id, n, eng) => {
+    setError(null);
     const useEngine = eng || 'fast';
     const isDeep = useEngine === 'deep' || useEngine === 'songformer';
     const prevCount = segments.length;
@@ -2387,7 +2390,11 @@ function App() {
           </button>
         </div>
         {loading && <div className="status" style={{ marginTop: 12 }}><div className="spinner"></div>{loading}</div>}
-        {error && <div className="error-box">{t.err_prefix} {error}</div>}
+        {error && <div className="error-box">
+          <span className="x" style={{ float: 'right', marginLeft: 10, cursor: 'pointer' }}
+            onClick={() => setError(null)}>✕</span>
+          {t.err_prefix} {error}
+        </div>}
         {history.length > 0 && <div style={{ marginTop: 14 }}>
           {[
             { key: 'lib', title: t.library_title, items: history.filter(h => h.favorite) },
