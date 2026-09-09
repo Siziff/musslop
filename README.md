@@ -29,14 +29,14 @@ you drive the music live, like a game audio engine — no editing skills require
 
 | Feature | What it does |
 |---|---|
-| 🧠 **AI structure analysis** | two neural engines find sections *and name them* (Intro, Verse, Chorus, Solo): [SongFormer](https://github.com/ASLP-lab/SongFormer) (2025, faster, best on pop/rock/electronic) and [All-In-One](https://github.com/mir-aidj/all-in-one) (2023, steadier on orchestral); beats/downbeats via [Beat This!](https://github.com/CPJKU/beat_this). Fast heuristic fallback (~2 s) works everywhere |
-| 🔁 **Seamless loops** | sample-accurate Web Audio scheduling, bar-snapped boundaries, per-section loop-quality score (⟳%), equal-power crossfades |
-| 🎚 **Intensity layers** | Demucs splits the track into drums / bass / vocals / backing — toggle and mix layers live: calm exploration → full combat, same track |
-| 🎬 **Pro transitions** | post-exit tails ring out over the next section, bass-swap keeps exactly one bassline at any moment, one-shot stingers (cymbal / boom / riser) punctuate scene changes |
-| 📈 **Knows what not to loop** | build-ups are detected by their crescendo shape and play once, as dramatic bridges |
-| ✂️ **Full editor** | drag boundaries with bar snapping, split/merge, loop-start markers, Ctrl+Z, zoom + scrollbar, everything auto-saved |
+| **AI structure analysis** | two neural engines find sections *and name them* (Intro, Verse, Chorus, Solo): [SongFormer](https://github.com/ASLP-lab/SongFormer) (2025, faster, best on pop/rock/electronic) and [All-In-One](https://github.com/mir-aidj/all-in-one) (2023, steadier on orchestral); beats/downbeats via [Beat This!](https://github.com/CPJKU/beat_this). Fast heuristic fallback (~2 s) works everywhere |
+| **Seamless loops** | sample-accurate Web Audio scheduling, bar-snapped boundaries, per-section loop-quality score (⟳%), equal-power crossfades |
+| **Intensity layers** | Demucs splits the track into drums / bass / vocals / backing — toggle and mix layers live: calm exploration → full combat, same track |
+| **Pro transitions** | post-exit tails ring out over the next section, bass-swap keeps exactly one bassline at any moment, one-shot stingers (cymbal / boom / riser) punctuate scene changes |
+| **Knows what not to loop** | build-ups are detected by their crescendo shape and play once, as dramatic bridges |
+| **Full editor** | drag boundaries with bar snapping, split/merge, loop-start markers, Ctrl+Z, zoom + scrollbar, everything auto-saved |
 
-## Built for the game table 🎲
+## Built for the game table
 
 The flagship use case is **tabletop RPG**: turn any track into a *location theme*.
 The party lingers in the tavern — the tavern section loops. They open the dungeon door —
