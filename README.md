@@ -25,6 +25,10 @@ the dungeon and the score darkens with you. **musslop** does this with any mp3.
 Drop a track → AI finds the musical structure → every section becomes a perfect loop →
 you drive the music live, like a game audio engine — no editing skills required.
 
+<p align="center">
+  <img src="assets/demo.gif" alt="musslop demo: loop plays, press Next, seamless transition" width="85%">
+</p>
+
 ## Why it feels magic
 
 | | |
