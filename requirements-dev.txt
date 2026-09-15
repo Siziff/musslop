@@ -1,0 +1,2 @@
+# Dev-only: needed to rebuild frontend/app.js after editing frontend/index.html
+quickjs

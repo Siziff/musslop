@@ -6,6 +6,5 @@ python-multipart
 scikit-learn
 scipy
 numpy
-quickjs
 yt-dlp
 imageio-ffmpeg
