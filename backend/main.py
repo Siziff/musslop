@@ -394,7 +394,8 @@ def _run_demix(track_id: str, orig: str, stem_dir: str) -> None:
     job = STEM_JOBS[track_id]
     try:
         proc = subprocess.Popen(
-            [DEEP_PY, os.path.join(base, "tools", "demix.py"), orig, stem_dir],
+            [(DEEP_PY or SONGFORMER_PY),
+             os.path.join(base, "tools", "demix.py"), orig, stem_dir],
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
         )
         # demucs обновляет прогресс-бар через \r — читаем посимвольно
@@ -437,8 +438,9 @@ def make_stems(track_id: str):
     track = TRACKS.get(track_id)
     if not track:
         raise HTTPException(404, "Трек не найден")
-    if not DEEP_AVAILABLE:
-        raise HTTPException(503, "Стемы недоступны: нет ИИ-окружения (./setup-ai.sh)")
+    if not (DEEP_AVAILABLE or SONGFORMER_AVAILABLE):
+        raise HTTPException(503, "Стемы недоступны: установите ИИ-движок "
+                                 "(setup-ai-songformer или setup-ai-allin1)")
 
     stem_dir = os.path.join(UPLOAD_DIR, f"{track_id}.stems")
     if _stems_done(stem_dir):

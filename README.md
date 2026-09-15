@@ -69,12 +69,25 @@ ffmpeg is downloaded automatically with the dependencies — no manual install n
 
 **Optional AI engines** (each is one command, both auto-detected by `run.sh`):
 
+Linux / macOS:
+
 ```bash
 ./setup-ai-songformer.sh  # SongFormer 2025 + Beat This! — newer, faster,
                           # best on pop/rock/electronic; plain pip, no compilers
 ./setup-ai-allin1.sh      # All-In-One 2023 + Demucs — steadier on orchestral,
                           # also powers the stem "layers" feature
 ```
+
+Windows:
+
+```bat
+setup-ai-songformer.bat   # needs git in PATH; ~15 min, ~4 GB
+```
+
+The All-In-One engine is not supported natively on Windows (its NATTEN
+dependency needs a source build); use WSL2 with the Linux script if you
+need it. SongFormer covers structure analysis fully, and the stem
+"layers" feature also works through it on Windows.
 
 Works fully offline after setup. First AI analysis of a track: ~1 min on GPU,
 a few minutes on CPU; results are cached — reopening is instant.

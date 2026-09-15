@@ -41,7 +41,7 @@ fi
 
 echo "[3/5] Installing dependencies (transformers 4.51, muq, beat_this, msaf ...) ..."
 "$VENV/bin/pip" install --quiet "transformers==4.51.1" numpy librosa muq beat_this \
-  ema_pytorch loguru omegaconf einops mir_eval msaf x_transformers soundfile
+  ema_pytorch loguru omegaconf einops mir_eval msaf x_transformers soundfile demucs
 
 echo "[4/5] Cloning SongFormer sources + downloading checkpoints (~1.4 GB) ..."
 if [ ! -d "$VENV/src" ]; then
