@@ -447,9 +447,28 @@ class LoopPlayer {
   setRate(v) {
     v = Math.max(0.5, Math.min(1.5, v));
     if (Math.abs(v - (this.rate || 1)) < 0.001) return;
-    const pos = this.position();
     this.rate = v;
-    if (this.playing && pos != null) this._softRestartAt(pos);
+    if (!this.playing) return;
+    // мгновенно меняем rate уже играющих источников (без перезапуска —
+    // никакого дребезга при драге слайдера)...
+    const now = this.ctx.currentTime;
+    for (const r of this.sources) {
+      for (const src of r.srcs || [r.src]) {
+        try {
+          src.playbackRate.cancelScheduledValues(now);
+          src.playbackRate.setValueAtTime(src.playbackRate.value, now);
+          src.playbackRate.linearRampToValueAtTime(v, now + 0.08);
+        } catch (e) {}
+      }
+    }
+    // ...а план (границы кусков в ctx-времени) стал неверным — пересоберём
+    // его ОДИН раз после окончания серии изменений
+    clearTimeout(this._rateT);
+    this._rateT = setTimeout(() => {
+      if (!this.playing) return;
+      const pos = this.position();
+      if (pos != null) this._softRestartAt(pos);
+    }, 350);
   }
   setVolume(v) {
     this.volume = v;
