@@ -54,6 +54,16 @@ if errorlevel 1 ( echo ERROR: checkpoint download failed. & pause & exit /b 1 )
 
 echo [5/5] Verifying ...
 set SONGFORMER_SRC=%~dp0.venv-songformer\src
+if not exist ".venv-songformer\src\src\third_party\musicfm\model" (
+  echo ERROR: musicfm submodule missing — re-running git submodule update...
+  pushd .venv-songformer\src
+  git submodule update --init --recursive
+  popd
+)
+if not exist ".venv-songformer\src\src\third_party\musicfm\model" (
+  echo ERROR: submodules failed to clone. Check your network/git and re-run.
+  pause & exit /b 1
+)
 "%VENVPY%" -c "import os, torch; assert os.path.isdir(os.path.join(os.environ['SONGFORMER_SRC'],'src','SongFormer','ckpts')), 'checkpoints missing'; import beat_this, muq; print('OK: SongFormer + Beat This! ready, device:', 'cuda' if torch.cuda.is_available() else 'cpu')"
 if errorlevel 1 ( echo ERROR: verification failed. & pause & exit /b 1 )
 

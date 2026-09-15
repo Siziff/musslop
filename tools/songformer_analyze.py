@@ -53,7 +53,11 @@ def run_structure(audio: str, src_dir: str, py: str):
         out_dir = os.path.join(tmp, "out")
         os.makedirs(out_dir, exist_ok=True)
         env = dict(os.environ)
-        env["PYTHONPATH"] = os.path.join(src_dir, "src", "third_party") + ":" + sf_dir
+        env["PYTHONPATH"] = os.pathsep.join([
+            os.path.join(src_dir, "src", "third_party"),
+            sf_dir,
+            env.get("PYTHONPATH", ""),
+        ]).rstrip(os.pathsep)
         proc = subprocess.run(
             [py, os.path.join(sf_dir, "infer", "infer.py"),
              "-i", scp, "-o", out_dir,
