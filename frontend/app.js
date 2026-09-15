@@ -496,19 +496,33 @@ class LoopPlayer {
       }
     }
     this.sources = this.sources.filter(r => r === cur || r.when <= now + 0.005);
-    // подогнать конец текущего куска под новую границу сегмента
+    // подогнать конец текущего куска под новую границу сегмента.
+    // ВАЖНО: src.start(when, offset, duration) фиксирует duration навсегда —
+    // растянуть уже играющий источник нельзя, только остановить раньше.
+    const oldEnd = cur.end; // старая граница (в треке)
+    const oldEndCtx = cur.when + (oldEnd - cur.from);
     const newEndCtx = cur.when + (seg.end - cur.from);
     try {
       const g = cur.g.gain;
-      g.cancelScheduledValues(now);
-      g.setValueAtTime(g.value, now);
-      g.linearRampToValueAtTime(1, now + 0.02);
-      g.setValueAtTime(1, Math.max(now + 0.02, newEndCtx - this.FADE));
-      g.linearRampToValueAtTime(0, newEndCtx);
-      (cur.stopAll || (t => cur.src.stop(t)))(newEndCtx + 0.02);
-      cur.end = seg.end;
+      if (seg.end <= oldEnd + 0.01) {
+        // сужение: переносим stop раньше — это Web Audio позволяет
+        g.cancelScheduledValues(now);
+        g.setValueAtTime(g.value, now);
+        g.linearRampToValueAtTime(1, now + 0.02);
+        g.setValueAtTime(1, Math.max(now + 0.02, newEndCtx - this.FADE));
+        g.linearRampToValueAtTime(0, newEndCtx);
+        (cur.stopAll || (t => cur.src.stop(t)))(newEndCtx + 0.02);
+        cur.end = seg.end;
+      } else {
+        // растяжение: источник замолчит на старой границе (duration
+        // исчерпан) — бесшовно допланируем продолжение [oldEnd, seg.end]
+        g.cancelScheduledValues(now);
+        g.setValueAtTime(g.value, now);
+        g.linearRampToValueAtTime(1, now + 0.02); // убрать старый фейд-аут
+        this._scheduleChunkRange(oldEnd, seg.end, oldEndCtx);
+      }
     } catch (e) {
-      // браузер не дал перенести stop — тогда мягкий перезапуск
+      // браузер не дал перепланировать — мягкий перезапуск
       this._softRestartAt(pos);
       return;
     }
