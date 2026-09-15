@@ -398,9 +398,9 @@
 <body>
 <div id="root"></div>
 <script>
-  // Если React/Babel не загрузились — показать понятную ошибку вместо пустой страницы
+  // If React/Babel failed to load — show a clear error instead of a blank page
   window.addEventListener('load', function () {
-    // Babel нужен только в dev-режиме (inline text/babel скрипт)
+    // Babel is only needed in dev mode (inline text/babel script)
     var needBabel = !!document.querySelector('script[type="text/babel"]');
     if (!window.React || !window.ReactDOM || (needBabel && !window.Babel)) {
       document.getElementById('root').innerHTML =
@@ -412,6 +412,6 @@
     }
   });
 </script>
-<script defer src="app.js?v=7b841f491a"></script>
+<script defer src="app.js?v=5f8931a31f"></script>
 </body>
 </html>

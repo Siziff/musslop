@@ -399,9 +399,9 @@
 <body>
 <div id="root"></div>
 <script>
-  // Если React/Babel не загрузились — показать понятную ошибку вместо пустой страницы
+  // If React/Babel failed to load — show a clear error instead of a blank page
   window.addEventListener('load', function () {
-    // Babel нужен только в dev-режиме (inline text/babel скрипт)
+    // Babel is only needed in dev mode (inline text/babel script)
     var needBabel = !!document.querySelector('script[type="text/babel"]');
     if (!window.React || !window.ReactDOM || (needBabel && !window.Babel)) {
       document.getElementById('root').innerHTML =
@@ -768,7 +768,7 @@ const STR = {
   },
 };
 
-// цвета текущей темы из CSS-переменных (для canvas)
+// current theme colors from CSS variables (for canvas)
 function themeColors() {
   const cs = getComputedStyle(document.documentElement);
   const v = name => cs.getPropertyValue(name).trim();
@@ -804,12 +804,12 @@ class LoopPlayer {
     this.segIndex = 0;
     this.advanceArmed = false;
     this.loopEnabled = true;
-    this.crossfade = 0;         // сек, 0 = стык по границе с микро-фейдом
-    this.transitionMode = 'loop'; // 'loop' = в конце лупа, 'phrase' = граница фразы
-    this.phraseBars = 4;          // длина фразы в тактах для режима 'phrase'
-    this.tailEnabled = true;      // post-exit: хвост старой части дозвучивает
-    this.TAIL = 1.2;              // сек хвоста
-    this.bassSwap = true;         // бас входящей части включается на границе
+    this.crossfade = 0;         // sec, 0 = seam at the boundary with a micro-fade
+    this.transitionMode = 'loop'; // 'loop' = at loop end, 'phrase' = phrase boundary
+    this.phraseBars = 4;          // phrase length in bars for 'phrase' mode
+    this.tailEnabled = true;      // post-exit: the old part's tail rings out
+    this.TAIL = 1.2;              // tail seconds
+    this.bassSwap = true;         // incoming part's bass enters at the boundary
     this.stingerBuffers = {};     // name -> AudioBuffer
     this.stems = null;            // {drums,bass,other,vocals: AudioBuffer} | null
     this.stemGains = null;        // {name: GainNode}
@@ -818,7 +818,7 @@ class LoopPlayer {
     this.sources = [];          // [{src, g}]
     this.timer = null;
     this.loopCount = 0;
-    this.pendingPos = null;     // позиция, выбранная кликом до запуска
+    this.pendingPos = null;     // position picked by click before playback starts
     this.onState = () => {};
     this.FADE = 0.006;
     this.LOOKAHEAD = 0.35;      // sec of scheduling lookahead
@@ -834,7 +834,7 @@ class LoopPlayer {
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
   }
-  // Safari (webkit): decodeAudioData может быть callback-only — промис-обёртка
+  // Safari (webkit): decodeAudioData can be callback-only — promise wrapper
   decode(arrayBuffer) {
     return new Promise((resolve, reject) => {
       const p = this.ctx.decodeAudioData(arrayBuffer, resolve, reject);
@@ -857,8 +857,8 @@ class LoopPlayer {
     ).join('|');
     this.segments = segs;
     if (this.segIndex >= segs.length) this.segIndex = Math.max(0, segs.length - 1);
-    // перепланируем только если реально изменились границы/флаги,
-    // а не метаданные (loopability, label)
+    // replan only if boundaries/flags actually changed,
+    // not metadata (loopability, label)
     if (this.playing && prevSig !== undefined && prevSig !== this._segSig) {
       clearTimeout(this._reschedT);
       this._reschedT = setTimeout(() => {
@@ -867,12 +867,12 @@ class LoopPlayer {
       }, 120);
     }
   }
-  // Мягко погасить и остановить источники (вместо жёсткого stop -> щелчки)
+  // Gently fade out and stop the sources (instead of a hard stop -> clicks)
   _fadeStopAll(fade = 0.05) {
     const now = this.ctx.currentTime;
     for (const r of this.sources) {
       try {
-        if (r.when > now + 0.005) { (r.stopAll || (t => r.src.stop(t)))(now); continue; } // ещё не стартовал
+        if (r.when > now + 0.005) { (r.stopAll || (t => r.src.stop(t)))(now); continue; } // hasn't started yet
         const g = r.g.gain;
         g.cancelScheduledValues(now);
         g.setValueAtTime(g.value, now);
@@ -882,8 +882,8 @@ class LoopPlayer {
     }
     this.sources = [];
   }
-  // Перепланирование на лету: текущий кусок продолжает звучать, его конец
-  // подгоняется под новую границу, будущие куски отменяются и строятся заново.
+  // Live replan: the current chunk keeps playing, its end is adjusted to the
+  // new boundary; future chunks are cancelled and rebuilt.
   _replan() {
     if (!this.playing || !this.buffer || !this.segments.length) return;
     const now = this.ctx.currentTime;
@@ -891,31 +891,31 @@ class LoopPlayer {
     if (pos == null) return;
     const idx = this._segAt(pos);
     const seg = this.segments[idx];
-    // текущий звучащий источник (самый поздний из уже стартовавших)
+    // the currently sounding source (the latest of those already started)
     let cur = null;
     for (const r of this.sources) {
       if (r.when <= now + 0.005 && (!cur || r.when > cur.when)) cur = r;
     }
-    // границу утащили за плейхед или источник не найден — мягкий перезапуск
+    // the boundary was dragged past the playhead or no source found — soft restart
     if (!cur || pos >= seg.end - 0.08 || pos < seg.start - 0.05) {
       this._softRestartAt(Math.max(seg.start, Math.min(pos, seg.end - 0.1)));
       return;
     }
-    // отменить будущие куски (они ещё не звучат — тишина без артефактов)
+    // cancel future chunks (they aren't sounding yet — silence without artifacts)
     for (const r of this.sources) {
       if (r !== cur && r.when > now + 0.005) { try { (r.stopAll || (t => r.src.stop(t)))(now); } catch (e) {} }
     }
     this.sources = this.sources.filter(r => r === cur || r.when <= now + 0.005);
-    // подогнать конец текущего куска под новую границу сегмента.
-    // ВАЖНО: src.start(when, offset, duration) фиксирует duration навсегда —
-    // растянуть уже играющий источник нельзя, только остановить раньше.
-    const oldEnd = cur.end;                       // старая граница (в треке)
+    // fit the current chunk's end to the new segment boundary.
+    // IMPORTANT: src.start(when, offset, duration) fixes duration forever —
+    // an already playing source can't be stretched, only stopped earlier.
+    const oldEnd = cur.end;                       // old boundary (in the track)
     const oldEndCtx = cur.when + (oldEnd - cur.from);
     const newEndCtx = cur.when + (seg.end - cur.from);
     try {
       const g = cur.g.gain;
       if (seg.end <= oldEnd + 0.01) {
-        // сужение: переносим stop раньше — это Web Audio позволяет
+        // narrowing: move the stop earlier — Web Audio allows this
         g.cancelScheduledValues(now);
         g.setValueAtTime(g.value, now);
         g.linearRampToValueAtTime(1, now + 0.02);
@@ -924,15 +924,15 @@ class LoopPlayer {
         (cur.stopAll || (t => cur.src.stop(t)))(newEndCtx + 0.02);
         cur.end = seg.end;
       } else {
-        // растяжение: источник замолчит на старой границе (duration
-        // исчерпан) — бесшовно допланируем продолжение [oldEnd, seg.end]
+        // stretching: the source will go silent at the old boundary (duration
+        // exhausted) — seamlessly schedule the continuation [oldEnd, seg.end]
         g.cancelScheduledValues(now);
         g.setValueAtTime(g.value, now);
-        g.linearRampToValueAtTime(1, now + 0.02); // убрать старый фейд-аут
+        g.linearRampToValueAtTime(1, now + 0.02); // remove the old fade-out
         this._scheduleChunkRange(oldEnd, seg.end, oldEndCtx);
       }
     } catch (e) {
-      // браузер не дал перепланировать — мягкий перезапуск
+      // the browser refused to replan — soft restart
       this._softRestartAt(pos);
       return;
     }
@@ -945,7 +945,7 @@ class LoopPlayer {
     this.nextTime = newEndCtx;
     this.onState();
   }
-  // Перезапуск с плавным затуханием старого (для seek и краевых случаев)
+  // Restart with a smooth fade of the old audio (for seek and edge cases)
   _softRestartAt(pos) {
     this._fadeStopAll(0.05);
     if (!this.segments.length || !this.buffer) return;
@@ -967,9 +967,9 @@ class LoopPlayer {
     if (idx < 0) idx = this.segments.length - 1;
     return idx;
   }
-  // Кусок аудио [from, to) на ctx-времени when.
-  // fadeIn/fadeOut — длительности фейдов (equal-power при кроссфейде).
-  // opts.bassDelay — сек: бас включается позже (бас-своп на переходе).
+  // Audio chunk [from, to) at ctx time when.
+  // fadeIn/fadeOut — fade durations (equal-power when crossfading).
+  // opts.bassDelay — sec: the bass enters later (bass swap on transition).
   _scheduleChunkRange(from, to, when, fadeIn = null, fadeOut = null, opts = {}) {
     const dur = to - from;
     if (dur <= 0.01) return 0;
@@ -977,7 +977,7 @@ class LoopPlayer {
     const fi = Math.min(fadeIn != null ? fadeIn : this.FADE, dur / 2);
     const fo = Math.min(fadeOut != null ? fadeOut : this.FADE, dur / 2);
     g.gain.setValueAtTime(0, when);
-    if (fi > 0.02) { // equal-power вход
+    if (fi > 0.02) { // equal-power fade-in
       const N = 8;
       for (let k = 1; k <= N; k++)
         g.gain.linearRampToValueAtTime(Math.sin((k / N) * Math.PI / 2), when + fi * k / N);
@@ -996,7 +996,7 @@ class LoopPlayer {
 
     const started = [];
     if (this.stems) {
-      // мульти-стем: каждый слой через свой gain (интенсивность)
+      // multi-stem: each layer via its own gain (intensity)
       this._ensureStemGains();
       for (const name of ['drums', 'bass', 'other', 'vocals']) {
         const buf = this.stems[name];
@@ -1004,7 +1004,7 @@ class LoopPlayer {
         const s = this.ctx.createBufferSource();
         s.buffer = buf;
         const sg = this.stemGains[name];
-        // бас-своп: bass и drums молчат до границы + fi, потом резкий вход
+        // bass swap: bass and drums are silent until boundary + fi, then a sharp entry
         if (opts.bassDelay && (name === 'bass' || name === 'drums')) {
           const dg = this.ctx.createGain();
           dg.gain.setValueAtTime(0, when);
@@ -1022,7 +1022,7 @@ class LoopPlayer {
       const src = this.ctx.createBufferSource();
       src.buffer = this.buffer;
       if (opts.bassDelay && this.bassSwap) {
-        // без стемов: 2-полосный сплит, низ входит с задержкой
+        // without stems: 2-band split, the low band enters with a delay
         const lo = this.ctx.createBiquadFilter();
         lo.type = 'lowpass'; lo.frequency.value = 180; lo.Q.value = 0.7;
         const hi = this.ctx.createBiquadFilter();
@@ -1042,7 +1042,7 @@ class LoopPlayer {
     const rec = { src: started[0], srcs: started, g, when, from, end: to };
     this.sources.push(rec);
     started[0].onended = () => { this.sources = this.sources.filter(s => s !== rec); };
-    // общий stop для мульти-источников
+    // shared stop for multi-sources
     rec.stopAll = (t) => started.forEach(s => { try { t != null ? s.stop(t) : s.stop(); } catch (e) {} });
     return dur;
   }
@@ -1055,8 +1055,8 @@ class LoopPlayer {
     }
     this.setLayers(this.layers || {});
   }
-  // Интенсивность 0..1 -> слои: other всегда, bass с 0.25, drums с 0.5, vocals с 0.75
-  // Пер-слойное управление: {drums: {on: true, vol: 1}, ...}
+  // Intensity 0..1 -> layers: other always, bass from 0.25, drums from 0.5, vocals from 0.75
+  // Per-layer control: {drums: {on: true, vol: 1}, ...}
   setLayers(layers) {
     this.layers = layers;
     if (!this.stemGains || !this.ctx) return;
@@ -1070,7 +1070,7 @@ class LoopPlayer {
       gn.gain.linearRampToValueAtTime(target, now + 0.35);
     }
   }
-  // Стингер: одиночный звук на моменте перехода (имя — из целевой части)
+  // Stinger: a single sound at the transition moment (name — from the target part)
   _playStinger(name, when) {
     const buf = this.stingerBuffers[name];
     if (!buf) return;
@@ -1079,13 +1079,13 @@ class LoopPlayer {
     const g = this.ctx.createGain();
     g.gain.value = 0.9;
     src.connect(g); g.connect(this.master);
-    // райзер должен ЗАКОНЧИТЬСЯ на границе, удар/тарелка — начаться на ней
+    // a riser must END at the boundary, a boom/cymbal — start on it
     const t = name === 'riser'
       ? Math.max(this.ctx.currentTime, when - buf.duration)
       : when;
     src.start(t);
   }
-  // Post-exit: хвост старой части дозвучивает поверх начала новой с затуханием
+  // Post-exit: the old part's tail rings out over the new one's start, fading
   _schedulePostExitTail(fromPos, when) {
     if (!this.tailEnabled) return;
     const end = Math.min(fromPos + this.TAIL, this.buffer.duration);
@@ -1105,7 +1105,7 @@ class LoopPlayer {
     this.sources.push(rec);
     src.onended = () => { this.sources = this.sources.filter(s => s !== rec); };
   }
-  // Перезапуск с произвольной позиции трека (не сбрасывает playing)
+  // Restart from an arbitrary track position (does not reset playing)
   _restartAt(pos) {
     this.sources.forEach(s => { try { (s.stopAll || (() => s.src.stop()))(); } catch (e) {} });
     this.sources = [];
@@ -1138,7 +1138,7 @@ class LoopPlayer {
       let idx = this.lastPlannedIndex;
       let isRepeat = true;
       const curSeg = this.segments[idx];
-      // часть без лупа (проигровка) проигрывается один раз и идёт дальше
+      // a non-looped part (build-up) plays once and moves on
       const noLoop = curSeg && curSeg.loop === false;
       if (this.advanceArmed || !this.loopEnabled || noLoop) {
         if (idx + 1 < this.segments.length) { idx = idx + 1; isRepeat = false; }
@@ -1147,29 +1147,29 @@ class LoopPlayer {
         this.onState();
       }
       const seg = this.segments[idx];
-      // повтор лупа начинается с loopStart (если задан), первый вход — с start
+      // a loop repeat starts from loopStart (if set), the first entry — from start
       const from = (isRepeat && seg.loopStart != null
                     && seg.loopStart > seg.start && seg.loopStart < seg.end - 0.5)
         ? seg.loopStart : seg.start;
-      // Кроссфейд: куски перекрываются на xf — конец текущего затухает,
-      // пока начало следующего нарастает (equal-power). Работает и на
-      // повторах лупа (сглаживает стык конец->начало), и на переходах.
+      // Crossfade: chunks overlap by xf — the current one's end fades out
+      // while the next one's start fades in (equal-power). Works both on
+      // loop repeats (smooths the end->start seam) and on transitions.
       const chunkDur = seg.end - from;
       const xf = this.crossfade > 0.02 ? Math.min(this.crossfade, chunkDur / 3) : 0;
       const isSectionChange = !isRepeat && this.lastPlannedIndex !== idx;
       const opts = {};
       if (isSectionChange && this.bassSwap) {
-        // бас входящей части включается ровно на границе (не в кроссфейде)
+        // the incoming part's bass enters exactly at the boundary (not in the crossfade)
         opts.bassDelay = Math.max(xf, 0.01);
       }
       const dur = this._scheduleChunkRange(from, seg.end, this.nextTime,
                                            xf > 0 ? xf : null,
                                            xf > 0 ? xf : null, opts);
       if (isSectionChange) {
-        // post-exit: хвост прошлой части дозвучивает поверх новой
+        // post-exit: the previous part's tail rings out over the new one
         const prev = this.segments[this.lastPlannedIndex];
         if (prev) this._schedulePostExitTail(prev.end, this.nextTime);
-        // стингер целевой части: звук на входе в неё
+        // target part's stinger: a sound at its entry
         if (seg.stinger && seg.stinger !== 'none')
           this._playStinger(seg.stinger, this.nextTime);
       }
@@ -1177,7 +1177,7 @@ class LoopPlayer {
                         segIndex: idx, trackStart: from,
                         isLoopRepeat: isRepeat && this.lastPlannedIndex === idx });
       this.lastPlannedIndex = idx;
-      this.nextTime += dur - xf; // следующий кусок стартует внахлёст
+      this.nextTime += dur - xf; // the next chunk starts overlapping
     }
   }
   play(fromSeg = null) {
@@ -1194,7 +1194,7 @@ class LoopPlayer {
     this.timer = setInterval(() => this._tick(), 60);
     this._restartAt(pos);
   }
-  // Перемотка в произвольную точку трека (drag плейхеда / клик)
+  // Seek to an arbitrary track position (playhead drag / click)
   seek(pos) {
     if (!this.segments.length) return;
     if (this.playing) {
@@ -1216,33 +1216,33 @@ class LoopPlayer {
     }
     this.onState();
   }
-  // Переход на границе музыкальной фразы (кратно phraseBars тактов от начала
-  // текущего куска), не дожидаясь конца лупа. Такт — слишком мелкая единица:
-  // тема должна завершиться, поэтому по умолчанию фраза = 4 такта.
+  // Transition at a musical phrase boundary (a multiple of phraseBars bars
+  // from the current chunk's start), without waiting for the loop end. A bar
+  // is too small a unit: the theme should finish, so by default phrase = 4 bars.
   _advanceAtPhrase() {
     const pos = this.position();
     if (pos == null) return;
     if (this.segIndex + 1 >= this.segments.length) { this.advanceArmed = true; return; }
     const seg = this.segments[this.segIndex];
-    const margin = 0.12; // сек на планирование
-    // опорная точка отсчёта фраз — начало текущего прохода лупа
+    const margin = 0.12; // sec for scheduling
+    // phrase counting anchor — the start of the current loop pass
     const cur = this.queue.length ? this.queue[this.queue.length - 1] : null;
     const anchor = cur ? cur.trackStart : seg.start;
-    // downbeats внутри части, начиная с якоря
+    // downbeats inside the part, starting from the anchor
     const dbs = this.downbeats.filter(b => b >= anchor - 0.05 && b < seg.end - 0.05);
     const nBars = this.phraseBars || 4;
-    // кандидаты: каждый nBars-й downbeat от якоря
+    // candidates: every nBars-th downbeat from the anchor
     let target = null;
     for (let k = nBars; k < dbs.length; k += nBars) {
       if (dbs[k] > pos + margin) { target = dbs[k]; break; }
     }
-    // фразовой границы впереди нет — доигрываем луп до конца (обычный режим)
+    // no phrase boundary ahead — play the loop to its end (normal mode)
     if (target == null) { this.advanceArmed = true; return; }
     const now = this.ctx.currentTime;
     const Tt = now + (target - pos);
     const nextSeg = this.segments[this.segIndex + 1];
     const xf = Math.max(this.crossfade, 0.03);
-    // погасить всё текущее к моменту Tt (+xf хвост)
+    // fade out everything current by time Tt (+xf tail)
     this.sources.forEach(({ g }) => {
       try {
         g.gain.cancelScheduledValues(Tt);
@@ -1256,7 +1256,7 @@ class LoopPlayer {
     setTimeout(() => olds.forEach(s => { try { (s.stopAll || (() => s.src.stop()))(); } catch (e) {} }),
                (Tt - now + xf + 0.1) * 1000);
     this.sources = [];
-    // новая часть с её начала
+    // the new part from its beginning
     this.nextTime = Tt;
     const dur = this._scheduleChunkRange(nextSeg.start, nextSeg.end, Tt,
                                          this.crossfade > 0.02 ? xf : null, null);
@@ -1297,13 +1297,13 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
   const canvasRef = useRef(null);
   const peaksRef = useRef(null);
   const dragRef = useRef(null);
-  const viewRef = useRef({ t0: 0, t1: 0 }); // видимое окно (сек); t1=0 -> весь трек
+  const viewRef = useRef({ t0: 0, t1: 0 }); // visible window (sec); t1=0 -> whole track
   const [, force] = useState(0);
   const H = 420;
 
   useEffect(() => {
     if (!buffer) { peaksRef.current = null; return; }
-    const W = 8192; // достаточно для зума
+    const W = 8192; // enough for zooming
     const data = buffer.getChannelData(0);
     const step = Math.max(1, Math.floor(data.length / W));
     const peaks = new Float32Array(W * 2);
@@ -1353,7 +1353,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       const c = segColor(s, i);
       ctx.fillStyle = c + (i === playingSeg ? '40' : '1c');
       ctx.fillRect(tx(s.start), 0, tx(s.end) - tx(s.start), H);
-      // проигровка (без лупа): диагональная штриховка
+      // build-up (no loop): diagonal hatching
       if (s.loop === false) {
         ctx.save();
         ctx.beginPath();
@@ -1368,7 +1368,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         ctx.stroke();
         ctx.restore();
       }
-      // loopStart: жёлтый маркер внутри части
+      // loopStart: yellow marker inside the part
       if (s.loop !== false && s.loopStart != null && s.loopStart > s.start + 0.05) {
         const lx = tx(s.loopStart);
         ctx.strokeStyle = '#ffb84f';
@@ -1381,7 +1381,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       }
     });
 
-    // beats / downbeats (биты рисуем только при достаточном зуме)
+    // beats / downbeats (beats are drawn only at sufficient zoom)
     if (beats && span < duration * 0.6) {
       ctx.strokeStyle = TC.bar; ctx.beginPath();
       for (const b of beats) { if (b < t0 || b > t1) continue; ctx.moveTo(tx(b), H - 14); ctx.lineTo(tx(b), H); }
@@ -1391,7 +1391,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.strokeStyle = TC.downbeat; ctx.beginPath();
       for (const b of downbeats) { if (b < t0 || b > t1) continue; ctx.moveTo(tx(b), H - 26); ctx.lineTo(tx(b), H); }
       ctx.stroke();
-      // каждые 4 такта — фразовая метка повыше и заметнее + номер группы
+      // every 4 bars — a taller, more visible phrase tick + group number
       ctx.strokeStyle = TC.phrase; ctx.beginPath();
       for (let i = 0; i < downbeats.length; i += 4) {
         const b = downbeats[i];
@@ -1399,12 +1399,12 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         ctx.moveTo(tx(b), H - 44); ctx.lineTo(tx(b), H);
       }
       ctx.stroke();
-      // нумерация тактов: на обзоре — каждая 4-я (номер фразы), при зуме —
-      // каждый такт (его номер); шаг подбирается по плотности пикселей
+      // bar numbering: on the overview — every 4th (phrase number), when
+      // zoomed — every bar (its number); the stride is picked by pixel density
       const barPx = ((downbeats[1] || duration) - (downbeats[0] || 0)) / span * W;
       let stride = 0;
-      if (barPx >= 22) stride = 1;        // сильный зум: каждый такт
-      else if (barPx * 4 >= 26) stride = 4; // обзор: каждые 4 такта
+      if (barPx >= 22) stride = 1;        // strong zoom: every bar
+      else if (barPx * 4 >= 26) stride = 4; // overview: every 4 bars
       if (stride) {
         ctx.fillStyle = TC.phrase;
         ctx.font = (stride === 1 ? '10px' : '9px') + ' "JetBrains Mono", monospace';
@@ -1443,7 +1443,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.moveTo(x - 5, 0); ctx.lineTo(x + 5, 0); ctx.lineTo(x, 8); ctx.fill();
     });
 
-    // labels + качество лупа
+    // labels + loop quality
     segments.forEach((s, i) => {
       if (s.end < t0 || s.start > t1) return;
       const c = segColor(s, i);
@@ -1457,7 +1457,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         ctx.font = '600 10px "JetBrains Mono", monospace';
         ctx.fillText('\u27F3' + Math.round(q * 100) + '%', lx, 28);
       }
-      // значок стингера на левой границе части (звук играет при входе в неё)
+      // stinger icon on the part's left boundary (the sound plays on entry)
       if (s.stinger && s.stinger !== 'none' && s.start >= t0) {
         const sx = tx(s.start);
         ctx.fillStyle = TC.playhead;
@@ -1470,7 +1470,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       }
     });
 
-    // скроллбар при зуме: дорожка + перетаскиваемый бегунок
+    // scrollbar when zoomed: track + draggable thumb
     if (span < duration * 0.999) {
       const SB_H = 12;
       ctx.fillStyle = TC.bar;
@@ -1486,7 +1486,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       } else {
         ctx.fillRect(bx, H - SB_H + 2, bw, SB_H - 4);
       }
-      // насечки на бегунке
+      // notches on the thumb
       ctx.strokeStyle = '#0a0d14aa';
       ctx.beginPath();
       const cxm = bx + bw / 2;
@@ -1497,7 +1497,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.stroke();
     }
 
-    // playhead (или позиция, выбранная до запуска / при перетаскивании)
+    // playhead (or the position picked before playback / while dragging)
     let pos = dragRef.current && dragRef.current.type === 'playhead'
       ? dragRef.current.pos
       : (player && player.position());
@@ -1511,7 +1511,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       ctx.fillStyle = grad; ctx.fillRect(x - 8, 0, 16, H);
       ctx.strokeStyle = TC.playhead; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-      // ручка плейхеда
+      // playhead handle
       ctx.fillStyle = TC.playhead;
       ctx.beginPath(); ctx.arc(x, 6, 5, 0, Math.PI * 2); ctx.fill();
       ctx.lineWidth = 1;
@@ -1544,7 +1544,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     return bd < (t1 - t0) * 0.01 + 0.35 ? best : tt;
   };
 
-  // wheel: зум к курсору; shift+wheel / горизонтальный скролл: панорама
+  // wheel: zoom to the cursor; shift+wheel / horizontal scroll: pan
   const onWheel = e => {
     if (!duration) return;
     e.preventDefault();
@@ -1572,7 +1572,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     if (!duration) return;
     const tt = timeAt(e);
     const tolT = tolTime();
-    // 0) скроллбар (нижние 12px при зуме)
+    // 0) scrollbar (bottom 12px when zoomed)
     {
       const rect = canvasRef.current.getBoundingClientRect();
       const my = e.clientY - rect.top;
@@ -1584,10 +1584,10 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         const bw = Math.max(24, (span / duration) * W);
         const mx = e.clientX - rect.left;
         if (mx >= bx && mx <= bx + bw) {
-          // тащим бегунок
+          // drag the thumb
           dragRef.current = { type: 'scroll', grabDx: mx - bx, span };
         } else {
-          // клик по дорожке — прыжок окна и сразу тащим
+          // click on the track — jump the window and start dragging right away
           let n0 = (mx / W) * duration - span / 2;
           n0 = Math.max(0, Math.min(duration - span, n0));
           viewRef.current = { t0: n0, t1: n0 + span };
@@ -1597,14 +1597,14 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         return;
       }
     }
-    // 1) плейхед — приоритет
+    // 1) playhead — priority
     const pos = (player && player.position()) ?? (player && player.pendingPos);
     if (pos != null && Math.abs(pos - tt) < tolT) {
       dragRef.current = { type: 'playhead', pos };
       e.preventDefault();
       return;
     }
-    // 2) маркер loopStart
+    // 2) loopStart marker
     for (let i = 0; i < segments.length; i++) {
       const s = segments[i];
       if (s.loop !== false && s.loopStart != null
@@ -1615,7 +1615,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         return;
       }
     }
-    // 3) границы сегментов
+    // 3) segment boundaries
     for (let i = 1; i < segments.length; i++) {
       if (Math.abs(segments[i].start - tt) < tolT) {
         dragRef.current = { type: 'bound', idx: i };
@@ -1624,7 +1624,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         return;
       }
     }
-    // 4) Alt+клик внутри части — установить loopStart в этой точке
+    // 4) Alt+click inside a part — set loopStart at that point
     if (e.altKey) {
       const i = segments.findIndex(s => tt > s.start + 0.3 && tt < s.end - 0.3);
       if (i >= 0) {
@@ -1637,7 +1637,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         return;
       }
     }
-    // 5) клик по свободному месту — перемотка в эту точку
+    // 5) click on empty space — seek to that point
     player.seek(tt);
   };
   const onMouseMove = e => {
@@ -1734,12 +1734,12 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
   );
 }
 
-// Оверлей ИИ-обработки: сканирующая полоса + сменяющиеся стадии
+// AI-processing overlay: scanning stripe + rotating stages
 function AiOverlay({ t }) {
   const stages = [t.ai_stage1, t.ai_stage2, t.ai_stage3, t.ai_stage4];
   const [idx, setIdx] = useState(0);
   useEffect(() => {
-    // примерные длительности стадий (сек) при первом прогоне
+    // approximate stage durations (sec) on the first run
     const timers = [
       setTimeout(() => setIdx(1), 8000),
       setTimeout(() => setIdx(2), 45000),
@@ -1761,12 +1761,12 @@ function AiOverlay({ t }) {
 function App() {
   const [lang, setLang] = useState(() => {
     const saved = localStorage.getItem('musslop_lang');
-    return STR[saved] ? saved : 'ru';
+    return STR[saved] ? saved : 'en';
   });
   const t = STR[lang];
   const setLanguage = l => { setLang(l); localStorage.setItem('musslop_lang', l); document.documentElement.lang = l; };
 
-  // --- Тема оформления -------------------------------------------------------
+  // --- UI theme --------------------------------------------------------------
   const [theme, setThemeState] = useState(() => {
     const t0 = localStorage.getItem('musslop_theme');
     return (t0 === 'tavern' || t0 === 'mono') ? t0 : 'mono';
@@ -1783,10 +1783,10 @@ function App() {
   const [analysis, setAnalysis] = useState(null);
   const [segments, setSegmentsRaw] = useState([]);
 
-  // --- Undo (Ctrl+Z): история изменений сегментов -------------------------
-  const historyRef = useRef([]);       // стек прошлых состояний
-  const dragSnapRef = useRef(null);    // снимок до начала drag-серии
-  // обычное изменение: снимок в историю; silent=true — без записи (drag)
+  // --- Undo (Ctrl+Z): segment change history -------------------------
+  const historyRef = useRef([]);       // stack of past states
+  const dragSnapRef = useRef(null);    // snapshot before a drag series starts
+  // regular change: snapshot into history; silent=true — no record (drag)
   const setSegments = useCallback((updater, silent = false) => {
     setSegmentsRaw(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
@@ -1797,7 +1797,7 @@ function App() {
       return next;
     });
   }, []);
-  // drag-серия: один undo-шаг на всё перетаскивание
+  // drag series: one undo step for the entire drag
   const beginEdit = useCallback(() => {
     setSegmentsRaw(prev => { dragSnapRef.current = prev; return prev; });
   }, []);
@@ -1820,16 +1820,16 @@ function App() {
   const [buffer, setBuffer] = useState(null);
   const [snap, setSnap] = useState(true);
   const [nSeg, setNSeg] = useState('');
-  const [aiWorking, setAiWorking] = useState(false);   // ИИ-анализ в процессе
+  const [aiWorking, setAiWorking] = useState(false);   // AI analysis in progress
   const [exportOpen, setExportOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState({ lib: true, hist: false });
-  const [stingerMenu, setStingerMenu] = useState(null); // индекс части с открытым меню стингера
+  const [stingerMenu, setStingerMenu] = useState(null); // index of the part with the stinger menu open
   const [tailOn, setTailOn] = useState(true);
   const [bassSwapOn, setBassSwapOn] = useState(true);
   const [volume, setVolumeState] = useState(() => {
     const v = parseFloat(localStorage.getItem('musslop_volume'));
-    // сохранённый mute (0) не восстанавливаем: после перезагрузки страницы
-    // «тихий» плеер выглядит как сломанный звук
+    // don't restore a saved mute (0): after a page reload a
+    // "silent" player looks like broken audio
     return isFinite(v) && v > 0.02 ? v : 1;
   });
   const setVolume = v => {
@@ -1848,9 +1848,9 @@ function App() {
   }, []);
   const [dragOver, setDragOver] = useState(false);
   const [markupDragOver, setMarkupDragOver] = useState(false);
-  const [crossfade, setCrossfade] = useState(0);       // сек
+  const [crossfade, setCrossfade] = useState(0);       // sec
   const [transMode, setTransMode] = useState('loop');  // 'loop' | 'phrase'
-  const [phraseBars, setPhraseBars] = useState(4);     // 4 или 8 тактов
+  const [phraseBars, setPhraseBars] = useState(4);     // 4 or 8 bars
   const [, force] = useState(0);
   const playerRef = useRef(null);
   const fileRef = useRef(null);
@@ -1863,9 +1863,9 @@ function App() {
   }
   const player = playerRef.current;
   useEffect(() => { player.onState = () => force(x => x + 1); }, []);
-  // стингеры: скачиваем сразу (байты), декодируем лениво — при первом
-  // воспроизведении. НЕ создаём AudioContext без жеста пользователя:
-  // авто-созданный suspended-контекст ломает звук в некоторых браузерах.
+  // stingers: download right away (bytes), decode lazily — on first
+  // playback. Do NOT create an AudioContext without a user gesture:
+  // an auto-created suspended context breaks audio in some browsers.
   const stingerRaw = useRef({});
   useEffect(() => {
     (async () => {
@@ -1887,7 +1887,7 @@ function App() {
       }
     };
   }, []);
-  // смена трека -> стемы старого трека неактуальны
+  // track change -> old track's stems are stale
   useEffect(() => {
     player.stems = null;
     player.stemGains = null;
@@ -1902,7 +1902,7 @@ function App() {
   }, [analysis]);
   useEffect(() => () => player.stop(false), []);
 
-  // пересчёт качества лупа после ручного редактирования (debounce 800мс)
+  // recompute loop quality after manual editing (debounce 800ms)
   useEffect(() => {
     if (!trackId || !segments.length) return;
     clearTimeout(loopQT.current);
@@ -1921,7 +1921,7 @@ function App() {
     return () => clearTimeout(loopQT.current);
   }, [trackId, segments.map(s => `${s.start.toFixed(2)}_${s.end.toFixed(2)}`).join('|')]);
 
-  // --- Стемы (vertical layering) -------------------------------------------
+  // --- Stems (vertical layering) -------------------------------------------
   const [stemsState, setStemsState] = useState('none'); // none|loading|ready
   const defaultLayers = () => ({
     drums: { on: true, vol: 1 }, bass: { on: true, vol: 1 },
@@ -1943,7 +1943,7 @@ function App() {
     try {
       const r = await fetch(`/api/stems/${trackId}`, { method: 'POST' });
       if (!r.ok) throw new Error((await r.json()).detail || t.err_analyze);
-      // поллинг фоновой задачи с процентами
+      // poll the background task with percentages
       while (true) {
         const st = await (await fetch(`/api/stems/${trackId}/status`)).json();
         if (st.status === 'done') break;
@@ -1961,9 +1961,9 @@ function App() {
         bufs[names[i]] = await player.decode(ab);
       }
       player.stems = bufs;
-      player.stemGains = null; // пересоздать с текущей интенсивностью
+      player.stemGains = null; // recreate with the current intensity
       setStemsState('ready');
-      // перезапустить воспроизведение на стемах с текущей позиции
+      // restart playback on the stems from the current position
       if (player.playing) {
         const pos = player.position();
         if (pos != null) player._softRestartAt(pos);
@@ -1985,7 +1985,7 @@ function App() {
     }
   };
 
-  // --- Импорт по URL ---------------------------------------------------------
+  // --- Import from URL --------------------------------------------------------
   const [importUrl, setImportUrl] = useState('');
   const importFromUrl = async () => {
     const url = importUrl.trim();
@@ -2019,7 +2019,7 @@ function App() {
         body: JSON.stringify(segments.map(s => ({ start: s.start, end: s.end, label: s.label }))),
       });
       if (!r.ok) throw new Error(t.err_export);
-      // скачивание с прогрессом (zip может быть большим — полное качество WAV)
+      // download with progress (the zip can be large — full-quality WAV)
       const total = +r.headers.get('Content-Length') || 0;
       const reader = r.body.getReader();
       const chunks = []; let got = 0;
@@ -2080,8 +2080,8 @@ function App() {
     setError(null);
     player.stop();
     try {
-      // Файл уже у браузера — декодируем его напрямую, без скачивания с сервера.
-      // Параллельно отправляем на сервер для анализа структуры.
+      // The browser already has the file — decode it directly, without downloading
+      // from the server. In parallel, send it to the server for structure analysis.
       setLoading(t.loading_decode);
       const fd = new FormData();
       fd.append('file', file);
@@ -2100,12 +2100,12 @@ function App() {
       const { track_id, name } = await r.json();
       setTrackId(track_id); setTrackName(name);
 
-      // Анализ на сервере — источник истины о длительности
+      // Server-side analysis is the source of truth for the duration
       const a = await doAnalyze(track_id, null);
       loadHistory();
 
-      // сверяем длительности: браузерные декодеры иногда обрезают
-      // FLAC/m4a с вложенной обложкой — тогда берём WAV с сервера
+      // compare durations: browser decoders sometimes truncate
+      // FLAC/m4a with embedded cover art — then take the WAV from the server
       const serverDur = a ? a.duration : null;
       const durOk = buf && serverDur != null
         && Math.abs(buf.duration - serverDur) < Math.max(1, serverDur * 0.02);
@@ -2128,7 +2128,7 @@ function App() {
     }
   };
 
-  // --- История треков ------------------------------------------------------
+  // --- Track history --------------------------------------------------------
   const [history, setHistory] = useState([]);
   const loadHistory = useCallback(async () => {
     try {
@@ -2138,7 +2138,7 @@ function App() {
   }, []);
   useEffect(() => { loadHistory(); }, []);
 
-  // автосохранение разметки на сервер (debounce 1.2с)
+  // autosave the markup to the server (debounce 1.2s)
   const saveT = useRef(null);
   useEffect(() => {
     if (!trackId || !analysis || !segments.length) return;
@@ -2157,7 +2157,7 @@ function App() {
     return () => clearTimeout(saveT.current);
   }, [trackId, segments, analysis]);
 
-  // открыть трек из истории: аудио с сервера + сохранённая разметка
+  // open a track from history: audio from the server + saved markup
   const openFromHistory = async item => {
     setError(null);
     player.stop();
@@ -2191,7 +2191,7 @@ function App() {
         if (analyzed) serverDur = analyzed.duration;
       }
 
-      // браузер мог обрезать оригинал (FLAC с обложкой и т.п.)
+      // the browser may have truncated the original (FLAC with cover art etc.)
       const durOk = buf && serverDur != null
         && Math.abs(buf.duration - serverDur) < Math.max(1, serverDur * 0.02);
       if (buf && (serverDur == null || durOk)) {
@@ -2287,7 +2287,7 @@ function App() {
     });
   };
 
-  // Разрезать часть в точке pos (сек); привязка к ближайшему downbeat
+  // Split a part at point pos (sec); snapped to the nearest downbeat
   const splitAt = pos => {
     if (pos == null || !analysis) return;
     let tt = pos;
@@ -2308,7 +2308,7 @@ function App() {
     });
   };
 
-  // Разрезать в текущей позиции (играет / выбрана кликом), иначе — середина выбранной части
+  // Split at the current position (playing / picked by click), otherwise — the middle of the selected part
   const splitAtPlayhead = () => {
     let pos = player.position();
     if (pos == null) pos = player.pendingPos;
@@ -2319,7 +2319,7 @@ function App() {
     splitAt(pos);
   };
 
-  // Разрезать конкретную часть пополам (по ближайшему такту к середине)
+  // Split a specific part in half (at the bar nearest to the middle)
   const splitSeg = i => {
     const s = segments[i];
     if (!s) return;
@@ -2453,7 +2453,7 @@ function App() {
       {analysis && <div className="panel">
         <div className="panel-title">{t.structure_title}</div>
 
-        {/* строка 1: метрики + анализ */}
+        {/* row 1: metrics + analysis */}
         <div className="row between" style={{ marginBottom: 10 }}>
           <div className="row">
             <span className="badge">{t.tempo} <b>{analysis.tempo.toFixed(1)} BPM</b></span>
@@ -2485,7 +2485,7 @@ function App() {
           </div>
         </div>
 
-        {/* строка 2: правка + файлы */}
+        {/* row 2: editing + files */}
         <div className="row between" style={{ marginBottom: 12 }}>
           <div className="row">
             <button onClick={splitAtPlayhead} title={t.split_tip}>{t.split_btn}</button>
@@ -2574,7 +2574,7 @@ function App() {
                           return ns;
                         });
                         setStingerMenu(null);
-                        // превью звука при выборе
+                        // sound preview on selection
                         if (sg !== 'none' && player.ctx && player.stingerBuffers[sg]) {
                           player._playStinger(sg, player.ctx.currentTime + 0.05);
                         }
@@ -2615,7 +2615,7 @@ function App() {
               : <span>{t.selected} <b>{segments[player.segIndex] ? segments[player.segIndex].label : '–'}</b></span>}
           </div>
         </div>
-        {/* строка: переход */}
+        {/* row: transition */}
         <div className="row" style={{ marginTop: 12 }}>
           <span className="badge">{t.trans_mode}</span>
           <div className="lang-switch">
@@ -2638,7 +2638,7 @@ function App() {
             {crossfade.toFixed(1)}s
           </span>
         </div>
-        {/* строка: сглаживание + стингер */}
+        {/* row: smoothing + stinger */}
         <div className="row" style={{ marginTop: 10 }}>
           <label className="chk tip" data-tip={t.tail_tip}>
             <input type="checkbox" checked={tailOn}
@@ -2651,8 +2651,8 @@ function App() {
             {t.bass_swap_label}
           </label>
         </div>
-        {/* строка: слои (vertical layering) */}
-        {deepAvailable && <div className="row" style={{ marginTop: 10, alignItems: 'flex-start' }}>
+        {/* row: layers (vertical layering) */}
+        {(deepAvailable || songformerAvailable) && <div className="row" style={{ marginTop: 10, alignItems: 'flex-start' }}>
           <span className="badge tip" data-tip={t.stems_tip}>{t.stems_label}</span>
           {stemsState !== 'ready'
             ? <button className="ai-btn" onClick={loadStems}
@@ -2696,7 +2696,7 @@ function App() {
         <span className="vol-num">{Math.round(volume * 100)}%</span>
         <span className="vol-icon" title={t.beep_tip}
           onClick={() => {
-            // тест-бип напрямую в destination, минуя master/стемы/фильтры
+            // test beep straight to destination, bypassing master/stems/filters
             player._ensureCtx();
             const o = player.ctx.createOscillator();
             const g = player.ctx.createGain();

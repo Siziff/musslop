@@ -1,15 +1,15 @@
-# Musslop — анализ аудио: биты, такты, структурная сегментация.
+# Musslop - audio analysis: beats, bars, structural segmentation.
 #
-# Теория, на которой основана нарезка:
-#  1. Beat tracking: огибающая онсетов + динамическое программирование (Ellis, 2007).
-#  2. Downbeats: предполагаем размер 4/4; фаза сильной доли выбирается как
-#     сдвиг (0..3), максимизирующий среднюю силу онсета на каждом 4-м бите.
-#  3. Структурная сегментация (Foote, 2000): beat-синхронные признаки
-#     (CQT-хрома — гармония, MFCC — тембр) -> матрица самоподобия ->
-#     свёртка "шахматным" ядром по диагонали -> кривая новизны ->
-#     пики = границы секций (интро/куплет/припев/бридж...).
-#  4. Музыкальное квантование: границы притягиваются к ближайшему downbeat,
-#     минимальная длина секции — 4 такта (типичная музыкальная фраза).
+# Theory the segmentation is based on:
+#  1. Beat tracking: onset envelope + dynamic programming (Ellis, 2007).
+#  2. Downbeats: assume 4/4 meter; the downbeat phase is chosen as the
+#     shift (0..3) maximizing the mean onset strength on every 4th beat.
+#  3. Structural segmentation (Foote, 2000): beat-synchronous features
+#     (CQT chroma - harmony, MFCC - timbre) -> self-similarity matrix ->
+#     convolution with a "checkerboard" kernel along the diagonal ->
+#     novelty curve -> peaks = section boundaries (intro/verse/chorus/bridge...).
+#  4. Musical quantization: boundaries are snapped to the nearest downbeat,
+#     minimum section length - 4 bars (a typical musical phrase).
 
 from __future__ import annotations
 
@@ -21,18 +21,18 @@ import librosa
 SR = 22050
 HOP = 512
 
-# Веса скоринга границы (тюнятся через tools/tune.py по ручным разметкам)
+# Boundary scoring weights (tuned via tools/tune.py on manual markups)
 BOUNDARY_WEIGHTS = {
-    "loop_q": 0.30,   # качество замыкания лупов слева/справа от границы
-    "phrase": 0.20,   # длины частей кратны 4/8 тактам
-    "audib": 0.20,    # слышимость перехода (онсет + скачок RMS)
-    "novelty": 0.30,  # структурная новизна (SSM)
-    "dist_pen": 0.08, # штраф за смещение от пика новизны, на такт
+    "loop_q": 0.30,   # loop closure quality left/right of the boundary
+    "phrase": 0.20,   # part lengths are multiples of 4/8 bars
+    "audib": 0.20,    # transition audibility (onset + RMS jump)
+    "novelty": 0.30,  # structural novelty (SSM)
+    "dist_pen": 0.08, # penalty per bar of shift from the novelty peak
 }
 
 
 def _checkerboard_kernel(size: int) -> np.ndarray:
-    """Гауссово-взвешенное шахматное ядро Фута (size — половина стороны)."""
+    """Gaussian-weighted Foote checkerboard kernel (size - half the side)."""
     n = 2 * size
     g = scipy.signal.windows.gaussian(n, std=size / 2.0)
     kernel = np.outer(g, g)
@@ -43,7 +43,8 @@ def _checkerboard_kernel(size: int) -> np.ndarray:
 
 
 def _novelty_from_ssm(ssm: np.ndarray, kernel_size: int) -> np.ndarray:
-    """Кривая новизны: свёртка SSM шахматным ядром вдоль главной диагонали."""
+    """Novelty curve: convolve the SSM with a checkerboard kernel along
+    the main diagonal."""
     n = ssm.shape[0]
     ks = min(kernel_size, max(4, n // 4))
     kernel = _checkerboard_kernel(ks)
@@ -61,7 +62,7 @@ def _novelty_from_ssm(ssm: np.ndarray, kernel_size: int) -> np.ndarray:
 
 def _estimate_downbeat_phase(onset_env: np.ndarray, beat_frames: np.ndarray,
                              beats_per_bar: int = 4) -> int:
-    """Фаза сильной доли: сдвиг, при котором онсеты на битах сильнее всего."""
+    """Downbeat phase: the shift where onsets on beats are strongest."""
     if len(beat_frames) < beats_per_bar:
         return 0
     strengths = onset_env[np.clip(beat_frames, 0, len(onset_env) - 1)]
@@ -70,18 +71,19 @@ def _estimate_downbeat_phase(onset_env: np.ndarray, beat_frames: np.ndarray,
 
 
 def _snap(value: float, grid: np.ndarray) -> float:
-    """Ближайшая точка сетки."""
+    """Nearest grid point."""
     if len(grid) == 0:
         return value
     return float(grid[np.argmin(np.abs(grid - value))])
 
 
 def analyze_deep_merge(path: str, deep: dict) -> dict:
-    """Слить результат allin1 (границы/лейблы/биты от нейросети) с нашими
-    метриками: loopability, детект проигровок, снап мелких секций.
+    """Merge the allin1 result (boundaries/labels/beats from the neural net)
+    with our metrics: loopability, build-up detection, snapping of tiny
+    sections.
 
-    allin1 обучена на Harmonix (человеческая разметка структуры) — границы
-    берём её. Наша добавка — специфичные для лупов свойства.
+    allin1 is trained on Harmonix (human structure annotations) - we take
+    its boundaries. Our addition is the loop-specific properties.
     """
     y, sr = librosa.load(path, sr=SR, mono=True)
     duration = float(len(y) / sr)
@@ -93,7 +95,7 @@ def analyze_deep_merge(path: str, deep: dict) -> dict:
     beats = deep.get("beats") or []
     tempo = float(deep.get("bpm") or 120.0)
 
-    # секции: выкинуть микро-«start/end» (<2c), склеить смежные короче 4с
+    # sections: drop micro "start/end" (<2s), merge adjacent ones shorter than 4s
     raw = [s for s in deep.get("segments", [])
            if s["end"] - s["start"] > 0.5]
     segs: list[dict] = []
@@ -102,7 +104,7 @@ def analyze_deep_merge(path: str, deep: dict) -> dict:
             segs[-1]["end"] = s["end"]
             continue
         if not segs and (s["end"] - s["start"] < 4.0 or s["label"] == "start"):
-            # первый мини-кусок вливаем в следующий
+            # merge the first mini-chunk into the next one
             segs.append({"start": s["start"], "end": s["end"],
                          "label": s["label"], "_merge_next": True})
             continue
@@ -119,7 +121,7 @@ def analyze_deep_merge(path: str, deep: dict) -> dict:
         segs[0]["start"] = 0.0
         segs[-1]["end"] = duration
 
-    # снап границ к downbeats (SongFormer их не квантует; allin1 — почти)
+    # snap boundaries to downbeats (SongFormer doesn't quantize them; allin1 - almost)
     if len(downbeats) > 2 and len(segs) > 1:
         db = np.asarray(downbeats, dtype=float)
         bar_dur_est = float(np.median(np.diff(db))) if len(db) > 3 else 2.0
@@ -127,14 +129,14 @@ def analyze_deep_merge(path: str, deep: dict) -> dict:
             t = segs[i]["start"]
             j = int(np.argmin(np.abs(db - t)))
             snapped = float(db[j])
-            # снапим только если рядом (в пределах такта)
+            # snap only if close (within a bar)
             if abs(snapped - t) <= bar_dur_est * 0.6:
                 segs[i]["start"] = snapped
                 segs[i - 1]["end"] = snapped
-        # убрать выродившиеся после снапа секции
+        # remove sections degenerated after the snap
         segs = [s for s in segs if s["end"] - s["start"] > 1.0]
 
-    # функциональные лейблы -> человекочитаемые с нумерацией повторов
+    # functional labels -> human-readable with repeat numbering
     counts: dict[str, int] = {}
     for s in segs:
         base = str(s["label"]).capitalize()
@@ -163,7 +165,7 @@ def analyze_deep_merge(path: str, deep: dict) -> dict:
 
 
 def analyze(path: str, n_segments: int | None = None) -> dict:
-    """Полный анализ трека. Возвращает dict для JSON-ответа."""
+    """Full track analysis. Returns a dict for the JSON response."""
     y, sr = librosa.load(path, sr=SR, mono=True)
     duration = float(len(y) / sr)
 
@@ -174,18 +176,18 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
     tempo = float(np.atleast_1d(tempo)[0])
     beat_times = librosa.frames_to_time(beat_frames, sr=sr, hop_length=HOP)
 
-    # --- Downbeats (такты, размер 4/4) -------------------------------------
+    # --- Downbeats (bars, 4/4 meter) ----------------------------------------
     beats_per_bar = 4
     phase = _estimate_downbeat_phase(onset_env, beat_frames, beats_per_bar)
     downbeat_times = beat_times[phase::beats_per_bar]
 
     if len(beat_times) < 16:
-        # fallback: равномерная нарезка, если ритм не найден
+        # fallback: uniform split if no rhythm was found
         n = n_segments or max(2, int(duration // 20))
         bounds = np.linspace(0, duration, n + 1)
         segments = [
             {"start": float(bounds[i]), "end": float(bounds[i + 1]),
-             "label": f"Часть {i + 1}", "loop": True, "transition": False}
+             "label": f"Part {i + 1}", "loop": True, "transition": False}
             for i in range(n)
         ]
         return {
@@ -199,11 +201,11 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
             "fallback": True,
         }
 
-    # --- Beat-синхронные признаки: гармония + тембр + энергия ---------------
+    # --- Beat-synchronous features: harmony + timbre + energy ---------------
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=HOP)
     mfcc = librosa.feature.mfcc(y=y, sr=sr, hop_length=HOP, n_mfcc=13)
-    mfcc = mfcc[1:]  # без 0-го коэффициента (громкость)
-    rms = librosa.feature.rms(y=y, hop_length=HOP)  # огибающая громкости
+    mfcc = mfcc[1:]  # drop the 0th coefficient (loudness)
+    rms = librosa.feature.rms(y=y, hop_length=HOP)  # loudness envelope
 
     sync_frames = librosa.util.fix_frames(beat_frames, x_min=0,
                                           x_max=chroma.shape[1] - 1)
@@ -217,22 +219,22 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         return f / np.maximum(s, 1e-8)
 
     feats = np.vstack([
-        _norm(chroma_sync) * 1.0,   # гармония
-        _norm(mfcc_sync) * 0.7,     # тембр
-        _norm(rms_sync) * 2.0,      # динамика (вход/уход инструментов)
+        _norm(chroma_sync) * 1.0,   # harmony
+        _norm(mfcc_sync) * 0.7,     # timbre
+        _norm(rms_sync) * 2.0,      # dynamics (instruments entering/leaving)
     ])
     feats = librosa.util.normalize(feats, axis=0)
 
-    # --- SSM + новизна ------------------------------------------------------
+    # --- SSM + novelty ------------------------------------------------------
     ssm = np.dot(feats.T, feats)
     ssm = scipy.ndimage.median_filter(ssm, size=(3, 3))
 
     n_beats = ssm.shape[0]
-    kernel_beats = 4 * beats_per_bar  # окно контекста: 4 такта в каждую сторону
+    kernel_beats = 4 * beats_per_bar  # context window: 4 bars each way
     novelty = _novelty_from_ssm(ssm, kernel_beats)
     novelty = scipy.ndimage.gaussian_filter1d(novelty, sigma=2)
 
-    min_gap_beats = 4 * beats_per_bar  # секция не короче 4 тактов
+    min_gap_beats = 4 * beats_per_bar  # section no shorter than 4 bars
     peaks, props = scipy.signal.find_peaks(
         novelty, distance=min_gap_beats, prominence=0.05
     )
@@ -247,12 +249,12 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
     sync_times = librosa.frames_to_time(sync_frames, sr=sr, hop_length=HOP)
     bound_times = [sync_times[p] for p in peaks if p < len(sync_times)]
 
-    # --- Квантование границ к downbeats + уточнение -------------------------
-    # Пик новизны размыт (ядро на 4 такта), поэтому ближайший downbeat может
-    # промахиваться на такт. Уточняем: среди downbeats в окне +-1 такт вокруг
-    # кандидата выбираем тот, где переход "слышнее" всего:
-    #   * сильный онсет на самой границе (вступление новой партии),
-    #   * максимальный скачок RMS-энергии между тактом до и тактом после.
+    # --- Quantize boundaries to downbeats + refinement -----------------------
+    # The novelty peak is blurred (4-bar kernel), so the nearest downbeat may
+    # miss by a bar. Refine: among downbeats within a +-1 bar window around
+    # the candidate, pick the one where the transition is most "audible":
+    #   * a strong onset right at the boundary (a new part entering),
+    #   * the largest RMS energy jump between the bar before and the bar after.
     grid = downbeat_times if len(downbeat_times) > 2 else beat_times
     onset_times = librosa.times_like(onset_env, sr=sr, hop_length=HOP)
     rms_env = rms[0]
@@ -267,7 +269,7 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         return float(onset_n[lo:hi].max())
 
     def _rms_jump(t: float) -> float:
-        """|среднее RMS такта после - такта до| (нормированное)."""
+        """|mean RMS of the bar after - the bar before| (normalized)."""
         pre = rms_env[(rms_times >= t - bar_dur) & (rms_times < t)]
         post = rms_env[(rms_times >= t) & (rms_times < t + bar_dur)]
         if len(pre) == 0 or len(post) == 0:
@@ -282,7 +284,7 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         best, best_score = float(cands[0]), -1.0
         for c in cands:
             c = float(c)
-            # штраф за удаление от пика новизны, чтобы не уползать без причины
+            # penalty for drifting from the novelty peak, so we don't wander off
             dist_pen = abs(c - t) / bar_dur * 0.15
             score = 0.6 * _onset_at(c) + 0.4 * min(_rms_jump(c), 2.0) - dist_pen
             if score > best_score:
@@ -291,25 +293,26 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
 
     snapped = sorted({_refine(t) for t in bound_times})
 
-    min_len = max(4.0, (60.0 / max(tempo, 1e-6)) * beats_per_bar * 2)  # >= 2 тактов
+    min_len = max(4.0, (60.0 / max(tempo, 1e-6)) * beats_per_bar * 2)  # >= 2 bars
     bounds = [0.0]
     for t in snapped:
         if t - bounds[-1] >= min_len and duration - t >= min_len:
             bounds.append(float(t))
     bounds.append(duration)
 
-    # --- Loop-aware доводка границ -------------------------------------------
-    # Для лупов важнее не «слышимость перехода», а чтобы каждая часть:
-    #   1) чисто замыкалась (стык конец->начало похож по спектру и уровню),
-    #   2) имела фразовую длину (кратно 4/8 тактам — так строится музыка).
-    # Координатный спуск: каждую границу двигаем по downbeats в окне +-2 такта,
-    # максимизируя качество замыкания соседних частей + фразовость их длин.
+    # --- Loop-aware boundary refinement ---------------------------------------
+    # For loops what matters is not "transition audibility" but that each part:
+    #   1) closes cleanly (the end->start seam is similar in spectrum and level),
+    #   2) has a phrase length (multiple of 4/8 bars - how music is built).
+    # Coordinate descent: move each boundary along downbeats within +-2 bars,
+    # maximizing closure quality of neighboring parts + phrase-ness of lengths.
     def _bars_between(a: float, b: float) -> int:
-        """Число тактов между точками по сетке downbeats (не по оценке темпа)."""
+        """Number of bars between points on the downbeat grid (not from
+        the tempo estimate)."""
         return int(np.searchsorted(grid, b - 1e-3) - np.searchsorted(grid, a - 1e-3))
 
     def _phrase_score(a: float, b: float) -> float:
-        """1.0 — длина кратна 8 тактам, 0.85 — 4, 0.6 — 2, иначе 0.35."""
+        """1.0 - length is a multiple of 8 bars, 0.85 - 4, 0.6 - 2, else 0.35."""
         nb = _bars_between(a, b)
         if nb <= 0:
             return 0.0
@@ -331,13 +334,13 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         loop_q = 0.5 * (_loopability(y, sr, lo, c) + _loopability(y, sr, c, hi))
         phrase = 0.5 * (_phrase_score(lo, c) + _phrase_score(c, hi))
         audib = 0.6 * _onset_at(c) + 0.4 * min(_rms_jump(c), 2.0)
-        nov = _novelty_at_time(c)  # структурный сигнал: где реально смена секции
+        nov = _novelty_at_time(c)  # structural signal: where the section actually changes
         dist_pen = abs(c - t_orig) / bar_dur * W["dist_pen"]
         return (W["loop_q"] * loop_q + W["phrase"] * phrase
                 + W["audib"] * audib + W["novelty"] * nov - dist_pen)
 
     orig = list(bounds)
-    for _ in range(2):  # два прохода координатного спуска
+    for _ in range(2):  # two passes of coordinate descent
         moved = False
         for j in range(1, len(bounds) - 1):
             lo, hi = bounds[j - 1], bounds[j + 1]
@@ -360,9 +363,9 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
         if not moved:
             break
 
-    # --- Добор до запрошенного числа частей ---------------------------------
-    # Если пиков новизны не хватило, делим самые длинные части по downbeat,
-    # ближайшему к локальному максимуму новизны внутри части.
+    # --- Filling up to the requested number of parts -------------------------
+    # If there weren't enough novelty peaks, split the longest parts at the
+    # downbeat closest to the local novelty maximum inside the part.
     if n_segments is not None:
         def _novelty_at(t: float) -> float:
             i = int(np.argmin(np.abs(sync_times - t)))
@@ -380,34 +383,34 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
                     if best is None or score > best[0]:
                         best = (score, float(c), i + 1)
             if best is None:
-                break  # физически некуда делить (min_len)
+                break  # physically nowhere to split (min_len)
             bounds.insert(best[2], best[1])
 
     segments = [
-        {"start": bounds[i], "end": bounds[i + 1], "label": f"Часть {i + 1}"}
+        {"start": bounds[i], "end": bounds[i + 1], "label": f"Part {i + 1}"}
         for i in range(len(bounds) - 1)
     ]
 
-    # --- Автолейблы: кластеризация похожих секций (A/B/A/C -> куплет/припев) -
+    # --- Auto labels: clustering similar sections (A/B/A/C -> verse/chorus) --
     _label_segments(segments, feats, sync_times)
 
-    # --- Качество лупа: насколько бесшовно зациклится каждая часть ----------
+    # --- Loop quality: how seamlessly each part will loop --------------------
     for s in segments:
         s["loopability"] = _loopability(y, sr, s["start"], s["end"])
 
-    # --- Проигровки (build-up/transition): части с направленным крещендо -----
-    # Луп такой части звучит неестественно: напряжение растёт и резко
-    # сбрасывается на стыке. Детект: монотонный тренд RMS + спектральной
-    # яркости (centroid) на протяжении части + плохая замыкаемость.
+    # --- Build-ups (build-up/transition): parts with a directed crescendo ----
+    # Looping such a part sounds unnatural: the tension rises and drops
+    # abruptly at the seam. Detection: a monotonic trend of RMS + spectral
+    # brightness (centroid) over the part + poor loop closure.
     for s in segments:
         s["transition"] = _is_transition(y, sr, rms_env, rms_times,
                                          s["start"], s["end"],
                                          s["loopability"])
         s["loop"] = not s["transition"]
 
-    # --- Рекомендации по числу частей ---------------------------------------
-    # suggested — сколько нашёл алгоритм; max — сколько влезает физически
-    # (по min_len), ограничение сверху 24 (как в API).
+    # --- Recommendations for the number of parts ------------------------------
+    # suggested - how many the algorithm found; max - how many fit physically
+    # (per min_len), capped at 24 (as in the API).
     n_suggested = len(segments)
     n_max = min(24, max(1, int(duration // min_len)))
 
@@ -426,13 +429,13 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
 def _is_transition(y: np.ndarray, sr: int, rms_env: np.ndarray,
                    rms_times: np.ndarray, start: float, end: float,
                    loopability: float) -> bool:
-    """Похожа ли часть на проигровку/build-up (не стоит зацикливать).
+    """Does the part look like a build-up/transition (should not be looped).
 
-    Признаки «конусовидного» куска:
-      * сильный монотонный тренд громкости (нормированный наклон RMS),
-      * согласованный тренд спектральной яркости (centroid растёт при
-        нарастании),
-      * низкая замыкаемость лупа (конец не похож на начало).
+    Signs of a "cone-shaped" chunk:
+      * a strong monotonic loudness trend (normalized RMS slope),
+      * a consistent spectral brightness trend (centroid rises during
+        a build-up),
+      * poor loop closure (the end does not resemble the beginning).
     """
     mask = (rms_times >= start) & (rms_times < end)
     seg_rms = rms_env[mask]
@@ -441,17 +444,17 @@ def _is_transition(y: np.ndarray, sr: int, rms_env: np.ndarray,
 
     n = len(seg_rms)
     x = np.arange(n, dtype=float)
-    # наклон линейной регрессии RMS, нормированный на средний уровень и длину:
-    # slope_norm ~ во сколько раз меняется громкость от начала к концу
+    # slope of the RMS linear regression, normalized by mean level and length:
+    # slope_norm ~ by how much the loudness changes from start to end
     denom = max(float(seg_rms.mean()), 1e-8)
     slope = float(np.polyfit(x, seg_rms, 1)[0]) * n / denom
-    # монотонность: доля дисперсии, объяснённая трендом (R^2)
+    # monotonicity: fraction of variance explained by the trend (R^2)
     trend = np.polyval(np.polyfit(x, seg_rms, 1), x)
     ss_res = float(np.sum((seg_rms - trend) ** 2))
     ss_tot = float(np.sum((seg_rms - seg_rms.mean()) ** 2)) + 1e-12
     r2 = max(0.0, 1.0 - ss_res / ss_tot)
 
-    # спектральная яркость (centroid) — растёт при типичном build-up
+    # spectral brightness (centroid) - rises during a typical build-up
     i0, i1 = int(start * sr), int(end * sr)
     cent = librosa.feature.spectral_centroid(y=y[i0:i1], sr=sr, hop_length=HOP)[0]
     if len(cent) >= 8:
@@ -461,8 +464,8 @@ def _is_transition(y: np.ndarray, sr: int, rms_env: np.ndarray,
     else:
         cslope = 0.0
 
-    # скоринг: |изменение громкости| > ~60% с выраженной монотонностью,
-    # либо умеренный тренд, подтверждённый яркостью и плохим замыканием
+    # scoring: |loudness change| > ~60% with pronounced monotonicity,
+    # or a moderate trend confirmed by brightness and poor closure
     strong_ramp = abs(slope) > 0.6 and r2 > 0.35
     agree = (slope * cslope) > 0 and abs(cslope) > 0.25
     weak_loop = loopability < 0.65
@@ -472,8 +475,8 @@ def _is_transition(y: np.ndarray, sr: int, rms_env: np.ndarray,
 
 def _label_segments(segments: list, feats: np.ndarray,
                     sync_times: np.ndarray) -> None:
-    """Помечает похожие секции одной буквой (A, B, C...) через агломеративную
-    кластеризацию усреднённых beat-признаков сегмента."""
+    """Marks similar sections with the same letter (A, B, C...) via
+    agglomerative clustering of the segment's averaged beat features."""
     n = len(segments)
     if n == 0:
         return
@@ -494,10 +497,10 @@ def _label_segments(segments: list, feats: np.ndarray,
     from scipy.spatial.distance import pdist
     d = pdist(vecs, metric="cosine")
     z = linkage(d, method="average")
-    # порог: близкие по звучанию секции считаем «той же» частью
+    # threshold: sections that sound close are considered the "same" part
     labels = fcluster(z, t=0.45, criterion="distance")
 
-    # буквы в порядке первого появления
+    # letters in order of first appearance
     order: dict[int, str] = {}
     letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     counts: dict[str, int] = {}
@@ -511,7 +514,7 @@ def _label_segments(segments: list, feats: np.ndarray,
 
 
 def loop_quality(path: str, segments: list) -> list:
-    """Качество лупа для готового списка границ (для ручного редактирования)."""
+    """Loop quality for a ready list of boundaries (for manual editing)."""
     y, sr = librosa.load(path, sr=SR, mono=True)
     return [_loopability(y, sr, float(s["start"]), float(s["end"]))
             for s in segments]
@@ -519,8 +522,8 @@ def loop_quality(path: str, segments: list) -> list:
 
 def _loopability(y: np.ndarray, sr: int, start: float, end: float,
                  win: float = 0.5) -> float:
-    """Оценка бесшовности лупа 0..1: похожи ли крайние полсекунды по спектру
-    и нет ли резкого разрыва громкости на стыке конец->начало."""
+    """Loop seamlessness estimate 0..1: are the outer half-seconds similar
+    in spectrum, and is there no sharp loudness gap at the end->start seam."""
     i0, i1 = int(start * sr), int(end * sr)
     w = int(win * sr)
     if i1 - i0 < 4 * w:
@@ -528,7 +531,7 @@ def _loopability(y: np.ndarray, sr: int, start: float, end: float,
     head = y[i0:i0 + w]
     tail = y[i1 - w:i1]
 
-    # спектральная похожесть хвоста и головы (mel-спектр, косинус)
+    # spectral similarity of tail and head (mel spectrum, cosine)
     def _spec(x):
         s = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=48, hop_length=HOP)
         v = np.log1p(s).mean(axis=1)
@@ -536,12 +539,12 @@ def _loopability(y: np.ndarray, sr: int, start: float, end: float,
 
     sim = float(np.dot(_spec(head), _spec(tail)))  # 0..1
 
-    # разрыв громкости на стыке
+    # loudness gap at the seam
     rh = float(np.sqrt(np.mean(head ** 2)) + 1e-8)
     rt = float(np.sqrt(np.mean(tail ** 2)) + 1e-8)
-    level = min(rh, rt) / max(rh, rt)  # 1 = уровни равны
+    level = min(rh, rt) / max(rh, rt)  # 1 = levels are equal
 
     out = 0.7 * sim + 0.3 * level
-    if not np.isfinite(out):  # тишина/NaN в спектре -> нейтральная оценка
+    if not np.isfinite(out):  # silence/NaN in the spectrum -> neutral score
         return 0.5
     return float(np.clip(out, 0.0, 1.0))

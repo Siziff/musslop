@@ -1,4 +1,4 @@
-# Musslop — FastAPI-сервер: загрузка трека, анализ, раздача аудио и UI.
+# Musslop - FastAPI server: track upload, analysis, audio serving and UI.
 
 from __future__ import annotations
 
@@ -26,8 +26,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 def _find_ffmpeg() -> str:
-    """ffmpeg: PATH -> локальная копия в проекте -> бинарь из pip-пакета
-    imageio-ffmpeg (работает на Windows/macOS/Linux без ручной установки)."""
+    """ffmpeg: PATH -> local copy in the project -> binary from the pip package
+    imageio-ffmpeg (works on Windows/macOS/Linux without manual installation)."""
     exe = shutil.which("ffmpeg")
     if exe:
         return exe
@@ -42,26 +42,26 @@ def _find_ffmpeg() -> str:
         import imageio_ffmpeg
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:
-        return "ffmpeg"  # последний шанс — вдруг появится в PATH
+        return "ffmpeg"  # last resort - maybe it shows up in PATH
 
 
 FFMPEG = _find_ffmpeg()
-# подпроцессы (yt-dlp, demucs в ИИ-venv) ищут ffmpeg в PATH — добавим его туда
+# subprocesses (yt-dlp, demucs in the AI venv) look for ffmpeg in PATH - add it there
 if os.path.dirname(FFMPEG):
     os.environ["PATH"] = (os.path.dirname(FFMPEG) + os.pathsep
                           + os.environ.get("PATH", ""))
 
 
 def _venv_python(venv_dir: str) -> list[str]:
-    """Кандидаты пути python внутри venv для Linux/macOS и Windows."""
+    """Candidate python paths inside a venv for Linux/macOS and Windows."""
     return [
         os.path.join(venv_dir, "bin", "python"),
         os.path.join(venv_dir, "Scripts", "python.exe"),
     ]
 
 
-# Python из venv c allin1 (torch+NATTEN). Приоритет: env-переменная ->
-# локальный .venv-ai (создаётся ./setup-ai-allin1.sh) -> путь на dev-сервере.
+# Python from the venv with allin1 (torch+NATTEN). Priority: env variable ->
+# local .venv-ai (created by ./setup-ai-allin1.sh) -> path on the dev server.
 def _find_deep_py() -> str | None:
     cands = [
         os.environ.get("MUSSLOP_DEEP_PY"),
@@ -74,8 +74,9 @@ def _find_deep_py() -> str | None:
     return None
 
 
-# venv c SongFormer + Beat This! (создаётся ./setup-ai-songformer.sh).
-# Кроме python нужен путь к клону исходников SongFormer (infer-код не в pip).
+# venv with SongFormer + Beat This! (created by ./setup-ai-songformer.sh).
+# Besides python we need the path to a SongFormer source clone (the infer
+# code is not packaged in pip).
 def _find_songformer() -> tuple[str | None, str | None]:
     py_cands = [
         os.environ.get("MUSSLOP_SONGFORMER_PY"),
@@ -105,7 +106,7 @@ app = FastAPI(title="Musslop")
 
 @app.middleware("http")
 async def no_html_cache(request, call_next):
-    """HTML не кэшируем никогда: иначе браузер может показывать старый UI."""
+    """Never cache HTML: otherwise the browser may show a stale UI."""
     response = await call_next(request)
     ct = response.headers.get("content-type", "")
     if "text/html" in ct:
@@ -128,7 +129,7 @@ def _meta_path(track_id: str) -> str:
 
 
 def _restore_tracks() -> None:
-    """Восстановить реестр треков после рестарта сервера (по meta-файлам)."""
+    """Restore the track registry after a server restart (from meta files)."""
     for fn in os.listdir(UPLOAD_DIR):
         if not fn.endswith(".json"):
             continue
@@ -145,7 +146,7 @@ _restore_tracks()
 
 
 def _to_wav(src: str, dst: str) -> None:
-    """Перекодировать в WAV для librosa (браузеру отдаём оригинал)."""
+    """Transcode to WAV for librosa (the browser gets the original)."""
     subprocess.run(
         [FFMPEG, "-y", "-i", src, "-ac", "1", "-ar", "22050", dst],
         check=True, capture_output=True,
@@ -163,14 +164,14 @@ def health():
 async def upload(file: UploadFile = File(...)):
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in ALLOWED_EXT:
-        raise HTTPException(400, f"Неподдерживаемый формат: {ext}")
+        raise HTTPException(400, f"Unsupported format: {ext}")
 
     track_id = uuid.uuid4().hex[:12]
     orig_path = os.path.join(UPLOAD_DIR, f"{track_id}{ext}")
     with open(orig_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    # WAV (mono/22050) — только для анализа на сервере
+    # WAV (mono/22050) - for server-side analysis only
     wav_path = os.path.join(UPLOAD_DIR, f"{track_id}.analysis.wav")
     if ext == ".wav":
         wav_path = orig_path
@@ -179,7 +180,7 @@ async def upload(file: UploadFile = File(...)):
             _to_wav(orig_path, wav_path)
         except subprocess.CalledProcessError:
             os.remove(orig_path)
-            raise HTTPException(400, "Не удалось декодировать файл (ffmpeg)")
+            raise HTTPException(400, "Failed to decode the file (ffmpeg)")
 
     meta = {"id": track_id, "orig": orig_path, "wav": wav_path,
             "name": file.filename, "mime": MIME.get(ext, "application/octet-stream"),
@@ -195,7 +196,7 @@ async def upload(file: UploadFile = File(...)):
 
 @app.get("/api/tracks")
 def list_tracks():
-    """История загруженных треков (для повторного открытия с разметкой)."""
+    """History of uploaded tracks (for re-opening with saved markup)."""
     items = []
     for tid, m in TRACKS.items():
         items.append({
@@ -207,17 +208,17 @@ def list_tracks():
             "duration": (m.get("markup") or {}).get("duration"),
             "n_segments": len((m.get("markup") or {}).get("segments", []) or []),
         })
-    # библиотека сверху, внутри групп — по свежести
+    # library on top; within groups - newest first
     items.sort(key=lambda x: (not x["favorite"], -x["uploaded_at"]))
     return {"tracks": items}
 
 
 @app.post("/api/favorite/{track_id}")
 def toggle_favorite(track_id: str, body: dict = Body(...)):
-    """Добавить/убрать трек из библиотеки (favorite=true/false)."""
+    """Add/remove a track to/from the library (favorite=true/false)."""
     track = TRACKS.get(track_id)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
     track["favorite"] = bool(body.get("favorite"))
     with open(_meta_path(track_id), "w") as f:
         json.dump(track, f)
@@ -226,10 +227,10 @@ def toggle_favorite(track_id: str, body: dict = Body(...)):
 
 @app.post("/api/markup/{track_id}")
 def save_markup(track_id: str, markup: dict = Body(...)):
-    """Сохранить разметку (segments + downbeats/beats/tempo) рядом с треком."""
+    """Save markup (segments + downbeats/beats/tempo) next to the track."""
     track = TRACKS.get(track_id)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
     track["markup"] = markup
     with open(_meta_path(track_id), "w") as f:
         json.dump(track, f)
@@ -240,7 +241,7 @@ def save_markup(track_id: str, markup: dict = Body(...)):
 def get_markup(track_id: str):
     track = TRACKS.get(track_id)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
     return {"markup": track.get("markup")}
 
 
@@ -248,7 +249,7 @@ def get_markup(track_id: str):
 def delete_track(track_id: str):
     track = TRACKS.pop(track_id, None)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
     for p in {track.get("orig"), track.get("wav"), _meta_path(track_id)}:
         if p and os.path.exists(p):
             try:
@@ -264,18 +265,18 @@ def analyze_track(track_id: str,
                   engine: str = Query("fast")):
     track = TRACKS.get(track_id)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
 
     log.info("analyze: %s engine=%s", track_id, engine)
     import time as _time
     _t0 = _time.time()
     if engine == "deep":
         if not DEEP_AVAILABLE:
-            raise HTTPException(503, "Глубокий анализ недоступен: установите движок All-In-One (setup-ai-allin1.sh; Windows — только через WSL2)")
+            raise HTTPException(503, "Deep analysis unavailable: install All-In-One (setup-ai-allin1.sh; Windows — WSL2 only)")
         result = _deep_analyze(track)
     elif engine == "songformer":
         if not SONGFORMER_AVAILABLE:
-            raise HTTPException(503, "SongFormer недоступен: запустите setup-ai-songformer.sh (Windows: setup-ai-songformer.bat) и перезапустите сервер")
+            raise HTTPException(503, "SongFormer unavailable: run setup-ai-songformer.sh (Windows: setup-ai-songformer.bat) and restart the server")
         result = _songformer_analyze(track)
     else:
         result = analyze(track["wav"], n_segments=n_segments)
@@ -290,7 +291,7 @@ def analyze_track(track_id: str,
 
 def _run_engine(track: dict, cache_key: str, script: str, py: str,
                 extra_env: dict | None = None) -> dict:
-    """Общий запуск ИИ-раннера subprocess'ом с кэшированием в meta трека."""
+    """Shared AI-runner launch via subprocess with caching in the track meta."""
     cached = track.get(cache_key)
     if cached:
         log.info("engine %s: using cached result for %s", script, track["id"])
@@ -312,7 +313,7 @@ def _run_engine(track: dict, cache_key: str, script: str, py: str,
             )
             if proc.returncode != 0:
                 tail = (proc.stderr or "")[-800:]
-                raise HTTPException(500, f"Ошибка ИИ-анализа: {tail}")
+                raise HTTPException(500, f"AI analysis failed: {tail}")
             with open(out_json) as f:
                 cached = json.load(f)
         finally:
@@ -325,7 +326,7 @@ def _run_engine(track: dict, cache_key: str, script: str, py: str,
 
 
 def _deep_analyze(track: dict) -> dict:
-    """allin1 в отдельном venv (subprocess), результат кэшируется в meta."""
+    """allin1 in a separate venv (subprocess); the result is cached in meta."""
     cached = _run_engine(track, "deep_raw", "deep_analyze.py", DEEP_PY)
     result = analyze_deep_merge(track["wav"], cached)
     result["engine"] = "deep"
@@ -333,7 +334,7 @@ def _deep_analyze(track: dict) -> dict:
 
 
 def _songformer_analyze(track: dict) -> dict:
-    """SongFormer + Beat This! в своём venv; слияние с нашими луп-метриками."""
+    """SongFormer + Beat This! in its own venv; merged with our loop metrics."""
     cached = _run_engine(track, "songformer_raw", "songformer_analyze.py",
                          SONGFORMER_PY, {"SONGFORMER_SRC": SONGFORMER_SRC})
     result = analyze_deep_merge(track["wav"], cached)
@@ -343,13 +344,13 @@ def _songformer_analyze(track: dict) -> dict:
 
 @app.get("/api/audio/{track_id}")
 def get_audio(track_id: str, transcode: int = Query(0)):
-    """Браузеру отдаём оригинальный (сжатый) файл — быстрее качается.
-    ?transcode=1 — перекодировать в WAV 44.1kHz stereo: нужен, когда
-    decodeAudioData не осиливает оригинал (например, FLAC с обложкой
-    декодируется не полностью)."""
+    """Serve the original (compressed) file to the browser - faster download.
+    ?transcode=1 - transcode to WAV 44.1kHz stereo: needed when
+    decodeAudioData cannot handle the original (e.g. FLAC with cover art
+    decodes incompletely)."""
     track = TRACKS.get(track_id)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
     if transcode:
         safe = track.get("safe_wav")
         if not safe or not os.path.exists(safe):
@@ -361,7 +362,7 @@ def get_audio(track_id: str, transcode: int = Query(0)):
                     check=True, capture_output=True,
                 )
             except subprocess.CalledProcessError:
-                raise HTTPException(500, "Не удалось перекодировать (ffmpeg)")
+                raise HTTPException(500, "Transcode failed (ffmpeg)")
             track["safe_wav"] = safe
             with open(_meta_path(track_id), "w") as f:
                 json.dump(track, f)
@@ -371,10 +372,10 @@ def get_audio(track_id: str, transcode: int = Query(0)):
 
 @app.post("/api/loopability/{track_id}")
 def loopability(track_id: str, segments: list[dict] = Body(...)):
-    """Пересчитать качество лупа для отредактированных вручную границ."""
+    """Recompute loop quality for manually edited boundaries."""
     track = TRACKS.get(track_id)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
     return {"loopability": loop_quality(track["wav"], segments)}
 
 
@@ -388,7 +389,7 @@ def _stems_done(stem_dir: str) -> bool:
 
 
 def _run_demix(track_id: str, orig: str, stem_dir: str) -> None:
-    """Фоновая задача: demucs с парсингом прогресса из stderr."""
+    """Background task: demucs with progress parsing from stderr."""
     import re as _re
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     job = STEM_JOBS[track_id]
@@ -398,7 +399,7 @@ def _run_demix(track_id: str, orig: str, stem_dir: str) -> None:
              os.path.join(base, "tools", "demix.py"), orig, stem_dir],
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
         )
-        # demucs обновляет прогресс-бар через \r — читаем посимвольно
+        # demucs updates its progress bar via \r - read char by char
         buf = ""
         while True:
             ch = proc.stderr.read(1)
@@ -418,7 +419,7 @@ def _run_demix(track_id: str, orig: str, stem_dir: str) -> None:
         proc.wait(timeout=3600)
         if proc.returncode != 0 or not _stems_done(stem_dir):
             job["status"] = "error"
-            job["error"] = "Разделение не удалось (см. server.log)"
+            job["error"] = "Separation failed (see server.log)"
             return
         track = TRACKS.get(track_id)
         if track is not None:
@@ -434,13 +435,13 @@ def _run_demix(track_id: str, orig: str, stem_dir: str) -> None:
 
 @app.post("/api/stems/{track_id}")
 def make_stems(track_id: str):
-    """Запустить разделение на стемы (фон). Статус — GET /api/stems/{id}/status."""
+    """Start stem separation (background). Status - GET /api/stems/{id}/status."""
     track = TRACKS.get(track_id)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
     if not (DEEP_AVAILABLE or SONGFORMER_AVAILABLE):
-        raise HTTPException(503, "Стемы недоступны: установите ИИ-движок "
-                                 "(setup-ai-songformer или setup-ai-allin1)")
+        raise HTTPException(503, "Stems unavailable: install an AI engine "
+                                 "(setup-ai-songformer or setup-ai-allin1)")
 
     stem_dir = os.path.join(UPLOAD_DIR, f"{track_id}.stems")
     if _stems_done(stem_dir):
@@ -473,10 +474,10 @@ def stems_status(track_id: str):
 @app.get("/api/stems/{track_id}/{stem}")
 def get_stem(track_id: str, stem: str):
     if stem not in STEM_NAMES:
-        raise HTTPException(404, "Нет такого стема")
+        raise HTTPException(404, "No such stem")
     path = os.path.join(UPLOAD_DIR, f"{track_id}.stems", f"{stem}.wav")
     if not os.path.exists(path):
-        raise HTTPException(404, "Стем не готов")
+        raise HTTPException(404, "Stem is not ready")
     return FileResponse(path, media_type="audio/wav")
 
 
@@ -484,8 +485,8 @@ import shutil as _shutil
 
 
 def _find_ytdlp() -> list[str] | None:
-    """Команда запуска yt-dlp: модуль в текущем python -> бинарь в PATH ->
-    модуль в python3 из PATH (частый случай: pip install --user)."""
+    """Command to launch yt-dlp: module in the current python -> binary in
+    PATH -> module in python3 from PATH (common case: pip install --user)."""
     try:
         import yt_dlp  # noqa: F401
         return [os.sys.executable, "-m", "yt_dlp"]
@@ -504,23 +505,23 @@ def _find_ytdlp() -> list[str] | None:
 
 @app.post("/api/import_url")
 def import_url(body: dict = Body(...)):
-    """Импорт трека по ссылке (YouTube и всё, что умеет yt-dlp).
-    Прогресс скачивания стримится в лог сервера (терминал)."""
+    """Import a track from a URL (YouTube and anything yt-dlp supports).
+    Download progress is streamed to the server log (terminal)."""
     url = (body.get("url") or "").strip()
     if not url.startswith(("http://", "https://")):
-        raise HTTPException(400, "Некорректная ссылка")
+        raise HTTPException(400, "Invalid URL")
 
     ytdlp = _find_ytdlp()
     if not ytdlp:
         raise HTTPException(
-            503, "yt-dlp не установлен. Выполните: pip install yt-dlp "
-                 "(или pip3 install yt-dlp) и перезапустите сервер")
+            503, "yt-dlp is not installed. Run: pip install yt-dlp "
+                 "and restart the server")
 
     log.info("import_url: start %s (yt-dlp: %s)", url, " ".join(ytdlp))
     track_id = uuid.uuid4().hex[:12]
     out_tpl = os.path.join(UPLOAD_DIR, f"{track_id}.%(ext)s")
 
-    # стримим вывод yt-dlp в лог построчно ([download] xx.x% of ...)
+    # stream yt-dlp output to the log line by line ([download] xx.x% of ...)
     proc = subprocess.Popen(
         ytdlp + ["-x", "--audio-format", "mp3",
          "--audio-quality", "0", "--no-playlist", "--max-filesize", "200M",
@@ -538,7 +539,7 @@ def import_url(body: dict = Body(...)):
             continue
         lines.append(line)
         if line.startswith("[download]") and "%" in line:
-            # печатаем каждые ~10%, не спамим терминал
+            # print roughly every 10%, don't spam the terminal
             try:
                 pct = float(line.split("%")[0].split()[-1])
                 if pct - last_pct >= 10 or pct >= 100:
@@ -553,23 +554,23 @@ def import_url(body: dict = Body(...)):
         tail = "\n".join(lines[-4:])
         low = tail.lower()
         if "ssl" in low or "unable to download" in low or "timed out" in low:
-            hint = ("Похоже, у сервера нет доступа к YouTube (сеть/файрвол). "
-                    "Запустите musslop локально на машине с доступом к интернету. ")
+            hint = ("The server appears to have no access to YouTube (network/firewall). "
+                    "Run musslop locally on a machine with internet access. ")
         elif "sign in" in low or "age" in low:
-            hint = "Видео требует входа в аккаунт/подтверждения возраста. "
+            hint = "The video requires sign-in / age confirmation. "
         elif "yt-dlp -u" in low or "extract" in low:
-            hint = "Попробуйте обновить yt-dlp: pip install -U yt-dlp. "
+            hint = "Try updating yt-dlp: pip install -U yt-dlp. "
         else:
             hint = ""
         log.error("import_url: FAILED\n%s", "\n".join(lines[-10:]))
-        raise HTTPException(400, f"Не удалось скачать. {hint}Детали: {tail[-300:]}")
+        raise HTTPException(400, f"Download failed. {hint}Details: {tail[-300:]}")
 
-    # --print выводит title и путь; отфильтруем служебные [строки]
+    # --print outputs the title and path; filter out service [lines]
     printed = [l for l in lines if not l.startswith("[")]
     title = printed[0] if printed else "track"
     orig_path = os.path.join(UPLOAD_DIR, f"{track_id}.mp3")
     if not os.path.exists(orig_path):
-        raise HTTPException(500, "Файл не появился после скачивания")
+        raise HTTPException(500, "File did not appear after download")
     log.info("import_url: downloaded '%s' -> %s (%.1f MB)", title, orig_path,
              os.path.getsize(orig_path) / 1e6)
 
@@ -578,7 +579,7 @@ def import_url(body: dict = Body(...)):
         _to_wav(orig_path, wav_path)
     except subprocess.CalledProcessError:
         os.remove(orig_path)
-        raise HTTPException(400, "Не удалось декодировать скачанное аудио")
+        raise HTTPException(400, "Failed to decode the downloaded audio")
 
     meta = {"id": track_id, "orig": orig_path, "wav": wav_path,
             "name": f"{title}.mp3", "mime": "audio/mpeg",
@@ -591,17 +592,17 @@ def import_url(body: dict = Body(...)):
 
 @app.post("/api/export/{track_id}")
 def export_loops(track_id: str, segments: list[dict] = Body(...)):
-    """Нарезать трек на лупы по границам и вернуть zip с WAV-файлами.
+    """Cut the track into loops at the boundaries and return a zip of WAV files.
 
-    Режем оригинальный файл (полное качество, 44.1kHz stereo 16bit), а не
-    моно-WAV для анализа. ZIP_STORED: PCM почти не сжимается deflate'ом,
-    а времени на попытку уходит много.
+    We cut the original file (full quality, 44.1kHz stereo 16bit), not the
+    mono analysis WAV. ZIP_STORED: PCM barely compresses with deflate,
+    while the attempt takes a lot of time.
     """
     track = TRACKS.get(track_id)
     if not track:
-        raise HTTPException(404, "Трек не найден")
+        raise HTTPException(404, "Track not found")
     if not segments:
-        raise HTTPException(400, "Пустой список сегментов")
+        raise HTTPException(400, "Empty segment list")
 
     import io
     import re
@@ -609,7 +610,7 @@ def export_loops(track_id: str, segments: list[dict] = Body(...)):
     import zipfile
     import soundfile as sf
 
-    # декодируем оригинал в полном качестве (единожды, ~1-2с на трек)
+    # decode the original at full quality (once, ~1-2s per track)
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         tmp_path = tmp.name
     try:
@@ -620,7 +621,7 @@ def export_loops(track_id: str, segments: list[dict] = Body(...)):
         )
         y, sr = sf.read(tmp_path, always_2d=True, dtype="int16")
     except subprocess.CalledProcessError:
-        raise HTTPException(500, "Не удалось декодировать оригинал (ffmpeg)")
+        raise HTTPException(500, "Failed to decode the original (ffmpeg)")
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
@@ -648,9 +649,9 @@ def export_loops(track_id: str, segments: list[dict] = Body(...)):
 
 @app.get("/")
 def index():
-    """Отдаём прекомпилированную страницу (app.js), если она собрана и свежее
-    исходника; иначе dev-версию с Babel в браузере (медленнее на слабых
-    машинах/каналах). Пересборка: python3 tools/build.py"""
+    """Serve the precompiled page (app.js) if it is built and newer than the
+    source; otherwise the dev version with Babel in the browser (slower on
+    weak machines/connections). Rebuild: python3 tools/build.py"""
     prod = os.path.join(FRONTEND_DIR, "index.prod.html")
     dev = os.path.join(FRONTEND_DIR, "index.html")
     if os.path.exists(prod) and os.path.getmtime(prod) >= os.path.getmtime(dev):

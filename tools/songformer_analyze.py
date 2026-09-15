@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Runner для SongFormer + Beat This! в отдельном venv.
+"""Runner for SongFormer + Beat This! in a separate venv.
 
-Вызывается из backend/main.py как subprocess:
+Called from backend/main.py as a subprocess:
     .venv-songformer/bin/python tools/songformer_analyze.py input.mp3 output.json
 
-Требует переменную SONGFORMER_SRC — путь к клону репозитория SongFormer
-(его infer-код не упакован в pip). setup-ai-songformer.sh кладёт клон в
-.venv-songformer/src и выставляет всё сам.
+Requires the SONGFORMER_SRC variable - path to a clone of the SongFormer
+repository (its infer code is not packaged in pip). setup-ai-songformer.sh
+puts the clone into .venv-songformer/src and sets everything up itself.
 
-Выход — JSON с bpm, beats, downbeats, segments (start/end/label).
+Output - JSON with bpm, beats, downbeats, segments (start/end/label).
 """
 import json
 import os
@@ -27,11 +27,11 @@ def pick_device() -> str:
 
 
 def run_beats(audio: str, device: str):
-    """Beat This!: биты и downbeats; темп — из межбитовых интервалов."""
+    """Beat This!: beats and downbeats; tempo - from inter-beat intervals."""
     import numpy as np
     from beat_this.inference import File2Beats
-    # dbn=False — без madmom
-    dev = device if device != "mps" else "cpu"  # у beat_this с mps бывают проблемы
+    # dbn=False - without madmom
+    dev = device if device != "mps" else "cpu"  # beat_this can have issues with mps
     f2b = File2Beats(checkpoint_path="final0", device=dev, dbn=False)
     beats, downbeats = f2b(audio)
     beats = [float(b) for b in beats]
@@ -44,7 +44,7 @@ def run_beats(audio: str, device: str):
 
 
 def run_structure(audio: str, src_dir: str, py: str):
-    """SongFormer через официальный infer.py (subprocess внутри venv)."""
+    """SongFormer via the official infer.py (subprocess inside the venv)."""
     sf_dir = os.path.join(src_dir, "src", "SongFormer")
     with tempfile.TemporaryDirectory() as tmp:
         scp = os.path.join(tmp, "in.scp")
@@ -87,8 +87,8 @@ def main() -> None:
     raw_segments = run_structure(audio, src_dir, sys.executable)
     bpm, beats, downbeats = run_beats(audio, device)
 
-    # SongFormer дробит секции на подсекции с одинаковым лейблом (по фразам) —
-    # сливаем смежные одноимённые: для лупов нужны крупные части
+    # SongFormer splits sections into same-labeled subsections (by phrase) -
+    # merge adjacent same-named ones: loops need large parts
     merged = []
     for s in raw_segments:
         if merged and merged[-1]["label"] == s["label"]:

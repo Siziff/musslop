@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Оценка и тюнинг авто-нарезки по ручным разметкам.
+"""Evaluation and tuning of auto-segmentation against manual markups.
 
-Использование:
-  1. Разметь треки в UI и сохрани разметку (кнопка "⤓ Разметка").
-  2. Сложи пары в каталог examples/:
+Usage:
+  1. Annotate tracks in the UI and save the markup ("Markup" button).
+  2. Put the pairs into the examples/ directory:
        examples/track1.mp3
-       examples/track1.musslop.json   (имя = имя трека + .musslop.json)
-  3. Оценка текущего алгоритма:
+       examples/track1.musslop.json   (name = track name + .musslop.json)
+  3. Evaluate the current algorithm:
        python3 tools/tune.py examples/
-     Подбор весов _boundary_score (grid search):
+     Search for _boundary_score weights (grid search):
        python3 tools/tune.py examples/ --search
 
-Метрика: F-мера попадания границ с допуском +-1 такт (и +-0.5 c для справки).
+Metric: F-measure of boundary hits with a +-1 bar tolerance (and +-0.5 s
+for reference).
 """
 from __future__ import annotations
 
@@ -27,7 +28,7 @@ import numpy as np  # noqa: E402
 
 
 def load_pairs(directory: str) -> list[tuple[str, list[float]]]:
-    """[(audio_path, [границы в сек, без 0 и конца])]."""
+    """[(audio_path, [boundaries in sec, without 0 and the end])]."""
     pairs = []
     for fn in sorted(os.listdir(directory)):
         if not fn.endswith(".musslop.json"):
@@ -41,10 +42,10 @@ def load_pairs(directory: str) -> list[tuple[str, list[float]]]:
                 audio = p
                 break
         if audio is None:
-            print(f"!! нет аудио для {fn}")
+            print(f"!! no audio for {fn}")
             continue
         segs = sorted(meta["segments"], key=lambda s: s["start"])
-        bounds = [float(s["start"]) for s in segs[1:]]  # внутренние границы
+        bounds = [float(s["start"]) for s in segs[1:]]  # inner boundaries
         pairs.append((audio, bounds))
     return pairs
 
@@ -94,27 +95,27 @@ def evaluate(pairs, weights=None) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("directory", help="каталог с парами трек+разметка")
-    ap.add_argument("--search", action="store_true", help="grid search весов")
+    ap.add_argument("directory", help="directory with track+markup pairs")
+    ap.add_argument("--search", action="store_true", help="grid search of weights")
     args = ap.parse_args()
 
     pairs = load_pairs(args.directory)
     if not pairs:
-        print("Пары не найдены. Нужны файлы вида track.mp3 + track.musslop.json")
+        print("No pairs found. Need files like track.mp3 + track.musslop.json")
         return
-    print(f"Найдено пар: {len(pairs)}")
+    print(f"Pairs found: {len(pairs)}")
 
     res = evaluate(pairs)
-    print("\n=== Текущий алгоритм ===")
+    print("\n=== Current algorithm ===")
     for name, fb, f05, p, r, np_, nt in res["rows"]:
-        print(f"  {name:40s} F(+-1 такт)={fb:.2f} F(+-0.5с)={f05:.2f} "
+        print(f"  {name:40s} F(+-1 bar)={fb:.2f} F(+-0.5s)={f05:.2f} "
               f"P={p:.2f} R={r:.2f} pred={np_} true={nt}")
     print(f"  mean F = {res['mean_f']:.3f}")
 
     if not args.search:
         return
 
-    print("\n=== Grid search весов границы ===")
+    print("\n=== Grid search of boundary weights ===")
     grid = {
         "loop_q": [0.2, 0.3, 0.4],
         "phrase": [0.1, 0.2, 0.3],
@@ -129,9 +130,9 @@ def main():
         if r["mean_f"] > best[0]:
             best = (r["mean_f"], dict(w))
             print(f"  new best F={best[0]:.3f}  {best[1]}")
-    print(f"\nЛучшее: F={best[0]:.3f}, веса: {best[1] or 'дефолтные'}")
+    print(f"\nBest: F={best[0]:.3f}, weights: {best[1] or 'defaults'}")
     if best[1]:
-        print("Чтобы применить, обнови BOUNDARY_WEIGHTS в backend/analysis.py")
+        print("To apply, update BOUNDARY_WEIGHTS in backend/analysis.py")
 
 
 if __name__ == "__main__":

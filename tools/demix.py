@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Разделение трека на 4 стема (drums/bass/vocals/other) через Demucs.
+"""Split a track into 4 stems (drums/bass/vocals/other) via Demucs.
 
-Запускается в venv allin1 (там уже стоит demucs как зависимость):
+Runs in the allin1 venv (demucs is already installed there as a dependency):
     .envs/allin1/bin/python tools/demix.py input.mp3 output_dir/
 
-Пишет в output_dir: drums.wav, bass.wav, vocals.wav, other.wav (44.1k stereo).
+Writes to output_dir: drums.wav, bass.wav, vocals.wav, other.wav (44.1k stereo).
 """
 import os
 import sys
@@ -39,8 +39,8 @@ def main() -> None:
     model = get_model("htdemucs")
     model.to(device).eval()
 
-    # читаем аудио сами (demucs.AudioFile требует ffprobe, которого может не быть):
-    # mp3/flac -> временный wav через ffmpeg, wav читаем soundfile
+    # read the audio ourselves (demucs.AudioFile needs ffprobe, which may be missing):
+    # mp3/flac -> temporary wav via ffmpeg, wav is read with soundfile
     src_path = audio
     tmp_wav = None
     if not audio.lower().endswith(".wav"):
@@ -52,8 +52,8 @@ def main() -> None:
     try:
         data, sr = sf.read(src_path, always_2d=True, dtype="float32")
         if sr != model.samplerate:
-            # простая ресэмплировка через ffmpeg уже сделана выше для не-wav;
-            # для wav с другим sr — конвертируем тоже
+            # a simple resample via ffmpeg was already done above for non-wav;
+            # for wav with a different sr - convert as well
             tmp2 = tempfile.NamedTemporaryFile(suffix=".wav", delete=False).name
             subprocess.run(["ffmpeg", "-y", "-i", src_path, "-ac", "2",
                             "-ar", str(model.samplerate), tmp2],

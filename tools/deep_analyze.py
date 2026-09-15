@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Runner для allin1 в отдельном venv (torch/NATTEN несовместимы с базовым питоном).
+"""Runner for allin1 in a separate venv (torch/NATTEN are incompatible with the base python).
 
-Вызывается из backend/main.py как subprocess:
+Called from backend/main.py as a subprocess:
     .envs/allin1/bin/python tools/deep_analyze.py input.mp3 output.json
 
-Выход — JSON с beats, downbeats, segments (start/end/label), bpm.
+Output - JSON with beats, downbeats, segments (start/end/label), bpm.
 """
 import json
 import os
@@ -13,8 +13,8 @@ import tempfile
 
 
 def pick_device() -> str:
-    """cuda -> cpu. MPS намеренно пропущен: NATTEN (ядро allin1) не
-    поддерживает MPS — на Apple Silicon работаем на CPU."""
+    """cuda -> cpu. MPS is skipped on purpose: NATTEN (the allin1 core) does
+    not support MPS - on Apple Silicon we run on CPU."""
     import torch
     if torch.cuda.is_available():
         return "cuda"
@@ -40,7 +40,7 @@ def main() -> None:
     try:
         result = run(device)
     except Exception as e:
-        # NATTEN на macOS собирается CPU-only: MPS может не поддерживаться
+        # NATTEN on macOS builds CPU-only: MPS may be unsupported
         if device != "cpu":
             print(f"{device} failed ({e}), retrying on cpu", file=sys.stderr)
             result = run("cpu")
