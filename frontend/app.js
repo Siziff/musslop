@@ -91,6 +91,8 @@ const STR = {
     theme_tavern: 'Тема: таверна (D&D)',
     beep_tip: 'Тест звука: короткий бип напрямую в аудиовыход',
     files_menu: '⤓⤒ Файлы',
+    markup_drop_hint: 'Перетащите сюда файл разметки',
+    markup_drop_need_track: 'сначала загрузите трек',
     tail_label: 'хвост перехода',
     tail_tip: 'Реверберация/затухание старой части дозвучивает поверх новой (~1.2с) — главный убийца «дёрганых» стыков',
     bass_swap_label: 'бас-своп',
@@ -203,6 +205,8 @@ const STR = {
     theme_tavern: 'Theme: tavern (D&D)',
     beep_tip: 'Sound test: a short beep straight to the audio output',
     files_menu: '⤓⤒ Files',
+    markup_drop_hint: 'Drop a markup file here',
+    markup_drop_need_track: 'load a track first',
     tail_label: 'transition tail',
     tail_tip: 'Reverb/decay of the old section rings out over the new one (~1.2s) — the main cure for jerky seams',
     bass_swap_label: 'bass swap',
@@ -316,6 +320,8 @@ const STR = {
     theme_tavern: '主题：酒馆（D&D）',
     beep_tip: '声音测试：直接向音频输出发送短促提示音',
     files_menu: '⤓⤒ 文件',
+    markup_drop_hint: '将标注文件拖到此处',
+    markup_drop_need_track: '请先加载音轨',
     tail_label: '过渡尾音',
     tail_tip: '旧段落的混响/衰减在新段落上延续（约1.2秒）— 消除生硬接缝的关键',
     bass_swap_label: '贝斯切换',
@@ -1692,6 +1698,7 @@ function App() {
     }).catch(() => {});
   }, []);
   const [dragOver, setDragOver] = useState(false);
+  const [markupDragOver, setMarkupDragOver] = useState(false);
   const [crossfade, setCrossfade] = useState(0); // сек
   const [transMode, setTransMode] = useState('loop'); // 'loop' | 'phrase'
   const [phraseBars, setPhraseBars] = useState(4); // 4 или 8 тактов
@@ -2340,6 +2347,8 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "panel-title"
   }, t.upload_title), /*#__PURE__*/React.createElement("div", {
+    className: "dz-row"
+  }, /*#__PURE__*/React.createElement("div", {
     className: 'dropzone' + (dragOver ? ' over' : ''),
     onClick: () => fileRef.current.click(),
     onDragOver: e => {
@@ -2364,6 +2373,27 @@ function App() {
     },
     onChange: e => e.target.files[0] && upload(e.target.files[0])
   })), /*#__PURE__*/React.createElement("div", {
+    className: 'dropzone dz-markup' + (markupDragOver ? ' over' : '') + (analysis ? '' : ' dz-disabled'),
+    onClick: () => analysis && markupRef.current.click(),
+    onDragOver: e => {
+      e.preventDefault();
+      if (analysis) setMarkupDragOver(true);
+    },
+    onDragLeave: () => setMarkupDragOver(false),
+    onDrop: e => {
+      e.preventDefault();
+      setMarkupDragOver(false);
+      const f = e.dataTransfer.files[0];
+      if (f && analysis) importMarkup(f);
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "dz-icon"
+  }, "\u21EA"), /*#__PURE__*/React.createElement("span", null, t.markup_drop_hint, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      opacity: .7
+    }
+  }, analysis ? '*.musslop.json' : t.markup_drop_need_track)))), /*#__PURE__*/React.createElement("div", {
     className: "row",
     style: {
       marginTop: 10

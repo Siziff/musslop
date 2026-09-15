@@ -138,6 +138,12 @@
   [data-theme="tavern"] .dropzone { font-family: var(--font); font-style: italic; font-size: 15px; border-width: 2px; }
   .dropzone:hover, .dropzone.over { border-color: var(--accent); color: var(--text); }
   .dropzone .dz-icon { font-size: 24px; display: block; margin-bottom: 8px; opacity: .8; }
+  .dz-row { display: flex; gap: 10px; align-items: stretch; }
+  .dz-row .dropzone { flex: 1; }
+  .dz-row .dz-markup { flex: 0 0 220px; font-size: 12.5px; padding: 20px 12px;
+                       display: flex; flex-direction: column; justify-content: center; }
+  .dz-markup.dz-disabled { opacity: .45; cursor: default; }
+  .dz-markup.dz-disabled:hover { border-color: var(--border); color: var(--muted); }
   .dropzone b { color: var(--text); }
 
   /* ---------- buttons & inputs ---------- */
@@ -499,6 +505,8 @@ const STR = {
     theme_tavern: 'Тема: таверна (D&D)',
     beep_tip: 'Тест звука: короткий бип напрямую в аудиовыход',
     files_menu: '⤓⤒ Файлы',
+    markup_drop_hint: 'Перетащите сюда файл разметки',
+    markup_drop_need_track: 'сначала загрузите трек',
     tail_label: 'хвост перехода',
     tail_tip: 'Реверберация/затухание старой части дозвучивает поверх новой (~1.2с) — главный убийца «дёрганых» стыков',
     bass_swap_label: 'бас-своп',
@@ -611,6 +619,8 @@ const STR = {
     theme_tavern: 'Theme: tavern (D&D)',
     beep_tip: 'Sound test: a short beep straight to the audio output',
     files_menu: '⤓⤒ Files',
+    markup_drop_hint: 'Drop a markup file here',
+    markup_drop_need_track: 'load a track first',
     tail_label: 'transition tail',
     tail_tip: 'Reverb/decay of the old section rings out over the new one (~1.2s) — the main cure for jerky seams',
     bass_swap_label: 'bass swap',
@@ -724,6 +734,8 @@ const STR = {
     theme_tavern: '主题：酒馆（D&D）',
     beep_tip: '声音测试：直接向音频输出发送短促提示音',
     files_menu: '⤓⤒ 文件',
+    markup_drop_hint: '将标注文件拖到此处',
+    markup_drop_need_track: '请先加载音轨',
     tail_label: '过渡尾音',
     tail_tip: '旧段落的混响/衰减在新段落上延续（约1.2秒）— 消除生硬接缝的关键',
     bass_swap_label: '贝斯切换',
@@ -1835,6 +1847,7 @@ function App() {
       }).catch(() => {});
   }, []);
   const [dragOver, setDragOver] = useState(false);
+  const [markupDragOver, setMarkupDragOver] = useState(false);
   const [crossfade, setCrossfade] = useState(0);       // сек
   const [transMode, setTransMode] = useState('loop');  // 'loop' | 'phrase'
   const [phraseBars, setPhraseBars] = useState(4);     // 4 или 8 тактов
@@ -2357,17 +2370,32 @@ function App() {
 
       <div className="panel">
         <div className="panel-title">{t.upload_title}</div>
-        <div className={'dropzone' + (dragOver ? ' over' : '')}
-          onClick={() => fileRef.current.click()}
-          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}>
-          <span className="dz-icon">♫</span>
-          {trackName
-            ? <span>{t.track} <b>{trackName}</b> {t.drop_replace}</span>
-            : <span>{t.drop_hint}<br /><span style={{ fontSize: 12, opacity: .7 }}>{t.drop_formats}</span></span>}
-          <input ref={fileRef} type="file" accept="audio/*" style={{ display: 'none' }}
-            onChange={e => e.target.files[0] && upload(e.target.files[0])} />
+        <div className="dz-row">
+          <div className={'dropzone' + (dragOver ? ' over' : '')}
+            onClick={() => fileRef.current.click()}
+            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}>
+            <span className="dz-icon">♫</span>
+            {trackName
+              ? <span>{t.track} <b>{trackName}</b> {t.drop_replace}</span>
+              : <span>{t.drop_hint}<br /><span style={{ fontSize: 12, opacity: .7 }}>{t.drop_formats}</span></span>}
+            <input ref={fileRef} type="file" accept="audio/*" style={{ display: 'none' }}
+              onChange={e => e.target.files[0] && upload(e.target.files[0])} />
+          </div>
+          <div className={'dropzone dz-markup' + (markupDragOver ? ' over' : '') + (analysis ? '' : ' dz-disabled')}
+            onClick={() => analysis && markupRef.current.click()}
+            onDragOver={e => { e.preventDefault(); if (analysis) setMarkupDragOver(true); }}
+            onDragLeave={() => setMarkupDragOver(false)}
+            onDrop={e => {
+              e.preventDefault(); setMarkupDragOver(false);
+              const f = e.dataTransfer.files[0];
+              if (f && analysis) importMarkup(f);
+            }}>
+            <span className="dz-icon">⇪</span>
+            <span>{t.markup_drop_hint}<br />
+              <span style={{ fontSize: 11, opacity: .7 }}>{analysis ? '*.musslop.json' : t.markup_drop_need_track}</span></span>
+          </div>
         </div>
         <div className="row" style={{ marginTop: 10 }}>
           <input type="text" placeholder={t.url_placeholder} value={importUrl}

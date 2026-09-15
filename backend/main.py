@@ -271,11 +271,11 @@ def analyze_track(track_id: str,
     _t0 = _time.time()
     if engine == "deep":
         if not DEEP_AVAILABLE:
-            raise HTTPException(503, "Глубокий анализ недоступен (./setup-ai-allin1.sh)")
+            raise HTTPException(503, "Глубокий анализ недоступен: установите движок All-In-One (setup-ai-allin1.sh; Windows — только через WSL2)")
         result = _deep_analyze(track)
     elif engine == "songformer":
         if not SONGFORMER_AVAILABLE:
-            raise HTTPException(503, "SongFormer недоступен (./setup-ai-songformer.sh)")
+            raise HTTPException(503, "SongFormer недоступен: запустите setup-ai-songformer.sh (Windows: setup-ai-songformer.bat) и перезапустите сервер")
         result = _songformer_analyze(track)
     else:
         result = analyze(track["wav"], n_segments=n_segments)
