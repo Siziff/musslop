@@ -856,21 +856,28 @@ class LoopPlayer {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.master = this.ctx.createGain();
       this.master.gain.value = this.volume != null ? this.volume : 1;
-      // reverb: master -> dry -> out, master -> convolver -> wet -> out.
-      // The dry path stays at 1; `reverb` (0..1) is the wet send level.
-      this._dry = this.ctx.createGain();
-      this._wet = this.ctx.createGain();
-      this._wet.gain.value = this.reverb || 0;
-      this._conv = this.ctx.createConvolver();
-      this._conv.buffer = this._makeImpulse(2.8, 2.2);
-      this.master.connect(this._dry);
-      this._dry.connect(this.ctx.destination);
-      this.master.connect(this._conv);
-      this._conv.connect(this._wet);
-      this._wet.connect(this.ctx.destination);
+      // the guaranteed dry path — reverb is added lazily on top of it
+      this.master.connect(this.ctx.destination);
+      if (this.reverb > 0) this._ensureReverb();
       if (this.loadStingers) this.loadStingers();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  // lazy reverb send: master -> convolver -> wet -> destination.
+  // Created on first use and guarded: if ConvolverNode/buffer fails in this
+  // browser, playback keeps working dry.
+  _ensureReverb() {
+    if (this._wet || !this.ctx) return;
+    try {
+      const conv = this.ctx.createConvolver();
+      conv.buffer = this._makeImpulse(2.8, 2.2);
+      const wet = this.ctx.createGain();
+      wet.gain.value = this.reverb || 0;
+      this.master.connect(conv);
+      conv.connect(wet);
+      wet.connect(this.ctx.destination);
+      this._conv = conv; this._wet = wet;
+    } catch (e) { /* reverb unavailable — dry sound only */ }
   }
   // procedural impulse response: exponentially decaying stereo noise ("hall")
   _makeImpulse(dur = 2.8, decay = 2.2) {
@@ -886,7 +893,9 @@ class LoopPlayer {
   // reverb amount 0..1 (wet send level)
   setReverb(v) {
     this.reverb = Math.max(0, Math.min(1, v));
-    if (!this.ctx || !this._wet) return;
+    if (!this.ctx) return;
+    if (this.reverb > 0) this._ensureReverb();
+    if (!this._wet) return;
     const now = this.ctx.currentTime;
     this._wet.gain.cancelScheduledValues(now);
     this._wet.gain.setValueAtTime(this._wet.gain.value, now);
@@ -2855,14 +2864,19 @@ function App() {
         <span className="vol-num">{Math.round(volume * 100)}%</span>
         <span className="vol-icon" title={t.beep_tip}
           onClick={() => {
-            // test beep straight to destination, bypassing master/stems/filters
-            player._ensureCtx();
-            const o = player.ctx.createOscillator();
-            const g = player.ctx.createGain();
-            g.gain.value = 0.25;
-            o.frequency.value = 660;
-            o.connect(g); g.connect(player.ctx.destination);
-            o.start(); o.stop(player.ctx.currentTime + 0.25);
+            // test beep straight to destination, bypassing master/stems/filters;
+            // must survive even if the player graph is broken
+            try { player._ensureCtx(); } catch (e) {}
+            try {
+              const ctx = player.ctx || new (window.AudioContext || window.webkitAudioContext)();
+              if (ctx.state === 'suspended') ctx.resume();
+              const o = ctx.createOscillator();
+              const g = ctx.createGain();
+              g.gain.value = 0.25;
+              o.frequency.value = 660;
+              o.connect(g); g.connect(ctx.destination);
+              o.start(); o.stop(ctx.currentTime + 0.25);
+            } catch (e) {}
             setTimeout(() => force(x => x + 1), 300);
           }}>♪?</span>
         {player.ctx && player.ctx.state !== 'running' &&
