@@ -568,18 +568,29 @@ class LoopPlayer {
     const g = this.ctx.createGain();
     const fi = Math.min(fadeIn != null ? fadeIn : this.FADE, ctxDur / 2);
     const fo = Math.min(fadeOut != null ? fadeOut : this.FADE, ctxDur / 2);
+    // equal-power (cos/sin) for uncorrelated material (section changes);
+    // equal-GAIN (linear) for loop repeats: the loop's end and start are
+    // similar (correlated), cos+sin would sum to +3dB at the seam
+    const lin = !!opts.linearFade;
     g.gain.setValueAtTime(0, when);
     if (fi > 0.02) {
-      // equal-power fade-in
-      const N = 8;
-      for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(Math.sin(k / N * Math.PI / 2), when + fi * k / N);
+      if (lin) {
+        g.gain.linearRampToValueAtTime(1, when + fi);
+      } else {
+        const N = 8;
+        for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(Math.sin(k / N * Math.PI / 2), when + fi * k / N);
+      }
     } else {
       g.gain.linearRampToValueAtTime(1, when + fi);
     }
     g.gain.setValueAtTime(1, when + ctxDur - fo);
     if (fo > 0.02) {
-      const N = 8;
-      for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(Math.cos(k / N * Math.PI / 2), when + ctxDur - fo + fo * k / N);
+      if (lin) {
+        g.gain.linearRampToValueAtTime(0, when + ctxDur);
+      } else {
+        const N = 8;
+        for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(Math.cos(k / N * Math.PI / 2), when + ctxDur - fo + fo * k / N);
+      }
     } else {
       g.gain.linearRampToValueAtTime(0, when + ctxDur);
     }
@@ -801,7 +812,9 @@ class LoopPlayer {
       const chunkDur = seg.end - from;
       const xf = this.crossfade > 0.02 ? Math.min(this.crossfade, chunkDur / 3) : 0;
       const isSectionChange = !isRepeat && this.lastPlannedIndex !== idx;
-      const opts = {};
+      const opts = {
+        linearFade: !isSectionChange
+      };
       if (isSectionChange && this.bassSwap) {
         // the incoming part's bass enters exactly at the boundary (not in the crossfade)
         opts.bassDelay = Math.max(xf, 0.01);
