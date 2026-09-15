@@ -137,12 +137,14 @@
   [data-theme="tavern"] .dropzone { font-family: var(--font); font-style: italic; font-size: 15px; border-width: 2px; }
   .dropzone:hover, .dropzone.over { border-color: var(--accent); color: var(--text); }
   .dropzone .dz-icon { font-size: 24px; display: block; margin-bottom: 8px; opacity: .8; }
-  .dz-row { display: flex; gap: 10px; align-items: stretch; }
-  .dz-row .dropzone { flex: 1; }
-  .dz-row .dz-markup { flex: 0 0 220px; font-size: 12.5px; padding: 20px 12px;
-                       display: flex; flex-direction: column; justify-content: center; }
-  .dz-markup.dz-disabled { opacity: .45; cursor: default; }
-  .dz-markup.dz-disabled:hover { border-color: var(--border); color: var(--muted); }
+  .dz-compact {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    border: 1px dashed var(--border); border-radius: var(--radius);
+    padding: 10px 14px; color: var(--text); font-size: 13.5px; cursor: pointer;
+    transition: border-color .2s;
+  }
+  .dz-compact:hover, .dz-compact.over { border-color: var(--accent); }
+  .dz-compact-hint { color: var(--muted); font-size: 12px; font-family: var(--mono); }
   .dropzone b { color: var(--text); }
 
   /* ---------- buttons & inputs ---------- */
@@ -412,6 +414,6 @@
     }
   });
 </script>
-<script defer src="app.js?v=5f8931a31f"></script>
+<script defer src="app.js?v=7c50663a6d"></script>
 </body>
 </html>

@@ -93,7 +93,7 @@ def analyze_deep_merge(path: str, deep: dict) -> dict:
 
     downbeats = deep.get("downbeats") or []
     beats = deep.get("beats") or []
-    tempo = float(deep.get("bpm") or 120.0)
+    tempo = _snap_tempo(float(deep.get("bpm") or 120.0))
 
     # sections: drop micro "start/end" (<2s), merge adjacent ones shorter than 4s
     raw = [s for s in deep.get("segments", [])
@@ -164,6 +164,15 @@ def analyze_deep_merge(path: str, deep: dict) -> dict:
     }
 
 
+def _snap_tempo(tempo: float) -> float:
+    """Musicians write whole BPMs; frame-quantized estimates come out like
+    130.4. Snap to the nearest integer when close enough (<0.4 BPM)."""
+    r = round(tempo)
+    if r > 0 and abs(tempo - r) < 0.4:
+        return float(r)
+    return float(tempo)
+
+
 def analyze(path: str, n_segments: int | None = None) -> dict:
     """Full track analysis. Returns a dict for the JSON response."""
     y, sr = librosa.load(path, sr=SR, mono=True)
@@ -173,7 +182,7 @@ def analyze(path: str, n_segments: int | None = None) -> dict:
     tempo, beat_frames = librosa.beat.beat_track(
         onset_envelope=onset_env, sr=sr, hop_length=HOP, trim=False
     )
-    tempo = float(np.atleast_1d(tempo)[0])
+    tempo = _snap_tempo(float(np.atleast_1d(tempo)[0]))
     beat_times = librosa.frames_to_time(beat_frames, sr=sr, hop_length=HOP)
 
     # --- Downbeats (bars, 4/4 meter) ----------------------------------------

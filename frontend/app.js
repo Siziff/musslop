@@ -91,8 +91,13 @@ const STR = {
     theme_tavern: 'Тема: таверна (D&D)',
     beep_tip: 'Тест звука: короткий бип напрямую в аудиовыход',
     files_menu: '⤓⤒ Файлы',
-    markup_drop_hint: 'Перетащите сюда файл разметки',
-    markup_drop_need_track: 'сначала загрузите трек',
+    drop_compact_hint: 'перетащите аудио или *.musslop.json — заменить / применить',
+    err_markup_no_track: 'Сначала загрузите аудиотрек — файл разметки лишь описывает части трека.',
+    err_file_too_big: 'Файл слишком большой (макс. 300 МБ).',
+    err_unknown_file: 'Неподдерживаемый тип файла:',
+    speed: 'Скорость:',
+    speed_tip: 'Скорость воспроизведения (0.5x-1.5x). Меняет темп и высоту вместе, как винил. Клик по числу — сброс',
+    speed_reset_tip: 'Вернуть исходную скорость',
     tail_label: 'хвост перехода',
     tail_tip: 'Реверберация/затухание старой части дозвучивает поверх новой (~1.2с) — главный убийца «дёрганых» стыков',
     bass_swap_label: 'бас-своп',
@@ -205,8 +210,13 @@ const STR = {
     theme_tavern: 'Theme: tavern (D&D)',
     beep_tip: 'Sound test: a short beep straight to the audio output',
     files_menu: '⤓⤒ Files',
-    markup_drop_hint: 'Drop a markup file here',
-    markup_drop_need_track: 'load a track first',
+    drop_compact_hint: 'drop audio or *.musslop.json here to replace / apply',
+    err_markup_no_track: 'Load an audio track first — a markup file only describes sections of a track.',
+    err_file_too_big: 'File is too large (max 300 MB).',
+    err_unknown_file: 'Unsupported file type:',
+    speed: 'Speed:',
+    speed_tip: 'Playback speed (0.5x-1.5x). Changes tempo and pitch together, like a vinyl. Click the number to reset',
+    speed_reset_tip: 'Reset to original speed',
     tail_label: 'transition tail',
     tail_tip: 'Reverb/decay of the old section rings out over the new one (~1.2s) — the main cure for jerky seams',
     bass_swap_label: 'bass swap',
@@ -320,8 +330,13 @@ const STR = {
     theme_tavern: '主题：酒馆（D&D）',
     beep_tip: '声音测试：直接向音频输出发送短促提示音',
     files_menu: '⤓⤒ 文件',
-    markup_drop_hint: '将标注文件拖到此处',
-    markup_drop_need_track: '请先加载音轨',
+    drop_compact_hint: '拖入音频或 *.musslop.json — 替换 / 应用',
+    err_markup_no_track: '请先加载音轨 — 标注文件只是描述音轨的段落。',
+    err_file_too_big: '文件过大（最大 300 MB）。',
+    err_unknown_file: '不支持的文件类型:',
+    speed: '速度:',
+    speed_tip: '播放速度（0.5x-1.5x）。同时改变节奏与音高，如同黑胶唱片。点击数字可重置',
+    speed_reset_tip: '恢复原始速度',
     tail_label: '过渡尾音',
     tail_tip: '旧段落的混响/衰减在新段落上延续（约1.2秒）— 消除生硬接缝的关键',
     bass_swap_label: '贝斯切换',
@@ -392,6 +407,7 @@ class LoopPlayer {
     this.advanceArmed = false;
     this.loopEnabled = true;
     this.crossfade = 0; // sec, 0 = seam at the boundary with a micro-fade
+    this.rate = 1; // playback speed (0.5..1.5); changes tempo AND pitch
     this.transitionMode = 'loop'; // 'loop' = at loop end, 'phrase' = phrase boundary
     this.phraseBars = 4; // phrase length in bars for 'phrase' mode
     this.tailEnabled = true; // post-exit: the old part's tail rings out
@@ -427,6 +443,13 @@ class LoopPlayer {
       const p = this.ctx.decodeAudioData(arrayBuffer, resolve, reject);
       if (p && p.then) p.then(resolve, reject);
     });
+  }
+  setRate(v) {
+    v = Math.max(0.5, Math.min(1.5, v));
+    if (Math.abs(v - (this.rate || 1)) < 0.001) return;
+    const pos = this.position();
+    this.rate = v;
+    if (this.playing && pos != null) this._softRestartAt(pos);
   }
   setVolume(v) {
     this.volume = v;
@@ -576,11 +599,13 @@ class LoopPlayer {
   // fadeIn/fadeOut — fade durations (equal-power when crossfading).
   // opts.bassDelay — sec: the bass enters later (bass swap on transition).
   _scheduleChunkRange(from, to, when, fadeIn = null, fadeOut = null, opts = {}) {
-    const dur = to - from;
+    const dur = to - from; // duration in track seconds
     if (dur <= 0.01) return 0;
+    const rate = this.rate || 1;
+    const ctxDur = dur / rate; // real (context) duration
     const g = this.ctx.createGain();
-    const fi = Math.min(fadeIn != null ? fadeIn : this.FADE, dur / 2);
-    const fo = Math.min(fadeOut != null ? fadeOut : this.FADE, dur / 2);
+    const fi = Math.min(fadeIn != null ? fadeIn : this.FADE, ctxDur / 2);
+    const fo = Math.min(fadeOut != null ? fadeOut : this.FADE, ctxDur / 2);
     g.gain.setValueAtTime(0, when);
     if (fi > 0.02) {
       // equal-power fade-in
@@ -589,12 +614,12 @@ class LoopPlayer {
     } else {
       g.gain.linearRampToValueAtTime(1, when + fi);
     }
-    g.gain.setValueAtTime(1, when + dur - fo);
+    g.gain.setValueAtTime(1, when + ctxDur - fo);
     if (fo > 0.02) {
       const N = 8;
-      for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(Math.cos(k / N * Math.PI / 2), when + dur - fo + fo * k / N);
+      for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(Math.cos(k / N * Math.PI / 2), when + ctxDur - fo + fo * k / N);
     } else {
-      g.gain.linearRampToValueAtTime(0, when + dur);
+      g.gain.linearRampToValueAtTime(0, when + ctxDur);
     }
     g.connect(this.master);
     const started = [];
@@ -618,6 +643,7 @@ class LoopPlayer {
         } else {
           s.connect(sg);
         }
+        s.playbackRate.value = rate;
         sg.connect(g);
         s.start(when, Math.min(from, buf.duration - 0.01), dur);
         started.push(s);
@@ -647,6 +673,7 @@ class LoopPlayer {
       } else {
         src.connect(g);
       }
+      src.playbackRate.value = rate;
       src.start(when, from, dur);
       started.push(src);
     }
@@ -656,7 +683,8 @@ class LoopPlayer {
       g,
       when,
       from,
-      end: to
+      end: to,
+      rate
     };
     this.sources.push(rec);
     started[0].onended = () => {
@@ -668,7 +696,7 @@ class LoopPlayer {
         t != null ? s.stop(t) : s.stop();
       } catch (e) {}
     });
-    return dur;
+    return ctxDur;
   }
   _ensureStemGains() {
     if (this.stemGains) return;
@@ -714,18 +742,20 @@ class LoopPlayer {
   // Post-exit: the old part's tail rings out over the new one's start, fading
   _schedulePostExitTail(fromPos, when) {
     if (!this.tailEnabled) return;
-    const end = Math.min(fromPos + this.TAIL, this.buffer.duration);
-    const dur = end - fromPos;
+    const rate = this.rate || 1;
+    const end = Math.min(fromPos + this.TAIL * rate, this.buffer.duration);
+    const dur = (end - fromPos) / rate;
     if (dur <= 0.05) return;
     const src = this.ctx.createBufferSource();
     src.buffer = this.buffer;
+    src.playbackRate.value = rate;
     const g = this.ctx.createGain();
     const N = 8;
     g.gain.setValueAtTime(0.9, when);
     for (let k = 1; k <= N; k++) g.gain.linearRampToValueAtTime(0.9 * Math.cos(k / N * Math.PI / 2), when + dur * k / N);
     src.connect(g);
     g.connect(this.master);
-    src.start(when, fromPos, dur);
+    src.start(when, fromPos, end - fromPos);
     const rec = {
       src,
       srcs: [src],
@@ -904,7 +934,7 @@ class LoopPlayer {
       return;
     }
     const now = this.ctx.currentTime;
-    const Tt = now + (target - pos);
+    const Tt = now + (target - pos) / (this.rate || 1);
     const nextSeg = this.segments[this.segIndex + 1];
     const xf = Math.max(this.crossfade, 0.03);
     // fade out everything current by time Tt (+xf tail)
@@ -968,7 +998,7 @@ class LoopPlayer {
     let cur = this.queue[0];
     for (const q of this.queue) if (q.t0 <= now) cur = q;
     if (now < cur.t0) return cur.trackStart;
-    return cur.trackStart + (now - cur.t0);
+    return cur.trackStart + (now - cur.t0) * (this.rate || 1);
   }
 }
 
@@ -1698,7 +1728,8 @@ function App() {
     }).catch(() => {});
   }, []);
   const [dragOver, setDragOver] = useState(false);
-  const [markupDragOver, setMarkupDragOver] = useState(false);
+  const [pendingMarkupFile, setPendingMarkupFile] = useState(null);
+  const [rate, setRateState] = useState(1);
   const [crossfade, setCrossfade] = useState(0); // sec
   const [transMode, setTransMode] = useState('loop'); // 'loop' | 'phrase'
   const [phraseBars, setPhraseBars] = useState(4); // 4 or 8 bars
@@ -2029,6 +2060,11 @@ function App() {
       // Server-side analysis is the source of truth for the duration
       const a = await doAnalyze(track_id, null);
       loadHistory();
+      if (pendingMarkupFile) {
+        const f = pendingMarkupFile;
+        setPendingMarkupFile(null);
+        await importMarkup(f);
+      }
 
       // compare durations: browser decoders sometimes truncate
       // FLAC/m4a with embedded cover art — then take the WAV from the server
@@ -2208,11 +2244,46 @@ function App() {
       setAiWorking(false);
     }
   };
-  const onDrop = e => {
+
+  // Универсальный приём файла: аудио / разметка / прочее — с защитой от
+  // типовых ошибок использования
+  const handleAnyFile = file => {
+    const name = (file.name || '').toLowerCase();
+    if (name.endsWith('.json')) {
+      if (!analysis) {
+        setError(t.err_markup_no_track); // json без трека — понятная ошибка
+        return;
+      }
+      importMarkup(file);
+      return;
+    }
+    const audioExt = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.webm'];
+    if (audioExt.some(ext => name.endsWith(ext)) || (file.type || '').startsWith('audio/')) {
+      if (file.size > 300 * 1024 * 1024) {
+        setError(t.err_file_too_big);
+        return;
+      }
+      upload(file);
+      return;
+    }
+    setError(t.err_unknown_file + ' ' + (file.name || ''));
+  };
+  const onDropAny = e => {
     e.preventDefault();
     setDragOver(false);
-    const f = e.dataTransfer.files[0];
-    if (f) upload(f);
+    const files = Array.from(e.dataTransfer.files || []);
+    if (!files.length) return;
+    if (files.length > 1) {
+      // пара трек+разметка одним движением: сначала аудио, потом json
+      const audio = files.find(f => !(f.name || '').toLowerCase().endsWith('.json'));
+      const json = files.find(f => (f.name || '').toLowerCase().endsWith('.json'));
+      if (audio && json) {
+        setPendingMarkupFile(json);
+        handleAnyFile(audio);
+        return;
+      }
+    }
+    handleAnyFile(files[0]);
   };
   const removeSeg = i => {
     if (segments.length <= 1) return;
@@ -2346,9 +2417,7 @@ function App() {
     className: "panel"
   }, /*#__PURE__*/React.createElement("div", {
     className: "panel-title"
-  }, t.upload_title), /*#__PURE__*/React.createElement("div", {
-    className: "dz-row"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, t.upload_title), !analysis ? /*#__PURE__*/React.createElement("div", {
     className: 'dropzone' + (dragOver ? ' over' : ''),
     onClick: () => fileRef.current.click(),
     onDragOver: e => {
@@ -2356,44 +2425,34 @@ function App() {
       setDragOver(true);
     },
     onDragLeave: () => setDragOver(false),
-    onDrop: onDrop
+    onDrop: onDropAny
   }, /*#__PURE__*/React.createElement("span", {
     className: "dz-icon"
-  }, "\u266B"), trackName ? /*#__PURE__*/React.createElement("span", null, t.track, " ", /*#__PURE__*/React.createElement("b", null, trackName), " ", t.drop_replace) : /*#__PURE__*/React.createElement("span", null, t.drop_hint, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+  }, "\u266B"), /*#__PURE__*/React.createElement("span", null, t.drop_hint, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 12,
       opacity: .7
     }
-  }, t.drop_formats)), /*#__PURE__*/React.createElement("input", {
+  }, t.drop_formats, " \xB7 *.musslop.json"))) : /*#__PURE__*/React.createElement("div", {
+    className: 'dz-compact' + (dragOver ? ' over' : ''),
+    onClick: () => fileRef.current.click(),
+    onDragOver: e => {
+      e.preventDefault();
+      setDragOver(true);
+    },
+    onDragLeave: () => setDragOver(false),
+    onDrop: onDropAny
+  }, /*#__PURE__*/React.createElement("span", null, "\u266B ", /*#__PURE__*/React.createElement("b", null, trackName)), /*#__PURE__*/React.createElement("span", {
+    className: "dz-compact-hint"
+  }, t.drop_compact_hint)), /*#__PURE__*/React.createElement("input", {
     ref: fileRef,
     type: "file",
-    accept: "audio/*",
+    accept: "audio/*,.json",
     style: {
       display: 'none'
     },
-    onChange: e => e.target.files[0] && upload(e.target.files[0])
-  })), /*#__PURE__*/React.createElement("div", {
-    className: 'dropzone dz-markup' + (markupDragOver ? ' over' : '') + (analysis ? '' : ' dz-disabled'),
-    onClick: () => analysis && markupRef.current.click(),
-    onDragOver: e => {
-      e.preventDefault();
-      if (analysis) setMarkupDragOver(true);
-    },
-    onDragLeave: () => setMarkupDragOver(false),
-    onDrop: e => {
-      e.preventDefault();
-      setMarkupDragOver(false);
-      const f = e.dataTransfer.files[0];
-      if (f && analysis) importMarkup(f);
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "dz-icon"
-  }, "\u21EA"), /*#__PURE__*/React.createElement("span", null, t.markup_drop_hint, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      opacity: .7
-    }
-  }, analysis ? '*.musslop.json' : t.markup_drop_need_track)))), /*#__PURE__*/React.createElement("div", {
+    onChange: e => e.target.files[0] && handleAnyFile(e.target.files[0])
+  }), /*#__PURE__*/React.createElement("div", {
     className: "row",
     style: {
       marginTop: 10
@@ -2808,7 +2867,41 @@ function App() {
       fontSize: 12,
       color: 'var(--muted)'
     }
-  }, crossfade.toFixed(1), "s")), /*#__PURE__*/React.createElement("div", {
+  }, crossfade.toFixed(1), "s"), /*#__PURE__*/React.createElement("span", {
+    className: "badge tip",
+    style: {
+      marginLeft: 12
+    },
+    "data-tip": t.speed_tip
+  }, t.speed), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: "0.5",
+    max: "1.5",
+    step: "0.05",
+    value: rate,
+    style: {
+      width: 110,
+      accentColor: 'var(--accent)'
+    },
+    onChange: e => {
+      const v = +e.target.value;
+      setRateState(v);
+      player.setRate(v);
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "time",
+    style: {
+      fontFamily: '"JetBrains Mono", monospace',
+      fontSize: 12,
+      color: rate !== 1 ? 'var(--accent)' : 'var(--muted)',
+      cursor: 'pointer'
+    },
+    title: t.speed_reset_tip,
+    onClick: () => {
+      setRateState(1);
+      player.setRate(1);
+    }
+  }, analysis ? Math.round(analysis.tempo * rate) + ' bpm' : 'x' + rate.toFixed(2))), /*#__PURE__*/React.createElement("div", {
     className: "row",
     style: {
       marginTop: 10
