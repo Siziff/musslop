@@ -1,6 +1,6 @@
 @echo off
 rem Optional AI engine for Windows: SongFormer (structure) + Beat This! (beats).
-rem Creates a dedicated venv in .venv-songformer\ — run.bat picks it up automatically.
+rem Creates a dedicated venv in .venv-songformer\ -- run.bat picks it up automatically.
 rem Takes ~10-15 minutes and ~4 GB of disk. Needs git in PATH (git-scm.com).
 setlocal
 cd /d "%~dp0"
@@ -55,7 +55,7 @@ if errorlevel 1 ( echo ERROR: checkpoint download failed. & pause & exit /b 1 )
 echo [5/5] Verifying ...
 set SONGFORMER_SRC=%~dp0.venv-songformer\src
 if not exist ".venv-songformer\src\src\third_party\musicfm\model" (
-  echo ERROR: musicfm submodule missing — re-running git submodule update...
+  echo ERROR: musicfm submodule missing -- re-running git submodule update...
   pushd .venv-songformer\src
   git submodule update --init --recursive
   popd
@@ -68,9 +68,9 @@ if not exist ".venv-songformer\src\src\third_party\musicfm\model" (
 if errorlevel 1 ( echo ERROR: verification failed. & pause & exit /b 1 )
 
 echo.
-echo Done! Start run.bat — the SongFormer button will appear automatically.
+echo Done! Start run.bat -- the SongFormer button will appear automatically.
 echo.
 echo Note: the second engine (All-In-One) is not supported on Windows:
 echo its NATTEN dependency requires building from source with MSVC.
-echo Use WSL2 (Ubuntu) if you need it — setup-ai-allin1.sh works there.
+echo Use WSL2 (Ubuntu) if you need it -- setup-ai-allin1.sh works there.
 pause
