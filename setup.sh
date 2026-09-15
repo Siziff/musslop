@@ -11,12 +11,9 @@ PY="${PYTHON:-python3}"
 echo "== musslop setup =="
 $PY -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"' \
   || { echo "ERROR: Python 3.10+ required"; exit 1; }
-command -v ffmpeg >/dev/null || {
-  echo "ERROR: ffmpeg not found in PATH."
-  echo "  macOS:  brew install ffmpeg"
-  echo "  Ubuntu: sudo apt install ffmpeg"
-  exit 1
-}
+if ! command -v ffmpeg >/dev/null; then
+  echo "NOTE: system ffmpeg not found — a bundled copy (imageio-ffmpeg) will be used."
+fi
 
 if [ ! -x ".venv/bin/python" ]; then
   echo "[1/2] Creating venv in .venv ..."
@@ -26,7 +23,7 @@ echo "[2/2] Installing dependencies ..."
 ./.venv/bin/pip install --quiet --upgrade pip
 ./.venv/bin/pip install --quiet -r requirements.txt
 
-./.venv/bin/python -c "import fastapi, uvicorn, librosa, yt_dlp; print('OK: core dependencies ready')"
+./.venv/bin/python -c "import fastapi, uvicorn, librosa, yt_dlp, imageio_ffmpeg; print('OK: core dependencies ready')"
 
 echo
 echo "Done! Start the app:   ./run.sh"

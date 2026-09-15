@@ -8,3 +8,4 @@ scipy
 numpy
 quickjs
 yt-dlp
+imageio-ffmpeg

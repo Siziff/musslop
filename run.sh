@@ -35,8 +35,7 @@ if [ -n "$OLD" ]; then
   fi
 fi
 
-command -v ffmpeg >/dev/null || {
-  echo "ОШИБКА: ffmpeg не найден в PATH (macOS: brew install ffmpeg; Ubuntu: apt install ffmpeg)"; exit 1; }
+command -v ffmpeg >/dev/null || echo "NOTE: system ffmpeg not found — using bundled copy (imageio-ffmpeg)" 
 python3 -c "import fastapi, uvicorn, librosa" 2>/dev/null || {
   echo "Зависимости не установлены. Выполните: ./setup.sh"; exit 1; }
 if python3 -c "import yt_dlp" 2>/dev/null || command -v yt-dlp >/dev/null; then

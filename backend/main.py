@@ -25,12 +25,47 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+def _find_ffmpeg() -> str:
+    """ffmpeg: PATH -> локальная копия в проекте -> бинарь из pip-пакета
+    imageio-ffmpeg (работает на Windows/macOS/Linux без ручной установки)."""
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    for cand in (
+        os.path.join(BASE_DIR, "ffmpeg", "bin", "ffmpeg.exe"),
+        os.path.join(BASE_DIR, "ffmpeg", "bin", "ffmpeg"),
+        os.path.join(BASE_DIR, "ffmpeg.exe"),
+    ):
+        if os.path.exists(cand):
+            return cand
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return "ffmpeg"  # последний шанс — вдруг появится в PATH
+
+
+FFMPEG = _find_ffmpeg()
+# подпроцессы (yt-dlp, demucs в ИИ-venv) ищут ffmpeg в PATH — добавим его туда
+if os.path.dirname(FFMPEG):
+    os.environ["PATH"] = (os.path.dirname(FFMPEG) + os.pathsep
+                          + os.environ.get("PATH", ""))
+
+
+def _venv_python(venv_dir: str) -> list[str]:
+    """Кандидаты пути python внутри venv для Linux/macOS и Windows."""
+    return [
+        os.path.join(venv_dir, "bin", "python"),
+        os.path.join(venv_dir, "Scripts", "python.exe"),
+    ]
+
+
 # Python из venv c allin1 (torch+NATTEN). Приоритет: env-переменная ->
 # локальный .venv-ai (создаётся ./setup-ai-allin1.sh) -> путь на dev-сервере.
 def _find_deep_py() -> str | None:
     cands = [
         os.environ.get("MUSSLOP_DEEP_PY"),
-        os.path.join(BASE_DIR, ".venv-ai", "bin", "python"),
+        *_venv_python(os.path.join(BASE_DIR, ".venv-ai")),
         "/workspace-SR008.fs2/mikheev-kandy/.envs/allin1/bin/python",
     ]
     for c in cands:
@@ -44,7 +79,7 @@ def _find_deep_py() -> str | None:
 def _find_songformer() -> tuple[str | None, str | None]:
     py_cands = [
         os.environ.get("MUSSLOP_SONGFORMER_PY"),
-        os.path.join(BASE_DIR, ".venv-songformer", "bin", "python"),
+        *_venv_python(os.path.join(BASE_DIR, ".venv-songformer")),
         "/workspace-SR008.fs2/mikheev-kandy/.envs/songformer/bin/python",
     ]
     src_cands = [
@@ -112,7 +147,7 @@ _restore_tracks()
 def _to_wav(src: str, dst: str) -> None:
     """Перекодировать в WAV для librosa (браузеру отдаём оригинал)."""
     subprocess.run(
-        ["ffmpeg", "-y", "-i", src, "-ac", "1", "-ar", "22050", dst],
+        [FFMPEG, "-y", "-i", src, "-ac", "1", "-ar", "22050", dst],
         check=True, capture_output=True,
     )
 
@@ -321,7 +356,7 @@ def get_audio(track_id: str, transcode: int = Query(0)):
             safe = os.path.join(UPLOAD_DIR, f"{track_id}.playback.wav")
             try:
                 subprocess.run(
-                    ["ffmpeg", "-y", "-vn", "-i", track["orig"],
+                    [FFMPEG, "-y", "-vn", "-i", track["orig"],
                      "-ac", "2", "-ar", "44100", "-acodec", "pcm_s16le", safe],
                     check=True, capture_output=True,
                 )
@@ -577,7 +612,7 @@ def export_loops(track_id: str, segments: list[dict] = Body(...)):
         tmp_path = tmp.name
     try:
         subprocess.run(
-            ["ffmpeg", "-y", "-i", track["orig"], "-ac", "2", "-ar", "44100",
+            [FFMPEG, "-y", "-i", track["orig"], "-ac", "2", "-ar", "44100",
              "-acodec", "pcm_s16le", tmp_path],
             check=True, capture_output=True,
         )
