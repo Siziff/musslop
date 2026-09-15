@@ -472,7 +472,7 @@ class LoopPlayer {
       this._reschedT = setTimeout(() => {
         if (!this.playing) return;
         this._replan();
-      }, 120);
+      }, 250);
     }
   }
   // Gently fade out and stop the sources (instead of a hard stop -> clicks)
@@ -500,73 +500,16 @@ class LoopPlayer {
   // Live replan: the current chunk keeps playing, its end is adjusted to the
   // new boundary; future chunks are cancelled and rebuilt.
   _replan() {
+    // Boundaries changed while playing. Instead of surgically editing the
+    // already-scheduled source (fragile: stale durations, repeated drags),
+    // do a seamless handover: restart from the SAME position with a short
+    // crossfade — inaudible, and all new boundaries apply immediately.
     if (!this.playing || !this.buffer || !this.segments.length) return;
-    const now = this.ctx.currentTime;
     const pos = this.position();
     if (pos == null) return;
     const idx = this._segAt(pos);
     const seg = this.segments[idx];
-    // the currently sounding source (the latest of those already started)
-    let cur = null;
-    for (const r of this.sources) {
-      if (r.when <= now + 0.005 && (!cur || r.when > cur.when)) cur = r;
-    }
-    // the boundary was dragged past the playhead or no source found — soft restart
-    if (!cur || pos >= seg.end - 0.08 || pos < seg.start - 0.05) {
-      this._softRestartAt(Math.max(seg.start, Math.min(pos, seg.end - 0.1)));
-      return;
-    }
-    // cancel future chunks (they aren't sounding yet — silence without artifacts)
-    for (const r of this.sources) {
-      if (r !== cur && r.when > now + 0.005) {
-        try {
-          (r.stopAll || (t => r.src.stop(t)))(now);
-        } catch (e) {}
-      }
-    }
-    this.sources = this.sources.filter(r => r === cur || r.when <= now + 0.005);
-    // fit the current chunk's end to the new segment boundary.
-    // IMPORTANT: src.start(when, offset, duration) fixes duration forever —
-    // an already playing source can't be stretched, only stopped earlier.
-    const oldEnd = cur.end; // old boundary (in the track)
-    const oldEndCtx = cur.when + (oldEnd - cur.from);
-    const newEndCtx = cur.when + (seg.end - cur.from);
-    try {
-      const g = cur.g.gain;
-      if (seg.end <= oldEnd + 0.01) {
-        // narrowing: move the stop earlier — Web Audio allows this
-        g.cancelScheduledValues(now);
-        g.setValueAtTime(g.value, now);
-        g.linearRampToValueAtTime(1, now + 0.02);
-        g.setValueAtTime(1, Math.max(now + 0.02, newEndCtx - this.FADE));
-        g.linearRampToValueAtTime(0, newEndCtx);
-        (cur.stopAll || (t => cur.src.stop(t)))(newEndCtx + 0.02);
-        cur.end = seg.end;
-      } else {
-        // stretching: the source will go silent at the old boundary (duration
-        // exhausted) — seamlessly schedule the continuation [oldEnd, seg.end]
-        g.cancelScheduledValues(now);
-        g.setValueAtTime(g.value, now);
-        g.linearRampToValueAtTime(1, now + 0.02); // remove the old fade-out
-        this._scheduleChunkRange(oldEnd, seg.end, oldEndCtx);
-      }
-    } catch (e) {
-      // the browser refused to replan — soft restart
-      this._softRestartAt(pos);
-      return;
-    }
-    const prevFlags = this.queue.length ? this.queue[0] : {};
-    this.queue = [{
-      t0: cur.when,
-      t1: newEndCtx,
-      segIndex: idx,
-      trackStart: cur.from,
-      isLoopRepeat: !!prevFlags.isLoopRepeat
-    }];
-    this.segIndex = idx;
-    this.lastPlannedIndex = idx;
-    this.nextTime = newEndCtx;
-    this.onState();
+    this._softRestartAt(Math.max(seg.start, Math.min(pos, seg.end - 0.1)));
   }
   // Restart with a smooth fade of the old audio (for seek and edge cases)
   _softRestartAt(pos) {
@@ -2969,7 +2912,7 @@ function App() {
     className: "ai-btn",
     onClick: loadStems,
     disabled: stemsState === 'loading' || !!loading
-  }, "\uD83C\uDF9A ", stemsState === 'loading' ? t.stems_working : t.stems_btn) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, stemsState === 'loading' ? t.stems_working : t.stems_btn) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "layer-grid"
   }, ['drums', 'bass', 'other', 'vocals'].map(name => /*#__PURE__*/React.createElement("div", {
     key: name,
