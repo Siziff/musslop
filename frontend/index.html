@@ -2336,7 +2336,7 @@ function App() {
     const files = Array.from(e.dataTransfer.files || []);
     if (!files.length) return;
     if (files.length > 1) {
-      // пара трек+разметка одним движением: сначала аудио, потом json
+      // трек+разметка одним движением: сначала аудио, потом json
       const audio = files.find(f => !(f.name || '').toLowerCase().endsWith('.json'));
       const json = files.find(f => (f.name || '').toLowerCase().endsWith('.json'));
       if (audio && json) {
@@ -2347,6 +2347,36 @@ function App() {
     }
     handleAnyFile(files[0]);
   };
+
+  // Файлы принимаются на ВСЁ окно: кинул трек на волну — заменил трек,
+  // кинул json — применил разметку. Дроп-зоны остаются как подсказка.
+  const onDropAnyRef = useRef(onDropAny);
+  onDropAnyRef.current = onDropAny;
+  useEffect(() => {
+    const over = e => {
+      if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) {
+        e.preventDefault();
+        setDragOver(true);
+      }
+    };
+    const leave = e => {
+      // покидание окна (relatedTarget = null)
+      if (!e.relatedTarget) setDragOver(false);
+    };
+    const drop = e => {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        onDropAnyRef.current(e);
+      }
+    };
+    window.addEventListener('dragover', over);
+    window.addEventListener('dragleave', leave);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('dragleave', leave);
+      window.removeEventListener('drop', drop);
+    };
+  }, []);
 
   const removeSeg = i => {
     if (segments.length <= 1) return;
