@@ -33,6 +33,7 @@
     --wave-bar: rgba(242,242,242,.10);
     --wave-downbeat: rgba(242,242,242,.22);
     --wave-phrase: rgba(216,255,62,.4);
+    --wave-barnum: #d8ff3e;
     --tip-bg: #1f1f1f;
   }
   /* ============ THEME: tavern — D&D fantasy ============ */
@@ -64,6 +65,7 @@
     --wave-bar: rgba(236,220,188,.08);
     --wave-downbeat: rgba(236,220,188,.2);
     --wave-phrase: rgba(217,164,65,.5);
+    --wave-barnum: #e8c778;
     --tip-bg: #2f2213;
   }
   * { box-sizing: border-box; }
@@ -538,6 +540,8 @@ const STR = {
     layer_other: 'Фон',
     layer_vocals: 'Вокал',
     crossfade_tip: 'Кроссфейд — плавное наложение конца и начала: старый кусок затухает, пока новый нарастает. 0 = чистый стык по такту; 0.3-0.8с прячет артефакты склейки; 1-2с — киношное перетекание для эмбиента (в ритмичной музыке смажет грув)',
+    reverb: 'Реверб:',
+    reverb_tip: 'Реверберация — эффект большого зала. Вместе с замедлением (скорость ~0.8x) даёт стиль «slowed + reverb». 0 = сухой звук, 30-40% — типичный «slowed» вайб',
     url_placeholder: 'Ссылка на YouTube / прямая ссылка на аудио…',
     url_btn: 'Импорт',
     url_downloading: 'Скачивание по ссылке…',
@@ -657,6 +661,8 @@ const STR = {
     layer_other: 'Backing',
     layer_vocals: 'Vocals',
     crossfade_tip: 'Crossfade smoothly overlaps the end and the start: the old chunk fades out while the new one fades in. 0 = clean bar-aligned splice; 0.3-0.8s hides seam artifacts; 1-2s — cinematic blend for ambient (smears the groove in rhythmic music)',
+    reverb: 'Reverb:',
+    reverb_tip: 'Reverberation — a big-hall effect. Combined with slowdown (speed ~0.8x) it gives the "slowed + reverb" style. 0 = dry sound, 30-40% — the typical "slowed" vibe',
     url_placeholder: 'YouTube link / direct audio URL…',
     url_btn: 'Import',
     url_downloading: 'Downloading from URL…',
@@ -777,6 +783,8 @@ const STR = {
     layer_other: '伴奏',
     layer_vocals: '人声',
     crossfade_tip: '交叉淡化让结尾与开头平滑重叠：旧片段淡出的同时新片段淡入。0 = 按小节对齐的干净拼接；0.3-0.8秒可掩盖接缝瑕疵；1-2秒 — 适合氛围音乐的电影式过渡（节奏音乐会模糊律动）',
+    reverb: '混响:',
+    reverb_tip: '混响 — 大厅回声效果。配合减速（速度约0.8x）即为"slowed + reverb"风格。0 = 干声，30-40% — 典型的"slowed"氛围',
     url_placeholder: 'YouTube 链接 / 音频直链…',
     url_btn: '导入',
     url_downloading: '正在从链接下载…',
@@ -797,6 +805,7 @@ function themeColors() {
     bar: v('--wave-bar') || 'rgba(242,242,242,.1)',
     downbeat: v('--wave-downbeat') || 'rgba(242,242,242,.22)',
     phrase: v('--wave-phrase') || 'rgba(216,255,62,.4)',
+    barNum: v('--wave-barnum') || '#d8ff3e',
     accent2: v('--accent2') || '#d8ff3e',
     danger: v('--danger') || '#ff6b6b',
   };
@@ -822,6 +831,7 @@ class LoopPlayer {
     this.advanceArmed = false;
     this.loopEnabled = true;
     this.crossfade = 0;         // sec, 0 = seam at the boundary with a micro-fade
+    this.reverb = 0;            // 0..1 wet level ("slowed + reverb" style)
     this.rate = 1;              // playback speed (0.5..1.5); changes tempo AND pitch
     this.transitionMode = 'loop'; // 'loop' = at loop end, 'phrase' = phrase boundary
     this.phraseBars = 4;          // phrase length in bars for 'phrase' mode
@@ -830,7 +840,6 @@ class LoopPlayer {
     this.bassSwap = true;         // incoming part's bass enters at the boundary
     this.stingerBuffers = {};     // name -> AudioBuffer
     this.stems = null;            // {drums,bass,other,vocals: AudioBuffer} | null
-    this.stemGains = null;        // {name: GainNode}
     this.nextTime = 0;          // ctx time of the next chunk start
     this.queue = [];            // [{t0, t1, segIndex, trackStart}]
     this.sources = [];          // [{src, g}]
@@ -847,10 +856,41 @@ class LoopPlayer {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.master = this.ctx.createGain();
       this.master.gain.value = this.volume != null ? this.volume : 1;
-      this.master.connect(this.ctx.destination);
+      // reverb: master -> dry -> out, master -> convolver -> wet -> out.
+      // The dry path stays at 1; `reverb` (0..1) is the wet send level.
+      this._dry = this.ctx.createGain();
+      this._wet = this.ctx.createGain();
+      this._wet.gain.value = this.reverb || 0;
+      this._conv = this.ctx.createConvolver();
+      this._conv.buffer = this._makeImpulse(2.8, 2.2);
+      this.master.connect(this._dry);
+      this._dry.connect(this.ctx.destination);
+      this.master.connect(this._conv);
+      this._conv.connect(this._wet);
+      this._wet.connect(this.ctx.destination);
       if (this.loadStingers) this.loadStingers();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  // procedural impulse response: exponentially decaying stereo noise ("hall")
+  _makeImpulse(dur = 2.8, decay = 2.2) {
+    const rate = this.ctx.sampleRate, len = Math.floor(rate * dur);
+    const buf = this.ctx.createBuffer(2, len, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++)
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+  }
+  // reverb amount 0..1 (wet send level)
+  setReverb(v) {
+    this.reverb = Math.max(0, Math.min(1, v));
+    if (!this.ctx || !this._wet) return;
+    const now = this.ctx.currentTime;
+    this._wet.gain.cancelScheduledValues(now);
+    this._wet.gain.setValueAtTime(this._wet.gain.value, now);
+    this._wet.gain.linearRampToValueAtTime(this.reverb, now + 0.1);
   }
   // Safari (webkit): decodeAudioData can be callback-only — promise wrapper
   decode(arrayBuffer) {
@@ -971,6 +1011,7 @@ class LoopPlayer {
     const rate = this.rate || 1;
     const ctxDur = dur / rate;          // real (context) duration
     const g = this.ctx.createGain();
+    g.gain.value = 0; // silent until `when` (default 1 would leak signal early)
     const fi = Math.min(fadeIn != null ? fadeIn : this.FADE, ctxDur / 2);
     const fo = Math.min(fadeOut != null ? fadeOut : this.FADE, ctxDur / 2);
     // equal-power (cos/sin) for uncorrelated material (section changes);
@@ -1004,15 +1045,21 @@ class LoopPlayer {
     g.connect(this.master);
 
     const started = [];
+    const chunkStemGains = this.stems ? {} : null;
     if (this.stems) {
-      // multi-stem: each layer via its own gain (intensity)
-      this._ensureStemGains();
+      // multi-stem: each layer via its own PER-CHUNK gain (intensity).
+      // Important: the gain must not be shared between chunks — a shared
+      // node connected to both the current and the lookahead-scheduled
+      // next chunk sums the signal twice (+6dB at the loop seam).
       for (const name of ['drums', 'bass', 'other', 'vocals']) {
         const buf = this.stems[name];
         if (!buf) continue;
         const s = this.ctx.createBufferSource();
         s.buffer = buf;
-        const sg = this.stemGains[name];
+        const st = (this.layers || {})[name] || { on: true, vol: 1 };
+        const sg = this.ctx.createGain();
+        sg.gain.value = st.on ? st.vol : 0;
+        chunkStemGains[name] = sg;
         // bass swap: bass and drums are silent until boundary + fi, then a sharp entry
         if (opts.bassDelay && (name === 'bass' || name === 'drums')) {
           const dg = this.ctx.createGain();
@@ -1050,35 +1097,32 @@ class LoopPlayer {
       src.start(when, from, dur);
       started.push(src);
     }
-    const rec = { src: started[0], srcs: started, g, when, from, end: to, rate };
+    const rec = { src: started[0], srcs: started, g, when, from, end: to, rate,
+                  stemGains: chunkStemGains };
     this.sources.push(rec);
     started[0].onended = () => { this.sources = this.sources.filter(s => s !== rec); };
     // shared stop for multi-sources
     rec.stopAll = (t) => started.forEach(s => { try { t != null ? s.stop(t) : s.stop(); } catch (e) {} });
     return ctxDur;
   }
-  _ensureStemGains() {
-    if (this.stemGains) return;
-    this.stemGains = {};
-    for (const name of ['drums', 'bass', 'other', 'vocals']) {
-      const gn = this.ctx.createGain();
-      this.stemGains[name] = gn;
-    }
-    this.setLayers(this.layers || {});
-  }
   // Intensity 0..1 -> layers: other always, bass from 0.25, drums from 0.5, vocals from 0.75
   // Per-layer control: {drums: {on: true, vol: 1}, ...}
   setLayers(layers) {
     this.layers = layers;
-    if (!this.stemGains || !this.ctx) return;
+    if (!this.ctx) return;
     const now = this.ctx.currentTime;
-    for (const name of ['drums', 'bass', 'other', 'vocals']) {
-      const gn = this.stemGains[name];
-      const st = layers[name] || { on: true, vol: 1 };
-      const target = st.on ? st.vol : 0;
-      gn.gain.cancelScheduledValues(now);
-      gn.gain.setValueAtTime(gn.gain.value, now);
-      gn.gain.linearRampToValueAtTime(target, now + 0.35);
+    // ramp the per-chunk stem gains of every live/scheduled chunk
+    for (const rec of this.sources) {
+      if (!rec.stemGains) continue;
+      for (const name of ['drums', 'bass', 'other', 'vocals']) {
+        const gn = rec.stemGains[name];
+        if (!gn) continue;
+        const st = layers[name] || { on: true, vol: 1 };
+        const target = st.on ? st.vol : 0;
+        gn.gain.cancelScheduledValues(now);
+        gn.gain.setValueAtTime(gn.gain.value, now);
+        gn.gain.linearRampToValueAtTime(target, now + 0.35);
+      }
     }
   }
   // Stinger: a single sound at the transition moment (name — from the target part)
@@ -1395,6 +1439,7 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
     });
 
     // beats / downbeats (beats are drawn only at sufficient zoom)
+    const barNums = []; // bar numbers, drawn above the waveform
     if (beats && span < duration * 0.6) {
       ctx.strokeStyle = TC.bar; ctx.beginPath();
       for (const b of beats) { if (b < t0 || b > t1) continue; ctx.moveTo(tx(b), H - 14); ctx.lineTo(tx(b), H); }
@@ -1413,18 +1458,17 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
       }
       ctx.stroke();
       // bar numbering: on the overview — every 4th (phrase number), when
-      // zoomed — every bar (its number); the stride is picked by pixel density
+      // zoomed — every bar (its number); the stride is picked by pixel density.
+      // Collected here, drawn AFTER the waveform (readability).
       const barPx = ((downbeats[1] || duration) - (downbeats[0] || 0)) / span * W;
       let stride = 0;
       if (barPx >= 22) stride = 1;        // strong zoom: every bar
       else if (barPx * 4 >= 26) stride = 4; // overview: every 4 bars
       if (stride) {
-        ctx.fillStyle = TC.phrase;
-        ctx.font = (stride === 1 ? '10px' : '9px') + ' "JetBrains Mono", monospace';
         for (let i = 0; i < downbeats.length; i += stride) {
           const b = downbeats[i];
           if (b < t0 || b > t1) continue;
-          ctx.fillText(String(stride === 1 ? i + 1 : i / 4 + 1), tx(b) + 3, H - 34);
+          barNums.push({ x: tx(b) + 3, n: String(stride === 1 ? i + 1 : i / 4 + 1), stride });
         }
       }
     }
@@ -1442,6 +1486,19 @@ function Waveform({ buffer, segments, setSegments, beats, downbeats, snap,
         ctx.lineTo(x + .5, mid + peaks[pi * 2 + 1] * amp);
       }
       ctx.stroke(); ctx.globalAlpha = 1;
+    }
+
+    // bar/phrase numbers on top of the waveform: dark backing plate + bright text
+    if (barNums.length) {
+      ctx.font = (barNums[0].stride === 1 ? '10px' : '9px') + ' "JetBrains Mono", monospace';
+      const ty = H - 34;
+      for (const bn of barNums) {
+        const w = ctx.measureText(bn.n).width;
+        ctx.fillStyle = TC.waveBg + 'd9';
+        ctx.fillRect(bn.x - 2, ty - 9, w + 4, 12);
+        ctx.fillStyle = TC.barNum;
+        ctx.fillText(bn.n, bn.x, ty);
+      }
     }
 
     // boundaries
@@ -1863,6 +1920,7 @@ function App() {
   const [pendingMarkupFile, setPendingMarkupFile] = useState(null);
   const [rate, setRateState] = useState(1);
   const [crossfade, setCrossfade] = useState(0);       // sec
+  const [reverbAmt, setReverbAmt] = useState(0);       // 0..1 wet
   const [transMode, setTransMode] = useState('loop');  // 'loop' | 'phrase'
   const [phraseBars, setPhraseBars] = useState(4);     // 4 or 8 bars
   const [, force] = useState(0);
@@ -1901,14 +1959,16 @@ function App() {
       }
     };
   }, []);
-  // track change -> old track's stems are stale
+  // track change -> old track's stems are stale; speed back to the original
   useEffect(() => {
     player.stems = null;
-    player.stemGains = null;
     setStemsState('none');
+    setRateState(1);
+    player.setRate(1);
   }, [trackId]);
   useEffect(() => { player.setSegments(segments); }, [segments]);
   useEffect(() => { player.crossfade = crossfade; }, [crossfade]);
+  useEffect(() => { player.setReverb(reverbAmt); }, [reverbAmt]);
   useEffect(() => { player.transitionMode = transMode; }, [transMode]);
   useEffect(() => { player.phraseBars = phraseBars; }, [phraseBars]);
   useEffect(() => {
@@ -1975,7 +2035,7 @@ function App() {
         bufs[names[i]] = await player.decode(ab);
       }
       player.stems = bufs;
-      player.stemGains = null; // recreate with the current intensity
+      player.layers = layers; // chunks pick up per-layer gains at schedule time
       setStemsState('ready');
       // restart playback on the stems from the current position
       if (player.playing) {
@@ -1991,7 +2051,6 @@ function App() {
   };
   const unloadStems = () => {
     player.stems = null;
-    player.stemGains = null;
     setStemsState('none');
     if (player.playing) {
       const pos = player.position();
@@ -2741,6 +2800,15 @@ function App() {
               onChange={e => { setBassSwapOn(e.target.checked); player.bassSwap = e.target.checked; }} />
             {t.bass_swap_label}
           </label>
+          <span className="badge tip" style={{ marginLeft: 12 }} data-tip={t.reverb_tip}>{t.reverb}</span>
+          <input type="range" min="0" max="1" step="0.01" value={reverbAmt}
+            style={{ width: 130, accentColor: 'var(--accent)' }}
+            onChange={e => setReverbAmt(+e.target.value)} />
+          <span className="time" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12,
+                 color: reverbAmt > 0 ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer' }}
+            onClick={() => setReverbAmt(0)}>
+            {Math.round(reverbAmt * 100)}%
+          </span>
         </div>
         {/* row: layers (vertical layering) */}
         {(deepAvailable || songformerAvailable) && <div className="row" style={{ marginTop: 10, alignItems: 'flex-start' }}>
