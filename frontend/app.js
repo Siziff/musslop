@@ -1130,16 +1130,19 @@ function Waveform({
         ctx.lineTo(tx(b), H);
       }
       ctx.stroke();
-      // мелкая нумерация фразовых групп (1, 2, 3...) — при умеренном зуме,
-      // чтобы цифры не слипались на полном обзоре длинного трека
-      const groupPx = ((downbeats[4] || duration) - (downbeats[0] || 0)) / span * W;
-      if (groupPx > 26) {
+      // нумерация тактов: на обзоре — каждая 4-я (номер фразы), при зуме —
+      // каждый такт (его номер); шаг подбирается по плотности пикселей
+      const barPx = ((downbeats[1] || duration) - (downbeats[0] || 0)) / span * W;
+      let stride = 0;
+      if (barPx >= 22) stride = 1; // сильный зум: каждый такт
+      else if (barPx * 4 >= 26) stride = 4; // обзор: каждые 4 такта
+      if (stride) {
         ctx.fillStyle = TC.phrase;
-        ctx.font = '9px "JetBrains Mono", monospace';
-        for (let i = 0; i < downbeats.length; i += 4) {
+        ctx.font = (stride === 1 ? '10px' : '9px') + ' "JetBrains Mono", monospace';
+        for (let i = 0; i < downbeats.length; i += stride) {
           const b = downbeats[i];
           if (b < t0 || b > t1) continue;
-          ctx.fillText(String(i / 4 + 1), tx(b) + 3, H - 34);
+          ctx.fillText(String(stride === 1 ? i + 1 : i / 4 + 1), tx(b) + 3, H - 34);
         }
       }
     }
