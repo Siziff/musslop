@@ -43,9 +43,41 @@ def run_beats(audio: str, device: str):
     return bpm, beats, downbeats
 
 
+def _patched_infer(sf_dir: str) -> str:
+    """The official infer.py hardcodes device = f"cuda:{rank}" — on Macs that
+    silently means CPU-only (minutes instead of seconds). Write a patched copy
+    next to it that picks cuda -> mps -> cpu (or MUSSLOP_SF_DEVICE)."""
+    src_path = os.path.join(sf_dir, "infer", "infer.py")
+    with open(src_path) as f:
+        src = f.read()
+    patched = src.replace(
+        'device = f"cuda:{rank}"',
+        'device = os.environ.get("MUSSLOP_SF_DEVICE") or ('
+        'f"cuda:{rank}" if torch.cuda.is_available() else '
+        '"mps" if getattr(torch.backends, "mps", None) '
+        'and torch.backends.mps.is_available() else "cpu")',
+    )
+    out_path = os.path.join(sf_dir, "infer", "infer_musslop.py")
+    # rewrite only when stale so repeated runs stay cheap
+    try:
+        with open(out_path) as f:
+            if f.read() == patched:
+                return out_path
+    except OSError:
+        pass
+    with open(out_path, "w") as f:
+        f.write(patched)
+    return out_path
+
+
 def run_structure(audio: str, src_dir: str, py: str):
-    """SongFormer via the official infer.py (subprocess inside the venv)."""
+    """SongFormer via a device-patched copy of the official infer.py.
+
+    --debug runs inference inline (single process): with one file the
+    multi-GPU queue machinery is pure overhead, and a crashed worker in the
+    queue mode hangs the parent until the timeout instead of failing fast."""
     sf_dir = os.path.join(src_dir, "src", "SongFormer")
+    infer_py = _patched_infer(sf_dir)
     with tempfile.TemporaryDirectory() as tmp:
         scp = os.path.join(tmp, "in.scp")
         with open(scp, "w") as f:
@@ -58,13 +90,16 @@ def run_structure(audio: str, src_dir: str, py: str):
             sf_dir,
             env.get("PYTHONPATH", ""),
         ]).rstrip(os.pathsep)
+        # some MusicFM/MuQ ops are not implemented on MPS — let torch fall
+        # back to CPU per-op instead of crashing the run
+        env.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
         proc = subprocess.run(
-            [py, os.path.join(sf_dir, "infer", "infer.py"),
+            [py, infer_py,
              "-i", scp, "-o", out_dir,
              "--model", "SongFormer",
              "--checkpoint", "SongFormer.safetensors",
              "--config_path", "SongFormer.yaml",
-             "-gn", "1", "-tn", "1"],
+             "-gn", "1", "-tn", "1", "--debug"],
             cwd=sf_dir, env=env, capture_output=True, text=True, timeout=1800,
         )
         outs = [f for f in os.listdir(out_dir) if f.endswith(".json")]
