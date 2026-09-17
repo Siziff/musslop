@@ -37,7 +37,7 @@ if errorlevel 1 (
 if errorlevel 1 ( echo ERROR: PyTorch install failed. & pause & exit /b 1 )
 
 echo [3/5] Installing dependencies (transformers, muq, beat_this, msaf ...) ...
-"%VENVPY%" -m pip install --quiet "transformers==4.51.1" numpy librosa muq beat_this ema_pytorch loguru omegaconf einops mir_eval msaf x_transformers soundfile demucs
+"%VENVPY%" -m pip install --quiet "transformers==4.51.1" numpy librosa muq beat_this ema_pytorch loguru omegaconf einops mir_eval msaf x_transformers soundfile demucs certifi
 if errorlevel 1 ( echo ERROR: dependency install failed. & pause & exit /b 1 )
 
 echo [4/5] Cloning SongFormer sources + downloading checkpoints (~1.4 GB) ...

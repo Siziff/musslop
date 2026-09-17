@@ -26,10 +26,49 @@ def pick_device() -> str:
     return "cpu"
 
 
+def _ensure_beatthis_ckpt() -> None:
+    """Pre-fetch the Beat This! checkpoint into the torch hub cache.
+
+    beat_this downloads it via urllib on first use; on stock macOS Python
+    that often dies with SSL: CERTIFICATE_VERIFY_FAILED (no system certs),
+    and beat_this swallows the real error into a generic ValueError
+    ('Could not load the checkpoint ... final0'). Download it ourselves
+    with certifi and put it exactly where beat_this looks for it."""
+    import torch.hub
+    ckpt_dir = os.path.join(torch.hub.get_dir(), "checkpoints")
+    dst = os.path.join(ckpt_dir, "beat_this-final0.ckpt")
+    if os.path.exists(dst):
+        return
+    os.makedirs(ckpt_dir, exist_ok=True)
+    url = "https://cloud.cp.jku.at/public.php/dav/files/7ik4RrBKTS273gp/final0.ckpt"
+    print("downloading Beat This! checkpoint (~80 MB, one time)...", file=sys.stderr)
+    import ssl
+    import urllib.request
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = ssl.create_default_context()
+    tmp_path = dst + ".part"
+    with urllib.request.urlopen(url, context=ctx, timeout=120) as r, \
+         open(tmp_path, "wb") as f:
+        while True:
+            chunk = r.read(1 << 20)
+            if not chunk:
+                break
+            f.write(chunk)
+    os.replace(tmp_path, dst)
+
+
 def run_beats(audio: str, device: str):
     """Beat This!: beats and downbeats; tempo - from inter-beat intervals."""
     import numpy as np
     from beat_this.inference import File2Beats
+    try:
+        _ensure_beatthis_ckpt()
+    except Exception as e:
+        print(f"checkpoint pre-fetch failed ({e}); "
+              "letting beat_this try its own download", file=sys.stderr)
     # dbn=False - without madmom
     dev = device if device != "mps" else "cpu"  # beat_this can have issues with mps
     f2b = File2Beats(checkpoint_path="final0", device=dev, dbn=False)
@@ -40,6 +79,20 @@ def run_beats(audio: str, device: str):
         bpm = float(60.0 / np.median(np.diff(beats)))
     else:
         bpm = 120.0
+    return bpm, beats, downbeats
+
+
+def run_beats_fallback(audio: str):
+    """librosa beat tracking when Beat This! is unavailable (e.g. its
+    checkpoint could not be downloaded): worse downbeats, but the whole
+    analysis should not die because of the beat model."""
+    import librosa
+    import numpy as np
+    y, sr = librosa.load(audio, mono=True)
+    tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr, trim=False)
+    beats = [float(t) for t in librosa.frames_to_time(beat_frames, sr=sr)]
+    bpm = float(np.atleast_1d(tempo)[0]) if np.size(tempo) else 120.0
+    downbeats = beats[::4]  # assume 4/4 — good enough as a fallback
     return bpm, beats, downbeats
 
 
@@ -120,7 +173,12 @@ def main() -> None:
     print(f"device: {device}", file=sys.stderr)
 
     raw_segments = run_structure(audio, src_dir, sys.executable)
-    bpm, beats, downbeats = run_beats(audio, device)
+    try:
+        bpm, beats, downbeats = run_beats(audio, device)
+    except Exception as e:
+        print(f"Beat This! failed ({e}); falling back to librosa beats",
+              file=sys.stderr)
+        bpm, beats, downbeats = run_beats_fallback(audio)
 
     # SongFormer splits sections into same-labeled subsections (by phrase) -
     # merge adjacent same-named ones: loops need large parts
