@@ -860,8 +860,38 @@ class LoopPlayer {
       this.master.connect(this.ctx.destination);
       if (this.reverb > 0) this._ensureReverb();
       if (this.loadStingers) this.loadStingers();
+      this._installUnlock();
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx.state !== 'running') this._unlock();
+  }
+  // Safari: a context created outside a user gesture sticks in 'suspended'
+  // (or 'interrupted' after tab switches) and resume() only works inside a
+  // gesture. Play a silent buffer + resume on the next user interaction.
+  _unlock() {
+    try { this.ctx.resume(); } catch (e) {}
+    try {
+      // silent one-frame buffer: the webkit "warm-up" trick
+      const b = this.ctx.createBuffer(1, 1, 22050);
+      const s = this.ctx.createBufferSource();
+      s.buffer = b; s.connect(this.ctx.destination); s.start(0);
+    } catch (e) {}
+  }
+  _installUnlock() {
+    if (this._unlockInstalled) return;
+    this._unlockInstalled = true;
+    const h = () => {
+      if (this.ctx && this.ctx.state !== 'running') this._unlock();
+      else {
+        document.removeEventListener('touchstart', h, true);
+        document.removeEventListener('touchend', h, true);
+        document.removeEventListener('mousedown', h, true);
+        document.removeEventListener('keydown', h, true);
+      }
+    };
+    document.addEventListener('touchstart', h, true);
+    document.addEventListener('touchend', h, true);
+    document.addEventListener('mousedown', h, true);
+    document.addEventListener('keydown', h, true);
   }
   // lazy reverb send: master -> convolver -> wet -> destination.
   // Created on first use and guarded: if ConvolverNode/buffer fails in this
