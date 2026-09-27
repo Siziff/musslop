@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="440" viewBox="0 0 1440 440" role="img" aria-labelledby="title desc">
+<title id="title">musslop — Your music. Your timing.</title>
+<desc id="desc">A musical loop continues until your cue moves it into the next section. Free and open source tools for tabletop sessions and game prototypes.</desc>
+<defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#ffffff" stroke-opacity=".035"/></pattern><linearGradient id="panel" x2="1" y2="1"><stop stop-color="#242933"/><stop offset="1" stop-color="#15191f"/></linearGradient></defs>
+<rect width="1440" height="440" rx="20" fill="#111419"/><rect width="1440" height="440" rx="20" fill="url(#grid)"/>
+<path d="M64 64H105" stroke="#d8ff3e" stroke-width="5"/>
+<text x="64" y="139" fill="#f7f7ef" font-family="Arial,Helvetica,sans-serif" font-size="72" font-weight="800" letter-spacing="-4">musslop<tspan fill="#d8ff3e">_</tspan></text>
+<text x="66" y="205" fill="#f7f7ef" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="600">Your music. Your timing.</text>
+<text x="66" y="248" fill="#9fa8b5" font-family="Arial,Helvetica,sans-serif" font-size="19">Loop a moment. Cue what comes next.</text>
+<rect x="66" y="302" width="190" height="34" rx="17" fill="#d8ff3e"/>
+<text x="161" y="324" fill="#111419" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" letter-spacing="1">FREE + OPEN SOURCE</text>
+<text x="66" y="386" fill="#7e8998" font-family="Arial,Helvetica,sans-serif" font-size="13" letter-spacing="2">TTRPG SESSIONS / GAME AUDIO PROTOTYPES</text>
+<rect x="724" y="76" width="274" height="260" rx="24" fill="url(#panel)" stroke="#404936"/>
+<text x="750" y="113" fill="#d8ff3e" font-family="monospace" font-size="12" letter-spacing="2">01 / STAY IN THE MOMENT</text>
+<path d="M792 189C792 144 927 144 927 189V218C927 263 792 263 792 218V201" fill="none" stroke="#d8ff3e" stroke-width="4"/>
+<path d="M780 215L792 200L806 214" fill="none" stroke="#d8ff3e" stroke-width="4"/>
+<path d="M829 197V211M841 185V223M853 191V217M865 179V229M877 187V221M889 195V213" stroke="#e9f3cd" stroke-width="5" stroke-linecap="round"/>
+<text x="861" y="298" text-anchor="middle" fill="#c7cfbd" font-family="Arial,Helvetica,sans-serif" font-size="17">Loop as long as you need</text>
+<path d="M998 205H1112M1101 195L1113 205L1101 215" fill="none" stroke="#d8ff3e" stroke-width="3"/>
+<rect x="1011" y="164" width="85" height="25" rx="12" fill="#d8ff3e"/>
+<text x="1054" y="181" text-anchor="middle" fill="#111419" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700">YOUR CUE</text>
+<rect x="1124" y="120" width="252" height="172" rx="24" fill="#222735" stroke="#59607b"/>
+<text x="1148" y="157" fill="#b9c6ff" font-family="monospace" font-size="12" letter-spacing="1">02 / MOVE THE STORY ON</text>
+<path d="M1173 202V228M1188 187V243M1203 193V237M1218 181V249M1233 192V238M1248 183V247M1263 193V237M1278 180V250M1293 196V234M1308 189V241M1323 202V228" stroke="#b9c6ff" stroke-width="6" stroke-linecap="round"/>
+<text x="1038" y="381" text-anchor="middle" fill="#7e8998" font-family="monospace" font-size="12" letter-spacing="2">EXISTING TRACKS. MANUAL CONTROL.</text>
+</svg>

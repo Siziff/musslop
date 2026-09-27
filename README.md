@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="musslop — adaptive game-style loops from any track" width="100%">
+  <img src="assets/banner-editorial.svg" alt="musslop — Your music. Your timing. Loop a moment, then cue the next section." width="100%">
 </p>
 
 <h3 align="center">Make your music fit the scene.</h3>
