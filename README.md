@@ -2,7 +2,7 @@
   <img src="assets/banner.png" alt="musslop — adaptive game-style loops from any track" width="100%">
 </p>
 
-<h3 align="center">Any track becomes a game soundtrack</h3>
+<h3 align="center">Make your music fit the scene.</h3>
 
 <p align="center">
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10+-d8ff3e?style=flat-square&labelColor=111" alt="Python 3.10+"></a>
@@ -14,39 +14,59 @@
 </p>
 
 <p align="center">
-  <b>Loop any section forever · hit «Next» · the music evolves — seamlessly, on the beat</b>
+  <b>Your existing music. You decide when it moves on.</b><br>
+  Loop a section · cue the next one · export loops for your game
 </p>
 
----
+**musslop** is a free, open-source tool for adapting music tracks to the pacing of
+**TTRPG sessions and video game prototypes**. Keep a section looping while a scene
+unfolds, then hit **Next** to cue a transition on a musical boundary.
 
-In games, music *reacts*: stay in the tavern and its theme loops forever; descend into
-the dungeon and the score darkens with you. **musslop** does this with any mp3.
+You control the transitions yourself: musslop doesn't listen to your session or
+automatically react to gameplay. It helps you work with existing tracks rather than
+generating new music.
 
-Drop a track → AI finds the musical structure → every section becomes a perfect loop →
-you drive the music live, like a game audio engine — no editing skills required.
+<p align="center">
+  <img src="demo_classic_zoom.gif" alt="Musslop demo: select a section, start a loop, then cue the next section with the Next button" width="800">
+</p>
+<p align="center"><em>30-second silent demo: select → loop → cue → transition.</em></p>
 
-## Why it feels magic
+**Free and open source (MIT).** No subscriptions, accounts, registration, or email
+collection. Runs locally and works offline after the required dependencies and
+models have been downloaded. This is a personal passion project, shared freely.
+
+[Quick start](#quick-start) · [Your first loop](#your-first-loop) · [Features](#features) · [Under the hood](#under-the-hood)
+
+**Read about the project:** [Article on Habr (in Russian)](https://habr.com/ru/articles/1086674/).
+
+## Two ways to use it
+
+| At your TTRPG table | While building your game |
+|---|---|
+| Keep an atmospheric section going while players explore or talk. Cue the intense part when **you** decide it's time. | Audition section loops, transitions, and intensity changes before implementing them in your game. |
+| Operate the soundtrack live with Play and Next. A Tavern UI theme is available in the header. | Export WAV loops for your audio workflow. Playback logic and engine integration remain part of your game project. |
+
+## Features
 
 | Feature | What it does |
 |---|---|
-| **AI structure analysis** | two neural engines find sections *and name them* (Intro, Verse, Chorus, Solo): [SongFormer](https://github.com/ASLP-lab/SongFormer) (2025, faster, best on pop/rock/electronic) and [All-In-One](https://github.com/mir-aidj/all-in-one) (2023, steadier on orchestral); beats/downbeats via [Beat This!](https://github.com/CPJKU/beat_this). Fast heuristic fallback (~2 s) works everywhere |
-| **Seamless loops** | sample-accurate Web Audio scheduling, bar-snapped boundaries, per-section loop-quality score (⟳%), equal-power crossfades |
+| **Structure analysis** | a fast heuristic mode is included in the base setup. Optional [SongFormer](https://github.com/ASLP-lab/SongFormer) and [All-In-One](https://github.com/mir-aidj/all-in-one) models detect and label sections; neural beat/downbeat tracking uses [Beat This!](https://github.com/CPJKU/beat_this) |
+| **Loop playback** | sample-accurate Web Audio scheduling, bar-snapped boundaries, per-section loop-quality score (⟳%), equal-power crossfades |
 | **Intensity layers** | Demucs splits the track into drums / bass / vocals / backing — toggle and mix layers live: calm exploration → full combat, same track |
-| **Pro transitions** | post-exit tails ring out over the next section, bass-swap keeps exactly one bassline at any moment, one-shot stingers (cymbal / boom / riser) punctuate scene changes |
-| **Knows what not to loop** | build-ups are detected by their crescendo shape and play once, as dramatic bridges |
+| **Transition controls** | outgoing tails, bass-swap, and one-shot stingers (cymbal / boom / riser) help shape section changes |
+| **Build-up detection** | suggests crescendo sections that should play once rather than repeat; loop behaviour is editable |
 | **Full editor** | drag boundaries with bar snapping, split/merge, loop-start markers, Ctrl+Z, zoom + scrollbar, everything auto-saved |
+| **Loop export** | download a ZIP of WAV sections for use in your own audio workflow |
 
-## Built for the game table
-
-The flagship use case is **tabletop RPG**: turn any track into a *location theme*.
-The party lingers in the tavern — the tavern section loops. They open the dungeon door —
-one keypress, and the music descends with them, on the beat, mid-session.
-There is even a **Tavern UI theme** (wood, parchment & gold) switchable in the header.
-
-Also great for: game dev prototyping (audition adaptive behaviour before wiring
-FMOD/Wwise, export loop WAVs), streaming, practice looping, focus music.
+**Results depend on the source track.** Automatic boundaries are a starting point,
+not a guarantee of perfect loops. Listen to the repeat and transition, adjust the
+boundaries, and tune the crossfade when needed. Stem separation can introduce artifacts.
 
 ## Quick start
+
+Requires **Python 3.10+** and **Git** for the clone commands below.
+The base setup includes heuristic analysis, editing, playback, and loop export;
+you can try those before installing the optional neural engines.
 
 Linux / macOS:
 
@@ -67,7 +87,20 @@ run.bat      # → http://localhost:8801
 
 ffmpeg is downloaded automatically with the dependencies — no manual install needed.
 
-**Optional AI engines** (each is one command, both auto-detected by `run.sh`):
+## Your first loop
+
+1. Open **http://localhost:8801** after starting the server.
+2. Drop an audio file into the track area and let the base analysis identify sections.
+3. Select a section and press **Play** (or **Space**) to loop it.
+4. Press **Next** (or **→ / Enter**) to queue a transition. Playback moves on at the
+   selected loop or phrase boundary, rather than cutting immediately.
+5. Adjust section boundaries if needed; use **Ctrl+Z** to undo an edit.
+6. For game audio prototyping, choose **Files → Loops (zip)** to export WAV loops.
+
+## Optional neural analysis and layers
+
+Install an optional environment for model-based section analysis and stem separation.
+The engines are auto-detected by `run.sh`:
 
 Linux / macOS:
 
@@ -89,8 +122,19 @@ dependency needs a source build); use WSL2 with the Linux script if you
 need it. SongFormer covers structure analysis fully, and the stem
 "layers" feature also works through it on Windows.
 
-Works fully offline after setup. First AI analysis of a track: ~1 min on GPU,
-a few minutes on CPU; results are cached — reopening is instant.
+Model downloads require an internet connection on first use. Once dependencies and
+model weights are available locally, processing works offline. Neural analysis can
+take a minute or more on a GPU and longer on a CPU, depending on the model, track,
+and hardware; results are cached.
+
+## Feedback and support
+
+Trying musslop at your table or in a game audio workflow? Share what worked and
+what got in the way in [GitHub Issues](https://github.com/Siziff/musslop/issues).
+For analysis or playback problems, include your OS, analysis engine, and steps to
+reproduce the issue.
+
+If this looks useful for your table or game, **a GitHub star helps others discover it**.
 
 ## Under the hood
 
