@@ -75,7 +75,7 @@ const STR = {
     pass: 'проход №',
     transition_planned: '· переход запланирован',
     selected: 'Выбрана часть:',
-    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u041F\u0440\u043E\u0431\u0435\u043B"), " \u2014 \u0438\u0433\u0440\u0430\u0442\u044C/\u0441\u0442\u043E\u043F \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \xAB\u0414\u0430\u043B\u044C\u0448\u0435\xBB \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u0440\u0430\u0437\u0440\u0435\u0437\u0430\u0442\u044C \u0432 \u043F\u043E\u0437\u0438\u0446\u0438\u0438 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0440\u0430\u0432\u043A\u0443. \u041F\u0435\u0440\u0435\u0445\u043E\u0434 \u043F\u0440\u043E\u0438\u0441\u0445\u043E\u0434\u0438\u0442 \u0431\u0435\u0441\u0448\u043E\u0432\u043D\u043E \u043D\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0435 \u043B\u0443\u043F\u0430, \u043A\u0430\u043A \u0432 \u0438\u0433\u0440\u043E\u0432\u044B\u0445 \u0441\u0430\u0443\u043D\u0434\u0442\u0440\u0435\u043A\u0430\u0445."),
+    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u041F\u0440\u043E\u0431\u0435\u043B"), " \u2014 \u0438\u0433\u0440\u0430\u0442\u044C/\u0441\u0442\u043E\u043F \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \xAB\u0414\u0430\u043B\u044C\u0448\u0435\xBB \xB7 \u043A\u043B\u0438\u043A \u043F\u043E \u0447\u0430\u0441\u0442\u0438 \u0432\u043E \u0432\u0440\u0435\u043C\u044F \u0438\u0433\u0440\u044B \u2014 \u043F\u0435\u0440\u0435\u0445\u043E\u0434 \u0432 \u043D\u0435\u0451 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0435\u0440\u0435\u0445\u043E\u0434 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), " \u2014 \u0441\u0446\u0435\u043D\u044B \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 \u0437\u0430\u0442\u0443\u0445\u0430\u043D\u0438\u0435 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 Live \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u0440\u0430\u0437\u0440\u0435\u0437\u0430\u0442\u044C \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0440\u0430\u0432\u043A\u0443."),
     history_title: 'История',
     library_title: 'Библиотека ★',
     fav_btn: 'В библиотеку',
@@ -128,7 +128,74 @@ const STR = {
     url_btn: 'Импорт',
     url_downloading: 'Скачивание по ссылке…',
     loading_transcode: 'Браузер обрезал аудио — беру полный WAV с сервера…',
-    footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)'
+    footer: 'musslop — структурный анализ: beat tracking + novelty-сегментация (Foote)',
+    // --- cues / audition ---
+    chip_select_tip: 'Выбрать часть (Play зациклит её)',
+    chip_cue_tip: 'Поставить переход в эту часть в очередь · клик по играющей части — отменить переход',
+    queued_badge: 'в очереди',
+    cancel_cue: 'Отменить переход',
+    cancel_cue_tip: 'Остаться в текущей части (отменить запланированный переход)',
+    cue_mode: 'Когда переходить:',
+    cue_mode_tip: 'Момент перехода при выборе части или сцены: естественно — в конце лупа, скоро — на ближайшей границе фразы, сейчас — немедленно с коротким кроссфейдом',
+    cue_natural: 'естественно',
+    cue_soon: 'скоро',
+    cue_now: 'сейчас',
+    cue_natural_tip: 'Дождаться конца текущего прохода лупа',
+    cue_soon_tip: 'На ближайшей границе фразы (4/8 тактов)',
+    cue_now_tip: 'Немедленно, с коротким кроссфейдом',
+    previewing: 'прослушивание стыка…',
+    audition_seam_tip: 'Прослушать стык лупа: последние 3 с части → её начало',
+    audition_next_tip: 'Прослушать переход: конец этой части → начало следующей',
+    // --- scenes ---
+    scenes_title: 'Сцены',
+    scenes_hint: 'Сцена — сохранённое состояние: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Клавиши 1–9 переключают сцены во время игры.',
+    scene_capture: 'Сохранить сцену',
+    scene_capture_tip: 'Запомнить текущее состояние плеера как сцену',
+    scene_saved: 'Сцена сохранена:',
+    scene_updated: 'Сцена обновлена',
+    scene_update: '↻ Обновить из плеера',
+    scene_go_now: '⚡ Перейти сейчас',
+    scene_hotkey: 'Клавиша',
+    scene_delete: 'Удалить сцену',
+    scene_on_air: 'в эфире',
+    scene_layers_tip: 'Включённые слои: Б=барабаны, Б=бас, Ф=фон, В=вокал',
+    // --- live ---
+    live_btn: 'Live-режим',
+    live_tip: 'Полноэкранный пульт для сессии: крупные кнопки, без редактирования (клавиша L)',
+    live_title: 'LIVE',
+    live_exit: 'Выйти',
+    live_now: 'Сейчас играет',
+    live_ready: 'Готово к запуску',
+    live_next: 'Дальше',
+    live_in: 'через',
+    live_at_boundary: 'на границе лупа',
+    live_pick: 'выбери сцену или часть',
+    live_press_play: 'нажми ▶ или пробел',
+    live_play: 'Играть',
+    live_fade: 'Затухание',
+    live_keys: 'Пробел — играть/стоп · → / Enter — дальше · Backspace — отменить переход · 1–9 — сцены · F — затухание · L / Esc — выйти из Live',
+    // --- projects ---
+    project_title: 'Проект',
+    project_hint: 'Проект — сет-лист сессии или уровня: группы («Прибытие», «Подземелье», «Финал») со ссылками на треки и сцены. Создай проект, открой трек и добавляй его сцены в группы.',
+    project_new: 'Новый проект',
+    project_new_name: 'Новая сессия',
+    project_none: '— без проекта —',
+    project_group_default: 'Группа',
+    project_add_group: 'Добавить группу',
+    project_add_track: 'трек',
+    project_add_track_tip: 'Добавить текущий трек в эту группу',
+    project_add_scene: 'сцена…',
+    project_group_empty: 'Пусто — добавьте текущий трек или одну из его сцен',
+    project_group_delete: 'Удалить группу',
+    project_group_delete_confirm: 'Удалить группу вместе с её элементами?',
+    project_delete_tip: 'Удалить проект',
+    project_delete_confirm: 'Удалить проект',
+    project_item_added: 'Добавлено в проект',
+    project_item_open_tip: 'Открыть: загрузить трек и запустить сцену',
+    project_item_missing: 'трек удалён',
+    project_note_ph: 'заметка…',
+    project_move_up: 'Выше',
+    project_move_down: 'Ниже'
   },
   en: {
     tagline: 'Adaptive game-style loops from any track: sections loop forever, hit “Next” and the track evolves',
@@ -196,7 +263,7 @@ const STR = {
     pass: 'pass #',
     transition_planned: '· transition scheduled',
     selected: 'Selected part:',
-    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "Space"), " \u2014 play/stop \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u201CNext\u201D \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 split at position \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 undo edit. The transition is seamless at the loop boundary, just like in game soundtracks."),
+    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "Space"), " \u2014 play/stop \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u201CNext\u201D \xB7 click a part while playing \u2014 queue a transition into it \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 cancel \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), " \u2014 scenes \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 fade out \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 Live \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 split \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 undo."),
     history_title: 'History',
     library_title: 'Library ★',
     fav_btn: 'Add to library',
@@ -249,7 +316,74 @@ const STR = {
     url_btn: 'Import',
     url_downloading: 'Downloading from URL…',
     loading_transcode: 'Browser truncated the audio — fetching full WAV from server…',
-    footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)'
+    footer: 'musslop — structure analysis: beat tracking + novelty segmentation (Foote)',
+    // --- cues / audition ---
+    chip_select_tip: 'Select this part (Play will loop it)',
+    chip_cue_tip: 'Queue a transition into this part · click the playing part to cancel',
+    queued_badge: 'queued',
+    cancel_cue: 'Cancel transition',
+    cancel_cue_tip: 'Stay in the current part (cancel the scheduled transition)',
+    cue_mode: 'Move on:',
+    cue_mode_tip: 'When to transition after picking a part or a scene: natural — at the loop end, soon — at the nearest phrase boundary, now — immediately with a short crossfade',
+    cue_natural: 'natural',
+    cue_soon: 'soon',
+    cue_now: 'now',
+    cue_natural_tip: 'Wait for the current loop pass to finish',
+    cue_soon_tip: 'At the nearest phrase boundary (4/8 bars)',
+    cue_now_tip: 'Immediately, with a short crossfade',
+    previewing: 'auditioning the seam…',
+    audition_seam_tip: 'Audition the loop seam: last 3 s of this part → its start',
+    audition_next_tip: 'Audition the transition: end of this part → start of the next one',
+    // --- scenes ---
+    scenes_title: 'Scenes',
+    scenes_hint: 'A scene is a saved state: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Keys 1–9 switch scenes during the session.',
+    scene_capture: 'Save scene',
+    scene_capture_tip: 'Remember the current player state as a scene',
+    scene_saved: 'Scene saved:',
+    scene_updated: 'Scene updated',
+    scene_update: '↻ Update from player',
+    scene_go_now: '⚡ Go now',
+    scene_hotkey: 'Hotkey',
+    scene_delete: 'Delete scene',
+    scene_on_air: 'on air',
+    scene_layers_tip: 'Layers on: D=drums, B=bass, B=backing, V=vocals',
+    // --- live ---
+    live_btn: 'Live mode',
+    live_tip: 'Full-screen session desk: big buttons, no editing (key L)',
+    live_title: 'LIVE',
+    live_exit: 'Exit',
+    live_now: 'Now playing',
+    live_ready: 'Ready',
+    live_next: 'Up next',
+    live_in: 'in',
+    live_at_boundary: 'at the loop boundary',
+    live_pick: 'pick a scene or a part',
+    live_press_play: 'press ▶ or Space',
+    live_play: 'Play',
+    live_fade: 'Fade out',
+    live_keys: 'Space — play/stop · → / Enter — next · Backspace — cancel transition · 1–9 — scenes · F — fade out · L / Esc — leave Live',
+    // --- projects ---
+    project_title: 'Project',
+    project_hint: 'A project is the set list of a session or a level: groups (“Arrival”, “Dungeon”, “Finale”) with links to tracks and scenes. Create a project, open a track and add its scenes to the groups.',
+    project_new: 'New project',
+    project_new_name: 'New session',
+    project_none: '— no project —',
+    project_group_default: 'Group',
+    project_add_group: 'Add group',
+    project_add_track: 'track',
+    project_add_track_tip: 'Add the current track to this group',
+    project_add_scene: 'scene…',
+    project_group_empty: 'Empty — add the current track or one of its scenes',
+    project_group_delete: 'Delete group',
+    project_group_delete_confirm: 'Delete this group and its items?',
+    project_delete_tip: 'Delete project',
+    project_delete_confirm: 'Delete project',
+    project_item_added: 'Added to the project',
+    project_item_open_tip: 'Open: load the track and start the scene',
+    project_item_missing: 'track removed',
+    project_note_ph: 'note…',
+    project_move_up: 'Move up',
+    project_move_down: 'Move down'
   },
   zh: {
     tagline: '把任意乐曲变成自适应游戏配乐：段落无限循环，点击「下一段」音乐无缝推进',
@@ -318,7 +452,7 @@ const STR = {
     pass_suffix: '遍',
     transition_planned: '· 已计划切换',
     selected: '已选段落:',
-    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u7A7A\u683C"), " \u2014 \u64AD\u653E/\u505C\u6B62 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u300C\u4E0B\u4E00\u6BB5\u300D \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u5728\u5F53\u524D\u4F4D\u7F6E\u5207\u5206 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u64A4\u9500\u7F16\u8F91\u3002\u5207\u6362\u5728\u5FAA\u73AF\u8FB9\u754C\u5904\u65E0\u7F1D\u5B8C\u6210\uFF0C\u5C31\u50CF\u6E38\u620F\u914D\u4E50\u4E00\u6837\u3002"),
+    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u7A7A\u683C"), " \u2014 \u64AD\u653E/\u505C\u6B62 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u300C\u4E0B\u4E00\u6BB5\u300D \xB7 \u64AD\u653E\u65F6\u70B9\u51FB\u67D0\u6BB5 \u2014 \u6392\u961F\u5207\u6362\u5230\u5B83 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 \u53D6\u6D88 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), " \u2014 \u573A\u666F \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 \u6DE1\u51FA \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 \u73B0\u573A \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u5207\u5206 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u64A4\u9500\u3002"),
     history_title: '历史记录',
     library_title: '收藏库 ★',
     fav_btn: '加入收藏库',
@@ -371,7 +505,74 @@ const STR = {
     url_btn: '导入',
     url_downloading: '正在从链接下载…',
     loading_transcode: '浏览器截断了音频 — 正在从服务器获取完整 WAV…',
-    footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）'
+    footer: 'musslop — 结构分析：节拍跟踪 + 新颖度分段（Foote）',
+    // --- cues / audition ---
+    chip_select_tip: '选择此段（播放将循环它）',
+    chip_cue_tip: '将切换到此段加入队列 · 点击正在播放的段可取消切换',
+    queued_badge: '已排队',
+    cancel_cue: '取消切换',
+    cancel_cue_tip: '留在当前段（取消已安排的切换）',
+    cue_mode: '切换时机：',
+    cue_mode_tip: '选择段或场景后何时切换：自然 — 循环结束时，稍后 — 最近的乐句边界，立即 — 马上以短交叉淡化切换',
+    cue_natural: '自然',
+    cue_soon: '稍后',
+    cue_now: '立即',
+    cue_natural_tip: '等待当前循环结束',
+    cue_soon_tip: '在最近的乐句边界（4/8 小节）',
+    cue_now_tip: '立即切换，带短交叉淡化',
+    previewing: '试听接缝…',
+    audition_seam_tip: '试听循环接缝：此段最后 3 秒 → 其开头',
+    audition_next_tip: '试听切换：此段结尾 → 下一段开头',
+    // --- scenes ---
+    scenes_title: '场景',
+    scenes_hint: '场景是保存的状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。演出时用 1–9 键切换场景。',
+    scene_capture: '保存场景',
+    scene_capture_tip: '将当前播放器状态记为场景',
+    scene_saved: '场景已保存：',
+    scene_updated: '场景已更新',
+    scene_update: '↻ 从播放器更新',
+    scene_go_now: '⚡ 立即切换',
+    scene_hotkey: '快捷键',
+    scene_delete: '删除场景',
+    scene_on_air: '播放中',
+    scene_layers_tip: '开启的分层：鼓、贝斯、伴奏、人声',
+    // --- live ---
+    live_btn: '现场模式',
+    live_tip: '全屏演出台：大按钮，不可编辑（快捷键 L）',
+    live_title: 'LIVE',
+    live_exit: '退出',
+    live_now: '正在播放',
+    live_ready: '准备就绪',
+    live_next: '下一个',
+    live_in: '还需',
+    live_at_boundary: '在循环边界',
+    live_pick: '选择场景或段',
+    live_press_play: '按 ▶ 或空格',
+    live_play: '播放',
+    live_fade: '淡出',
+    live_keys: '空格 — 播放/停止 · → / Enter — 下一个 · Backspace — 取消切换 · 1–9 — 场景 · F — 淡出 · L / Esc — 退出现场模式',
+    // --- projects ---
+    project_title: '项目',
+    project_hint: '项目是一次团或一个关卡的曲目单：分组（“到达”“地牢”“终章”）并关联曲目和场景。创建项目，打开曲目，把它的场景加入分组。',
+    project_new: '新建项目',
+    project_new_name: '新团',
+    project_none: '— 无项目 —',
+    project_group_default: '分组',
+    project_add_group: '添加分组',
+    project_add_track: '曲目',
+    project_add_track_tip: '将当前曲目加入此分组',
+    project_add_scene: '场景…',
+    project_group_empty: '空 — 添加当前曲目或它的某个场景',
+    project_group_delete: '删除分组',
+    project_group_delete_confirm: '删除此分组及其条目？',
+    project_delete_tip: '删除项目',
+    project_delete_confirm: '删除项目',
+    project_item_added: '已加入项目',
+    project_item_open_tip: '打开：加载曲目并启动场景',
+    project_item_missing: '曲目已删除',
+    project_note_ph: '备注…',
+    project_move_up: '上移',
+    project_move_down: '下移'
   }
 };
 
@@ -412,7 +613,13 @@ class LoopPlayer {
     this.playing = false;
     this.segIndex = 0;
     this.advanceArmed = false;
+    // queued transition target: index of the part to enter next (null = the
+    // following part). Set by cue(); consumed when the transition is planned
+    this.targetIndex = null;
     this.loopEnabled = true;
+    // audition preview (seam / transition) — separate from the main playback
+    this.previewing = false;
+    this._previewT = null;
     this.crossfade = 0; // sec, 0 = seam at the boundary with a micro-fade
     this.reverb = 0; // 0..1 wet level ("slowed + reverb" style)
     this.rate = 1; // playback speed (0.5..1.5); changes tempo AND pitch
@@ -880,8 +1087,9 @@ class LoopPlayer {
       // a non-looped part (build-up) plays once and moves on
       const noLoop = curSeg && curSeg.loop === false;
       if (this.advanceArmed || !this.loopEnabled || noLoop) {
-        if (idx + 1 < this.segments.length) {
-          idx = idx + 1;
+        const want = this.advanceArmed && this.targetIndex != null ? this.targetIndex : idx + 1;
+        if (want >= 0 && want < this.segments.length) {
+          idx = want;
           isRepeat = false;
         } else {
           this.stop();
@@ -889,6 +1097,7 @@ class LoopPlayer {
           return;
         }
         this.advanceArmed = false;
+        this.targetIndex = null;
         this.onState();
       }
       const seg = this.segments[idx];
@@ -928,6 +1137,7 @@ class LoopPlayer {
   }
   play(fromSeg = null) {
     this._ensureCtx();
+    this.stopPreview();
     this.stop(false);
     if (fromSeg != null) {
       this.segIndex = fromSeg;
@@ -936,6 +1146,7 @@ class LoopPlayer {
     if (!this.segments.length || !this.buffer) return;
     this.playing = true;
     this.advanceArmed = false;
+    this.targetIndex = null;
     this.loopCount = 1;
     const seg0 = this.segments[Math.min(this.segIndex, this.segments.length - 1)];
     const pos = this.pendingPos != null && fromSeg == null ? this.pendingPos : seg0.start;
@@ -949,6 +1160,7 @@ class LoopPlayer {
     if (this.playing) {
       this.loopCount = 1;
       this.advanceArmed = false;
+      this.targetIndex = null;
       this._softRestartAt(pos);
     } else {
       this.segIndex = this._segAt(pos);
@@ -956,25 +1168,97 @@ class LoopPlayer {
       this.onState();
     }
   }
+  // "Next": queue the following part (the default transition mode)
   advance() {
     if (!this.playing) return;
-    if (this.transitionMode === 'phrase' && this.downbeats.length) {
-      this._advanceAtPhrase();
-    } else {
-      this.advanceArmed = true;
+    this.cue(this.segIndex + 1, this.transitionMode === 'phrase' ? 'soon' : 'natural');
+  }
+  // Queue a transition into part `target`.
+  //  urgency: 'natural' — at the end of the current loop pass;
+  //           'soon'    — at the nearest phrase boundary (4/8 bars);
+  //           'now'     — right away, with a short crossfade.
+  // Calling cue() again replaces the pending target.
+  cue(target, urgency = 'natural') {
+    if (!this.playing) return;
+    if (target == null || target < 0 || target >= this.segments.length) return;
+    if (urgency === 'now') {
+      this._transitionAt(target, this.position(), Math.max(this.crossfade, 0.25));
+      this.onState();
+      return;
     }
+    if (urgency === 'soon' && this.downbeats.length) {
+      if (this._cueAtPhrase(target)) {
+        this.onState();
+        return;
+      }
+    }
+    this.targetIndex = target;
+    this.advanceArmed = true;
     this.onState();
+  }
+  // Cancel a pending (not yet planned) transition — keep looping the current part
+  cancelCue() {
+    if (!this.playing) return;
+    const wasArmed = this.advanceArmed;
+    this.advanceArmed = false;
+    this.targetIndex = null;
+    // if the lookahead already planned the target chunk, roll back to the
+    // current part: seamless handover from the same position
+    const last = this.queue[this.queue.length - 1];
+    if (last && last.segIndex !== this.segIndex) {
+      const pos = this.position();
+      const seg = this.segments[this.segIndex];
+      if (pos != null && seg && pos >= seg.start && pos < seg.end) {
+        const lc = this.loopCount;
+        this._softRestartAt(pos);
+        this.loopCount = lc;
+      }
+    }
+    if (wasArmed || last) this.onState();
+  }
+  // Time until the planned transition (sec of ctx time), null if none is planned
+  transitionEta() {
+    if (!this.playing || !this.ctx) return null;
+    const last = this.queue[this.queue.length - 1];
+    if (!last) return null;
+    if (last.segIndex !== this.segIndex) return Math.max(0, last.t0 - this.ctx.currentTime);
+    if (this.advanceArmed) return Math.max(0, last.t1 - this.ctx.currentTime);
+    return null;
+  }
+  // Index of the part we are heading to (armed or already scheduled), or null
+  pendingTarget() {
+    if (!this.playing) return null;
+    const last = this.queue[this.queue.length - 1];
+    if (last && last.segIndex !== this.segIndex) return last.segIndex;
+    if (this.advanceArmed) return this.targetIndex != null ? this.targetIndex : this.segIndex + 1;
+    return null;
+  }
+  // Smoothly fade everything out and stop (Live "fade out")
+  fadeOut(sec = 2.5) {
+    if (!this.playing || !this.ctx) {
+      this.stop();
+      return;
+    }
+    const now = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(now);
+    this.master.gain.setValueAtTime(this.master.gain.value, now);
+    this.master.gain.linearRampToValueAtTime(0.0001, now + sec);
+    this.advanceArmed = false;
+    this.targetIndex = null;
+    this.onState();
+    setTimeout(() => {
+      this.stop();
+      this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.master.gain.setValueAtTime(this.volume != null ? this.volume : 1, this.ctx.currentTime);
+    }, sec * 1000 + 50);
   }
   // Transition at a musical phrase boundary (a multiple of phraseBars bars
   // from the current chunk's start), without waiting for the loop end. A bar
   // is too small a unit: the theme should finish, so by default phrase = 4 bars.
-  _advanceAtPhrase() {
+  // Returns true if a phrase boundary was found and the transition scheduled.
+  _cueAtPhrase(target) {
     const pos = this.position();
-    if (pos == null) return;
-    if (this.segIndex + 1 >= this.segments.length) {
-      this.advanceArmed = true;
-      return;
-    }
+    if (pos == null) return false;
     const seg = this.segments[this.segIndex];
     const margin = 0.12; // sec for scheduling
     // phrase counting anchor — the start of the current loop pass
@@ -984,22 +1268,28 @@ class LoopPlayer {
     const dbs = this.downbeats.filter(b => b >= anchor - 0.05 && b < seg.end - 0.05);
     const nBars = this.phraseBars || 4;
     // candidates: every nBars-th downbeat from the anchor
-    let target = null;
+    let targetPos = null;
     for (let k = nBars; k < dbs.length; k += nBars) {
       if (dbs[k] > pos + margin) {
-        target = dbs[k];
+        targetPos = dbs[k];
         break;
       }
     }
     // no phrase boundary ahead — play the loop to its end (normal mode)
-    if (target == null) {
-      this.advanceArmed = true;
-      return;
-    }
+    if (targetPos == null) return false;
+    this._transitionAt(target, targetPos, Math.max(this.crossfade, 0.03));
+    return true;
+  }
+  // Hard-schedule a transition into part `target` when the playhead reaches
+  // track position `atPos` (>= now): fade the current chunks out over xf,
+  // start the target part from its beginning.
+  _transitionAt(target, atPos, xf) {
+    const pos = this.position();
+    if (pos == null) return;
     const now = this.ctx.currentTime;
-    const Tt = now + (target - pos) / (this.rate || 1);
-    const nextSeg = this.segments[this.segIndex + 1];
-    const xf = Math.max(this.crossfade, 0.03);
+    const Tt = now + Math.max(0, atPos - pos) / (this.rate || 1);
+    const nextSeg = this.segments[target];
+    if (!nextSeg) return;
     // fade out everything current by time Tt (+xf tail)
     this.sources.forEach(({
       g
@@ -1020,7 +1310,7 @@ class LoopPlayer {
     this.sources = [];
     // the new part from its beginning
     this.nextTime = Tt;
-    const dur = this._scheduleChunkRange(nextSeg.start, nextSeg.end, Tt, this.crossfade > 0.02 ? xf : null, null);
+    const dur = this._scheduleChunkRange(nextSeg.start, nextSeg.end, Tt, this.crossfade > 0.02 || xf >= 0.2 ? xf : null, null);
     if (nextSeg.stinger && nextSeg.stinger !== 'none') this._playStinger(nextSeg.stinger, Tt);
     this.queue = [{
       t0: now,
@@ -1031,16 +1321,98 @@ class LoopPlayer {
     }, {
       t0: Tt,
       t1: Tt + dur,
-      segIndex: this.segIndex + 1,
+      segIndex: target,
       trackStart: nextSeg.start,
       isLoopRepeat: false
     }];
-    this.lastPlannedIndex = this.segIndex + 1;
+    this.advanceArmed = false;
+    this.targetIndex = null;
+    this.lastPlannedIndex = target;
     this.nextTime = Tt + dur;
+  }
+  // ---- Audition previews (not part of the main playback) ----------------
+  // Play the last `pre` sec of part i, then its start — hear the loop seam.
+  previewSeam(i, pre = 3, post = 3) {
+    const seg = this.segments[i];
+    if (!seg || !this.buffer) return;
+    const loopFrom = seg.loopStart != null && seg.loopStart > seg.start && seg.loopStart < seg.end - 0.5 ? seg.loopStart : seg.start;
+    this._previewPair(Math.max(seg.start, seg.end - pre), seg.end, loopFrom, Math.min(seg.end, loopFrom + post), true);
+  }
+  // Play the end of part i, then the start of part j — hear the transition.
+  previewTransition(i, j, pre = 3, post = 3) {
+    const a = this.segments[i],
+      b = this.segments[j];
+    if (!a || !b || !this.buffer) return;
+    this._previewPair(Math.max(a.start, a.end - pre), a.end, b.start, Math.min(b.end, b.start + post), false, b);
+  }
+  _previewPair(f1, t1, f2, t2, isRepeat, targetSeg = null) {
+    this._ensureCtx();
+    if (this.playing) this.stop(false);
+    this.stopPreview();
+    this.previewing = true;
+    const rate = this.rate || 1;
+    const when = this.ctx.currentTime + 0.08;
+    const xf = this.crossfade > 0.02 ? Math.min(this.crossfade, (t1 - f1) / 3) : 0;
+    const opts = {
+      linearFade: isRepeat
+    };
+    if (!isRepeat && this.bassSwap) opts.bassDelay = Math.max(xf, 0.01);
+    const d1 = this._scheduleChunkRange(f1, t1, when, 0.03, xf > 0 ? xf : null, {
+      linearFade: true
+    });
+    const T2 = when + d1 - xf;
+    const d2 = this._scheduleChunkRange(f2, t2, T2, xf > 0 ? xf : null, 0.25, opts);
+    if (!isRepeat) {
+      this._schedulePostExitTail(t1, T2);
+      if (targetSeg && targetSeg.stinger && targetSeg.stinger !== 'none') this._playStinger(targetSeg.stinger, T2);
+    }
+    this.previewSeamAt = T2; // ctx time of the seam (for UI)
+    this.previewRange = {
+      f1,
+      t1,
+      f2,
+      t2,
+      T1: when,
+      T2,
+      rate
+    };
+    this._previewT = setTimeout(() => {
+      this.stopPreview();
+    }, (d1 + d2 + 0.3) * 1000);
+    this.onState();
+  }
+  stopPreview() {
+    if (!this.previewing) return;
+    clearTimeout(this._previewT);
+    this.previewing = false;
+    this.previewRange = null;
+    this.sources.forEach(s => {
+      try {
+        (s.stopAll || (() => s.src.stop()))();
+      } catch (e) {}
+    });
+    this.sources = [];
+    this.onState();
+  }
+  // Track position of the preview playhead (or null)
+  previewPosition() {
+    if (!this.previewing || !this.previewRange || !this.ctx) return null;
+    const {
+      f1,
+      f2,
+      T1,
+      T2,
+      rate
+    } = this.previewRange;
+    const now = this.ctx.currentTime;
+    if (now < T1) return f1;
+    if (now < T2) return f1 + (now - T1) * rate;
+    return f2 + (now - T2) * rate;
   }
   stop(notify = true) {
     this.playing = false;
     this.advanceArmed = false;
+    this.targetIndex = null;
     clearTimeout(this._reschedT);
     if (this.timer) {
       clearInterval(this.timer);
@@ -1358,7 +1730,23 @@ function Waveform({
 
     // playhead (or the position picked before playback / while dragging)
     let pos = dragRef.current && dragRef.current.type === 'playhead' ? dragRef.current.pos : player && player.position();
+    if (pos == null && player && player.previewing) pos = player.previewPosition();
     if (pos == null && player && player.pendingPos != null) pos = player.pendingPos;
+    // audition: highlight the two snippets being compared
+    if (player && player.previewing && player.previewRange) {
+      const {
+        f1,
+        t1: pt1,
+        f2,
+        t2
+      } = player.previewRange;
+      ctx.fillStyle = 'rgba(216,255,62,.12)';
+      for (const [a, b] of [[f1, pt1], [f2, t2]]) {
+        const xa = tx(Math.max(a, t0)),
+          xb = tx(Math.min(b, t1));
+        if (xb > xa) ctx.fillRect(xa, 0, xb - xa, H);
+      }
+    }
     if (pos != null && pos >= t0 && pos <= t1) {
       const x = tx(pos);
       const grad = ctx.createLinearGradient(x - 8, 0, x + 8, 0);
@@ -1814,6 +2202,12 @@ function App() {
   const [reverbAmt, setReverbAmt] = useState(0); // 0..1 wet
   const [transMode, setTransMode] = useState('loop'); // 'loop' | 'phrase'
   const [phraseBars, setPhraseBars] = useState(4); // 4 or 8 bars
+  // cue urgency for "go to part": natural (loop end) | soon (phrase) | now
+  const [cueMode, setCueMode] = useState('natural');
+  // --- Scenes: saved playback states of this track (part + layers + fx) ----
+  const [scenes, setScenesRaw] = useState([]);
+  const [liveMode, setLiveMode] = useState(false);
+  const [sceneMenu, setSceneMenu] = useState(null); // scene id with the menu open
   const [, force] = useState(0);
   const playerRef = useRef(null);
   const fileRef = useRef(null);
@@ -1878,6 +2272,14 @@ function App() {
     if (analysis) player.downbeats = analysis.downbeats || [];
   }, [analysis]);
   useEffect(() => () => player.stop(false), []);
+  // while a transition is pending, refresh the ETA label once a second
+  useEffect(() => {
+    if (!player.playing) return;
+    const id = setInterval(() => {
+      if (player.transitionEta() != null || liveMode) force(x => x + 1);
+    }, 500);
+    return () => clearInterval(id);
+  }, [player.playing, liveMode]);
 
   // recompute loop quality after manual editing (debounce 800ms)
   useEffect(() => {
@@ -2037,11 +2439,20 @@ function App() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(segments.map(s => ({
-          start: s.start,
-          end: s.end,
-          label: s.label
-        })))
+        body: JSON.stringify({
+          segments: segments.map(s => ({
+            start: s.start,
+            end: s.end,
+            label: s.label,
+            loop: s.loop,
+            loopStart: s.loopStart,
+            stinger: s.stinger
+          })),
+          scenes,
+          tempo: analysis && analysis.tempo,
+          downbeats: analysis && analysis.downbeats || [],
+          tails: tailOn
+        })
       });
       if (!r.ok) throw new Error(t.err_export);
       // download with progress (the zip can be large — full-quality WAV)
@@ -2077,7 +2488,8 @@ function App() {
     const data = {
       track: trackName,
       tempo: analysis && analysis.tempo,
-      segments
+      segments,
+      scenes
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: 'application/json'
@@ -2103,6 +2515,19 @@ function App() {
       })).filter(s => isFinite(s.start) && isFinite(s.end) && s.end > s.start).sort((a, b) => a.start - b.start);
       if (!segs.length) throw new Error('empty markup');
       setSegments(segs);
+      if (Array.isArray(data.scenes)) {
+        setScenesRaw(data.scenes.filter(s => s && Number.isInteger(+s.segIndex) && +s.segIndex >= 0 && +s.segIndex < segs.length).map(s => ({
+          id: String(s.id || Math.random().toString(36).slice(2, 8)),
+          name: String(s.name || ''),
+          segIndex: +s.segIndex,
+          layers: s.layers && typeof s.layers === 'object' ? s.layers : null,
+          rate: isFinite(+s.rate) ? +s.rate : 1,
+          crossfade: isFinite(+s.crossfade) ? +s.crossfade : 0,
+          reverb: isFinite(+s.reverb) ? +s.reverb : 0,
+          cueMode: ['natural', 'soon', 'now'].includes(s.cueMode) ? s.cueMode : 'natural',
+          hotkey: /^[1-9]$/.test(String(s.hotkey || '')) ? String(s.hotkey) : null
+        })));
+      }
       setError(null);
     } catch (e) {
       setError(t.err_markup + ' ' + e.message);
@@ -2203,12 +2628,14 @@ function App() {
           downbeats: analysis.downbeats,
           n_suggested: analysis.n_suggested,
           n_max: analysis.n_max,
-          segments
+          engine: analysis.engine,
+          segments,
+          scenes
         })
       }).catch(() => {});
     }, 1200);
     return () => clearTimeout(saveT.current);
-  }, [trackId, segments, analysis]);
+  }, [trackId, segments, analysis, scenes]);
 
   // open a track from history: audio from the server + saved markup
   const openFromHistory = async item => {
@@ -2241,10 +2668,13 @@ function App() {
           n_suggested: markup.n_suggested,
           n_max: markup.n_max,
           segments: markup.segments,
-          fallback: false
+          fallback: false,
+          engine: markup.engine
         });
         setSegmentsRaw(markup.segments);
+        setScenesRaw(Array.isArray(markup.scenes) ? markup.scenes : []);
       } else {
+        setScenesRaw([]);
         analyzed = await doAnalyze(item.track_id, null);
         if (analyzed) serverDur = analyzed.duration;
       }
@@ -2293,6 +2723,282 @@ function App() {
     } catch (er) {}
   };
   const currentFav = history.find(h => h.track_id === trackId);
+
+  // --- Projects (set lists) ---------------------------------------------------
+  // A project = groups of items; an item points at a track (and optionally a
+  // scene of that track). Prepare a whole session in advance, then open
+  // tracks / scenes from the list during play.
+  const [projects, setProjects] = useState([]); // summaries
+  const [project, setProject] = useState(null); // the open project (full)
+  const [projectOpen, setProjectOpen] = useState(true);
+  const projSaveT = useRef(null);
+  const loadProjects = useCallback(async () => {
+    try {
+      const r = await fetch('/api/projects');
+      if (r.ok) setProjects((await r.json()).projects);
+    } catch (e) {}
+  }, []);
+  useEffect(() => {
+    loadProjects();
+  }, []);
+  const openProject = async id => {
+    try {
+      const r = await fetch(`/api/projects/${id}`);
+      if (!r.ok) return;
+      const p = await r.json();
+      setProject(p);
+      localStorage.setItem('musslop_project', p.id);
+    } catch (e) {}
+  };
+  // reopen the last project
+  useEffect(() => {
+    const id = localStorage.getItem('musslop_project');
+    if (id) openProject(id);
+  }, []);
+  const createProject = async () => {
+    const r = await fetch('/api/projects', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: t.project_new_name,
+        groups: [{
+          name: t.project_group_default,
+          items: []
+        }]
+      })
+    });
+    if (!r.ok) return;
+    const p = await r.json();
+    setProject(p);
+    localStorage.setItem('musslop_project', p.id);
+    loadProjects();
+  };
+  // any local edit -> debounced PUT
+  const editProject = updater => {
+    setProject(prev => {
+      if (!prev) return prev;
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      clearTimeout(projSaveT.current);
+      projSaveT.current = setTimeout(async () => {
+        try {
+          await fetch(`/api/projects/${next.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name: next.name,
+              groups: next.groups
+            })
+          });
+          loadProjects();
+        } catch (e) {}
+      }, 600);
+      return next;
+    });
+  };
+  const deleteProject = async id => {
+    await fetch(`/api/projects/${id}`, {
+      method: 'DELETE'
+    });
+    if (project && project.id === id) {
+      setProject(null);
+      localStorage.removeItem('musslop_project');
+    }
+    loadProjects();
+  };
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const addGroup = () => editProject(p => ({
+    ...p,
+    groups: [...p.groups, {
+      id: uid(),
+      name: `${t.project_group_default} ${p.groups.length + 1}`,
+      items: []
+    }]
+  }));
+  const renameGroup = (gid, name) => editProject(p => ({
+    ...p,
+    groups: p.groups.map(g => g.id === gid ? {
+      ...g,
+      name
+    } : g)
+  }));
+  const removeGroup = gid => editProject(p => ({
+    ...p,
+    groups: p.groups.filter(g => g.id !== gid)
+  }));
+  const moveGroup = (gid, dir) => editProject(p => {
+    const i = p.groups.findIndex(g => g.id === gid),
+      j = i + dir;
+    if (i < 0 || j < 0 || j >= p.groups.length) return p;
+    const gs = p.groups.slice();
+    [gs[i], gs[j]] = [gs[j], gs[i]];
+    return {
+      ...p,
+      groups: gs
+    };
+  });
+  // add the current track (+ optionally a scene) to a group
+  const addItem = (gid, sceneId = null) => {
+    if (!trackId) return;
+    const sc = sceneId ? scenes.find(s => s.id === sceneId) : null;
+    editProject(p => ({
+      ...p,
+      groups: p.groups.map(g => g.id === gid ? {
+        ...g,
+        items: [...g.items, {
+          id: uid(),
+          track_id: trackId,
+          scene_id: sceneId,
+          note: '',
+          track_name: trackName,
+          scene_name: sc ? sc.name : null,
+          available: true
+        }]
+      } : g)
+    }));
+    showToast(t.project_item_added);
+  };
+  const removeItem = (gid, iid) => editProject(p => ({
+    ...p,
+    groups: p.groups.map(g => g.id === gid ? {
+      ...g,
+      items: g.items.filter(it => it.id !== iid)
+    } : g)
+  }));
+  const moveItem = (gid, iid, dir) => editProject(p => ({
+    ...p,
+    groups: p.groups.map(g => {
+      if (g.id !== gid) return g;
+      const i = g.items.findIndex(it => it.id === iid),
+        j = i + dir;
+      if (i < 0 || j < 0 || j >= g.items.length) return g;
+      const its = g.items.slice();
+      [its[i], its[j]] = [its[j], its[i]];
+      return {
+        ...g,
+        items: its
+      };
+    })
+  }));
+  const noteItem = (gid, iid, note) => editProject(p => ({
+    ...p,
+    groups: p.groups.map(g => g.id === gid ? {
+      ...g,
+      items: g.items.map(it => it.id === iid ? {
+        ...it,
+        note
+      } : it)
+    } : g)
+  }));
+  // open an item: same track -> just apply the scene; other track -> load it, then the scene
+  const pendingSceneRef = useRef(null);
+  const openItem = async it => {
+    if (!it.available) return;
+    if (it.track_id === trackId) {
+      if (it.scene_id) {
+        const sc = scenes.find(s => s.id === it.scene_id);
+        if (sc) applyScene(sc);
+      } else if (!player.playing) player.play(0);
+      return;
+    }
+    pendingSceneRef.current = it.scene_id || null;
+    await openFromHistory({
+      track_id: it.track_id,
+      name: it.track_name
+    });
+  };
+  // after a track from a project item finished loading -> start its scene
+  useEffect(() => {
+    const sid = pendingSceneRef.current;
+    if (!sid || !buffer || !scenes.length) return;
+    const sc = scenes.find(s => s.id === sid);
+    pendingSceneRef.current = null;
+    if (sc) setTimeout(() => applyScene(sc), 50);
+  }, [buffer, scenes]);
+  // scenes renamed/removed -> keep the open project's labels fresh
+  useEffect(() => {
+    if (!project || !trackId) return;
+    setProject(p => p && {
+      ...p,
+      groups: p.groups.map(g => ({
+        ...g,
+        items: g.items.map(it => it.track_id === trackId ? {
+          ...it,
+          track_name: trackName,
+          scene_name: it.scene_id ? (scenes.find(s => s.id === it.scene_id) || {}).name || null : null
+        } : it)
+      }))
+    });
+  }, [scenes, trackId, trackName]);
+
+  // --- Scenes -----------------------------------------------------------------
+  // A scene = a saved playback state of this track: which part loops, which
+  // layers are on, speed / crossfade / reverb and how to enter it. Scenes are
+  // stored inside the track markup (autosaved with the segments).
+  const scenesDirty = useRef(false);
+  const setScenes = updater => setScenesRaw(prev => {
+    const next = typeof updater === 'function' ? updater(prev) : updater;
+    scenesDirty.current = true;
+    return next;
+  });
+  const captureScene = name => {
+    const seg = segments[player.segIndex];
+    if (!seg) return;
+    const id = Math.random().toString(36).slice(2, 8);
+    const scene = {
+      id,
+      name: name || seg.label || `Scene ${scenes.length + 1}`,
+      segIndex: player.segIndex,
+      layers: stemsState === 'ready' ? JSON.parse(JSON.stringify(layers)) : null,
+      rate,
+      crossfade,
+      reverb: reverbAmt,
+      cueMode,
+      hotkey: scenes.length < 9 ? String(scenes.length + 1) : null
+    };
+    setScenes(sc => [...sc, scene]);
+    showToast(`${t.scene_saved} ${scene.name}`);
+  };
+  const updateScene = (id, patch) => setScenes(sc => sc.map(s => s.id === id ? {
+    ...s,
+    ...patch
+  } : s));
+  const removeScene = id => setScenes(sc => sc.filter(s => s.id !== id));
+  const applyScene = (scene, urgency) => {
+    if (!scene || !segments[scene.segIndex]) return;
+    // fx first: these ramp smoothly and don't interrupt playback
+    if (scene.rate != null && scene.rate !== rate) {
+      setRateState(scene.rate);
+      player.setRate(scene.rate);
+    }
+    if (scene.crossfade != null) setCrossfade(scene.crossfade);
+    if (scene.reverb != null) setReverbAmt(scene.reverb);
+    if (scene.layers && stemsState === 'ready') {
+      setLayersState(scene.layers);
+      player.setLayers(scene.layers);
+    }
+    if (player.playing) {
+      if (scene.segIndex === player.segIndex) player.cancelCue();else player.cue(scene.segIndex, urgency || scene.cueMode || cueMode);
+    } else {
+      player.play(scene.segIndex);
+    }
+    setActiveScene(scene.id);
+  };
+  const [activeScene, setActiveScene] = useState(null);
+  // the active scene highlight follows the playing part
+  useEffect(() => {
+    if (!scenes.length) return;
+    const sc = scenes.find(s => s.id === activeScene);
+    if (sc && sc.segIndex !== player.segIndex) setActiveScene(null);
+  }, [player.segIndex, player.playing]);
+  const sceneForIndex = i => scenes.find(s => s.segIndex === i);
+  // Part removed / merged -> drop scenes pointing beyond the list
+  useEffect(() => {
+    if (scenes.some(s => s.segIndex >= segments.length)) setScenes(sc => sc.filter(s => s.segIndex < segments.length));
+  }, [segments.length]);
   const [toast, setToast] = useState(null);
   const showToast = msg => {
     setToast(msg);
@@ -2315,6 +3021,9 @@ function App() {
       const a = await r.json();
       setAnalysis(a);
       setSegments(a.segments);
+      // re-analysis re-numbers the parts: old scenes would point at wrong parts
+      setScenesRaw([]);
+      setActiveScene(null);
       if (isDeep) {
         const labels = a.segments.slice(0, 5).map(s => s.label).join(', ') + (a.segments.length > 5 ? '…' : '');
         showToast(`✨ ${t.ai_done} ${prevCount || '—'} → ${a.segments.length}. ${labels}`);
@@ -2473,14 +3182,31 @@ function App() {
   const duration = analysis ? analysis.duration : 0;
   const splitRef = useRef(splitAtPlayhead);
   splitRef.current = splitAtPlayhead;
+  // hotkey handlers read the latest state through a ref (the listener is bound once)
+  const keyCtx = useRef({});
+  keyCtx.current = {
+    scenes,
+    liveMode,
+    cueMode,
+    applyScene,
+    segments,
+    setLiveMode
+  };
   useEffect(() => {
     const h = e => {
+      const k = keyCtx.current;
       if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
+        if (k.liveMode) return; // live: no editing
         e.preventDefault();
         undo();
         return;
       }
-      if (e.target.tagName === 'INPUT') return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.code === 'Escape' && k.liveMode) {
+        e.preventDefault();
+        k.setLiveMode(false);
+        return;
+      }
       if (e.code === 'Space') {
         e.preventDefault();
         player.playing ? player.stop() : player.play();
@@ -2489,7 +3215,36 @@ function App() {
         e.preventDefault();
         player.advance();
       }
-      if (e.code === 'KeyS') {
+      if (e.code === 'Backspace') {
+        e.preventDefault();
+        player.cancelCue();
+      }
+      if (e.code === 'KeyF' && player.playing) {
+        e.preventDefault();
+        player.fadeOut(2.5);
+      }
+      if (e.code === 'KeyL') {
+        e.preventDefault();
+        k.setLiveMode(v => !v);
+      }
+      // 1-9: scenes (or parts when there are no scenes)
+      if (/^Digit[1-9]$/.test(e.code)) {
+        e.preventDefault();
+        const d = e.code.slice(5);
+        const sc = k.scenes.find(s => s.hotkey === d);
+        if (sc) {
+          k.applyScene(sc);
+          return;
+        }
+        if (!k.scenes.length) {
+          const i = +d - 1;
+          if (i < k.segments.length) {
+            if (!player.playing) player.play(i);else if (i === player.segIndex) player.cancelCue();else player.cue(i, k.cueMode);
+          }
+        }
+        return;
+      }
+      if (e.code === 'KeyS' && !k.liveMode) {
         e.preventDefault();
         splitRef.current();
       }
@@ -2497,6 +3252,13 @@ function App() {
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, []);
+  // live mode: lock page scroll behind the overlay
+  useEffect(() => {
+    document.body.style.overflow = liveMode ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [liveMode]);
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("header", null, /*#__PURE__*/React.createElement("div", {
     className: "logo"
   }, /*#__PURE__*/React.createElement("h1", null, theme === 'tavern' ? 'Musslop' : 'musslop'), /*#__PURE__*/React.createElement("div", {
@@ -2797,7 +3559,14 @@ function App() {
     playingSeg: playingSeg,
     duration: duration,
     t: t,
-    onSeekSeg: i => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1)),
+    onSeekSeg: i => {
+      if (!player.playing) {
+        player.segIndex = i;
+        force(x => x + 1);
+        return;
+      }
+      if (i === player.segIndex) player.cancelCue();else player.cue(i, cueMode);
+    },
     beginEdit: beginEdit,
     commitEdit: commitEdit,
     aiWorking: aiWorking
@@ -2808,10 +3577,23 @@ function App() {
     const col = SEG_COLORS[gi % SEG_COLORS.length];
     const q = s.loopability;
     const qc = q == null ? 'var(--muted)' : q > 0.75 ? '#34d399' : q > 0.55 ? '#ffb84f' : '#fb6a6a';
+    const isQueued = player.pendingTarget() === i;
     return /*#__PURE__*/React.createElement("div", {
       key: i,
-      className: 'seg-chip' + (i === player.segIndex ? ' active' : ''),
-      onClick: () => player.playing ? player.play(i) : (player.segIndex = i, force(x => x + 1))
+      className: 'seg-chip' + (i === player.segIndex ? ' active' : '') + (isQueued ? ' queued' : ''),
+      onClick: () => {
+        if (!player.playing) {
+          player.segIndex = i;
+          force(x => x + 1);
+          return;
+        }
+        if (i === player.segIndex) {
+          player.cancelCue();
+          return;
+        }
+        player.cue(i, cueMode);
+      },
+      title: player.playing ? t.chip_cue_tip : t.chip_select_tip
     }, /*#__PURE__*/React.createElement("div", {
       className: "dot",
       style: {
@@ -2835,7 +3617,12 @@ function App() {
       style: {
         color: qc
       }
-    }, "\u27F3", Math.round(q * 100), "%"), /*#__PURE__*/React.createElement("span", {
+    }, "\u27F3", Math.round(q * 100), "%"), isQueued && /*#__PURE__*/React.createElement("span", {
+      className: "time",
+      style: {
+        color: 'var(--accent)'
+      }
+    }, t.queued_badge), /*#__PURE__*/React.createElement("span", {
       className: "x",
       title: t.loop_toggle_tip,
       style: {
@@ -2858,6 +3645,23 @@ function App() {
         color: 'var(--danger)'
       }
     }, t.transition_badge), /*#__PURE__*/React.createElement("span", {
+      className: "x tip",
+      "data-tip": t.audition_seam_tip,
+      style: {
+        color: player.previewing ? 'var(--accent)' : 'var(--muted)'
+      },
+      onClick: e => {
+        e.stopPropagation();
+        player.previewSeam(i);
+      }
+    }, "\u27F2\u266A"), i + 1 < segments.length && /*#__PURE__*/React.createElement("span", {
+      className: "x tip",
+      "data-tip": t.audition_next_tip,
+      onClick: e => {
+        e.stopPropagation();
+        player.previewTransition(i, i + 1);
+      }
+    }, "\u2192\u266A"), /*#__PURE__*/React.createElement("span", {
       className: "x tip",
       "data-tip": t.stinger_tip,
       style: {
@@ -2910,12 +3714,302 @@ function App() {
         removeSeg(i);
       }
     }, "\u2715"));
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "panel"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "collapse-head",
+    onClick: () => setProjectOpen(o => !o)
+  }, /*#__PURE__*/React.createElement("span", {
+    className: 'caret' + (projectOpen ? ' open' : '')
+  }, "\u25B6"), /*#__PURE__*/React.createElement("div", {
+    className: "panel-title",
+    style: {
+      marginBottom: 0
+    }
+  }, t.project_title)), project && /*#__PURE__*/React.createElement("input", {
+    className: "proj-name",
+    value: project.name,
+    onChange: e => editProject(p => ({
+      ...p,
+      name: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, projects.length > 0 && /*#__PURE__*/React.createElement("select", {
+    className: "proj-select",
+    value: project ? project.id : '',
+    onChange: e => e.target.value ? openProject(e.target.value) : (setProject(null), localStorage.removeItem('musslop_project'))
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, t.project_none), projects.map(p => /*#__PURE__*/React.createElement("option", {
+    key: p.id,
+    value: p.id
+  }, p.name, " \xB7 ", p.n_items))), /*#__PURE__*/React.createElement("button", {
+    onClick: createProject
+  }, "+ ", t.project_new), project && /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    title: t.project_delete_tip,
+    onClick: () => confirm(`${t.project_delete_confirm} "${project.name}"?`) && deleteProject(project.id)
+  }, "\u2715"))), projectOpen && !project && /*#__PURE__*/React.createElement("div", {
+    className: "hint",
+    style: {
+      marginTop: 8
+    }
+  }, t.project_hint), projectOpen && project && /*#__PURE__*/React.createElement("div", {
+    className: "proj-groups"
+  }, project.groups.map((g, gi) => /*#__PURE__*/React.createElement("div", {
+    key: g.id,
+    className: "proj-group"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "proj-group-head"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "proj-group-name",
+    value: g.name,
+    onChange: e => renameGroup(g.id, e.target.value)
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "count"
+  }, "(", g.items.length, ")"), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    title: t.project_move_up,
+    onClick: () => moveGroup(g.id, -1)
+  }, "\u2191"), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    title: t.project_move_down,
+    onClick: () => moveGroup(g.id, 1)
+  }, "\u2193"), trackId && /*#__PURE__*/React.createElement("button", {
+    className: "ghost small",
+    onClick: () => addItem(g.id),
+    title: t.project_add_track_tip
+  }, "+ \u266B ", t.project_add_track), trackId && scenes.length > 0 && /*#__PURE__*/React.createElement("select", {
+    className: "proj-select small",
+    value: "",
+    onChange: e => {
+      if (e.target.value) addItem(g.id, e.target.value);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "+ ", t.project_add_scene), scenes.map(sc => /*#__PURE__*/React.createElement("option", {
+    key: sc.id,
+    value: sc.id
+  }, sc.name))), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    style: {
+      marginLeft: 'auto'
+    },
+    title: t.project_group_delete,
+    onClick: () => (g.items.length === 0 || confirm(t.project_group_delete_confirm)) && removeGroup(g.id)
+  }, "\u2715")), g.items.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "hint",
+    style: {
+      margin: '4px 0 0 14px'
+    }
+  }, t.project_group_empty), g.items.map(it => {
+    const isCur = it.track_id === trackId && (!it.scene_id || player.playing && (scenes.find(s => s.id === it.scene_id) || {}).segIndex === player.segIndex);
+    return /*#__PURE__*/React.createElement("div", {
+      key: it.id,
+      className: 'proj-item' + (isCur ? ' active' : '') + (it.available === false ? ' missing' : ''),
+      onClick: () => openItem(it),
+      title: t.project_item_open_tip
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "proj-item-icon"
+    }, it.scene_id ? '◈' : '♫'), /*#__PURE__*/React.createElement("span", {
+      className: "proj-item-name"
+    }, it.scene_id ? /*#__PURE__*/React.createElement("span", null, it.scene_name || '?', " ", /*#__PURE__*/React.createElement("span", {
+      className: "time"
+    }, "\xB7 ", it.track_name || it.track_id)) : it.track_name || it.track_id, it.available === false && /*#__PURE__*/React.createElement("span", {
+      className: "time",
+      style: {
+        color: 'var(--danger)',
+        marginLeft: 6
+      }
+    }, t.project_item_missing)), /*#__PURE__*/React.createElement("input", {
+      className: "proj-note",
+      placeholder: t.project_note_ph,
+      value: it.note || '',
+      onClick: e => e.stopPropagation(),
+      onChange: e => noteItem(g.id, it.id, e.target.value)
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "x",
+      onClick: e => {
+        e.stopPropagation();
+        moveItem(g.id, it.id, -1);
+      }
+    }, "\u2191"), /*#__PURE__*/React.createElement("span", {
+      className: "x",
+      onClick: e => {
+        e.stopPropagation();
+        moveItem(g.id, it.id, 1);
+      }
+    }, "\u2193"), /*#__PURE__*/React.createElement("span", {
+      className: "x",
+      onClick: e => {
+        e.stopPropagation();
+        removeItem(g.id, it.id);
+      }
+    }, "\u2715"));
+  }))), /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: addGroup
+  }, "+ ", t.project_add_group))), analysis && /*#__PURE__*/React.createElement("div", {
+    className: "panel"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "panel-title",
+    style: {
+      marginBottom: 0
+    }
+  }, t.scenes_title), /*#__PURE__*/React.createElement("span", {
+    className: "count"
+  }, "(", scenes.length, ")")), /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "primary",
+    onClick: () => captureScene(),
+    title: t.scene_capture_tip,
+    disabled: !segments[player.segIndex]
+  }, "+ ", t.scene_capture))), /*#__PURE__*/React.createElement("div", {
+    className: "hint",
+    style: {
+      marginTop: 6
+    }
+  }, t.scenes_hint), scenes.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "scene-grid"
+  }, scenes.map(sc => {
+    const seg = segments[sc.segIndex];
+    const isActive = player.playing && sc.segIndex === player.segIndex;
+    const isQueued = player.pendingTarget() === sc.segIndex;
+    const col = seg ? SEG_COLORS[(seg.group ? seg.group.charCodeAt(0) - 65 : sc.segIndex) % SEG_COLORS.length] : 'var(--muted)';
+    const layerSummary = sc.layers ? ['drums', 'bass', 'other', 'vocals'].filter(n => sc.layers[n] && sc.layers[n].on).map(n => t['layer_' + n][0]).join('') : null;
+    return /*#__PURE__*/React.createElement("div", {
+      key: sc.id,
+      className: 'scene-card' + (isActive ? ' active' : '') + (isQueued ? ' queued' : ''),
+      style: {
+        '--scene-col': col
+      },
+      onClick: () => applyScene(sc)
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "scene-head"
+    }, sc.hotkey && /*#__PURE__*/React.createElement("kbd", null, sc.hotkey), /*#__PURE__*/React.createElement("input", {
+      className: "scene-name",
+      value: sc.name,
+      onClick: e => e.stopPropagation(),
+      onChange: e => updateScene(sc.id, {
+        name: e.target.value
+      })
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "x",
+      onClick: e => {
+        e.stopPropagation();
+        setSceneMenu(sceneMenu === sc.id ? null : sc.id);
+      }
+    }, "\u22EF")), /*#__PURE__*/React.createElement("div", {
+      className: "scene-meta"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "dot",
+      style: {
+        background: col
+      }
+    }), /*#__PURE__*/React.createElement("span", null, seg ? seg.label : '–'), layerSummary != null && /*#__PURE__*/React.createElement("span", {
+      className: "time",
+      title: t.scene_layers_tip
+    }, "\u25A4 ", layerSummary || '—'), sc.rate != null && sc.rate !== 1 && /*#__PURE__*/React.createElement("span", {
+      className: "time"
+    }, "\xD7", sc.rate.toFixed(2)), sc.reverb > 0 && /*#__PURE__*/React.createElement("span", {
+      className: "time"
+    }, "\u224B", Math.round(sc.reverb * 100), "%"), /*#__PURE__*/React.createElement("span", {
+      className: "time"
+    }, t['cue_' + (sc.cueMode || 'natural')])), isActive && /*#__PURE__*/React.createElement("div", {
+      className: "scene-state"
+    }, t.scene_on_air), isQueued && /*#__PURE__*/React.createElement("div", {
+      className: "scene-state"
+    }, t.queued_badge), sceneMenu === sc.id && /*#__PURE__*/React.createElement("div", {
+      className: "dropdown-menu",
+      style: {
+        left: 'auto',
+        right: 0
+      },
+      onClick: e => e.stopPropagation()
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "dropdown-item",
+      onClick: () => {
+        applyScene(sc, 'now');
+        setSceneMenu(null);
+      }
+    }, t.scene_go_now), /*#__PURE__*/React.createElement("div", {
+      className: "dropdown-item",
+      onClick: () => {
+        // overwrite the scene with the current player state
+        updateScene(sc.id, {
+          segIndex: player.segIndex,
+          layers: stemsState === 'ready' ? JSON.parse(JSON.stringify(layers)) : sc.layers,
+          rate,
+          crossfade,
+          reverb: reverbAmt,
+          cueMode
+        });
+        setSceneMenu(null);
+        showToast(t.scene_updated);
+      }
+    }, t.scene_update), /*#__PURE__*/React.createElement("div", {
+      className: "dropdown-item"
+    }, t.scene_hotkey, ": ", /*#__PURE__*/React.createElement("select", {
+      value: sc.hotkey || '',
+      onChange: e => {
+        updateScene(sc.id, {
+          hotkey: e.target.value || null
+        });
+      }
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "\u2014"), '123456789'.split('').map(k => /*#__PURE__*/React.createElement("option", {
+      key: k,
+      value: k,
+      disabled: scenes.some(o => o.id !== sc.id && o.hotkey === k)
+    }, k)))), /*#__PURE__*/React.createElement("div", {
+      className: "dropdown-item"
+    }, t.cue_mode, " ", /*#__PURE__*/React.createElement("select", {
+      value: sc.cueMode || 'natural',
+      onChange: e => updateScene(sc.id, {
+        cueMode: e.target.value
+      })
+    }, ['natural', 'soon', 'now'].map(m => /*#__PURE__*/React.createElement("option", {
+      key: m,
+      value: m
+    }, t['cue_' + m])))), /*#__PURE__*/React.createElement("div", {
+      className: "dropdown-item",
+      style: {
+        color: 'var(--danger)'
+      },
+      onClick: () => {
+        removeScene(sc.id);
+        setSceneMenu(null);
+      }
+    }, "\u2715 ", t.scene_delete)));
   }))), analysis && /*#__PURE__*/React.createElement("div", {
     className: "panel"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "panel-title"
-  }, t.player_title), /*#__PURE__*/React.createElement("div", {
     className: "row between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "panel-title",
+    style: {
+      marginBottom: 0
+    }
+  }, t.player_title), /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: () => setLiveMode(true),
+    title: t.live_tip
+  }, "\u26F6 ", t.live_btn)), /*#__PURE__*/React.createElement("div", {
+    className: "row between",
+    style: {
+      marginTop: 12
+    }
   }, /*#__PURE__*/React.createElement("div", {
     className: "row"
   }, !player.playing ? /*#__PURE__*/React.createElement("button", {
@@ -2927,17 +4021,58 @@ function App() {
     className: 'go' + (player.advanceArmed ? ' armed' : ''),
     disabled: !player.playing || player.segIndex >= segments.length - 1,
     onClick: () => player.advance()
-  }, player.advanceArmed ? t.next_armed : t.next)), /*#__PURE__*/React.createElement("div", {
+  }, player.advanceArmed ? t.next_armed : t.next), player.pendingTarget() != null && /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: () => player.cancelCue(),
+    title: t.cancel_cue_tip
+  }, "\u2715 ", t.cancel_cue), player.previewing && /*#__PURE__*/React.createElement("span", {
+    className: "status"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "eq"
+  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), t.previewing, /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    onClick: () => player.stopPreview()
+  }, "\u25A0"))), /*#__PURE__*/React.createElement("div", {
     className: "now"
   }, player.playing && /*#__PURE__*/React.createElement("span", {
     className: "eq"
-  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), player.playing ? /*#__PURE__*/React.createElement("span", null, t.playing, " ", /*#__PURE__*/React.createElement("b", null, segments[player.segIndex] ? segments[player.segIndex].label : '–'), "\xA0\xB7 ", t.pass, player.loopCount, t.pass_suffix || '', player.advanceArmed && ' ' + t.transition_planned) : /*#__PURE__*/React.createElement("span", null, t.selected, " ", /*#__PURE__*/React.createElement("b", null, segments[player.segIndex] ? segments[player.segIndex].label : '–')))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), player.playing ? /*#__PURE__*/React.createElement("span", null, t.playing, " ", /*#__PURE__*/React.createElement("b", null, segments[player.segIndex] ? segments[player.segIndex].label : '–'), "\xA0\xB7 ", t.pass, player.loopCount, t.pass_suffix || '', (() => {
+    const tgt = player.pendingTarget();
+    if (tgt == null || !segments[tgt]) return null;
+    const eta = player.transitionEta();
+    return /*#__PURE__*/React.createElement("span", null, " \u2192 ", /*#__PURE__*/React.createElement("b", null, segments[tgt].label), eta != null && /*#__PURE__*/React.createElement("span", {
+      className: "time",
+      style: {
+        marginLeft: 6
+      }
+    }, eta.toFixed(0), "s"));
+  })()) : /*#__PURE__*/React.createElement("span", null, t.selected, " ", /*#__PURE__*/React.createElement("b", null, segments[player.segIndex] ? segments[player.segIndex].label : '–')))), /*#__PURE__*/React.createElement("div", {
     className: "row",
     style: {
       marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "badge"
+    className: "badge tip",
+    "data-tip": t.cue_mode_tip
+  }, t.cue_mode), /*#__PURE__*/React.createElement("div", {
+    className: "lang-switch"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: cueMode === 'natural' ? 'on' : '',
+    onClick: () => setCueMode('natural'),
+    title: t.cue_natural_tip
+  }, t.cue_natural), /*#__PURE__*/React.createElement("button", {
+    className: cueMode === 'soon' ? 'on' : '',
+    onClick: () => setCueMode('soon'),
+    title: t.cue_soon_tip
+  }, t.cue_soon), /*#__PURE__*/React.createElement("button", {
+    className: cueMode === 'now' ? 'on' : '',
+    onClick: () => setCueMode('now'),
+    title: t.cue_now_tip
+  }, t.cue_now)), /*#__PURE__*/React.createElement("span", {
+    className: "badge",
+    style: {
+      marginLeft: 12
+    }
   }, t.trans_mode), /*#__PURE__*/React.createElement("div", {
     className: "lang-switch"
   }, /*#__PURE__*/React.createElement("button", {
@@ -3118,7 +4253,111 @@ function App() {
   }, t.keys_hint)), /*#__PURE__*/React.createElement("footer", null, t.footer, " \xB7 ", /*#__PURE__*/React.createElement("a", {
     href: "https://github.com/Siziff/musslop",
     target: "_blank"
-  }, "GitHub")), toast && /*#__PURE__*/React.createElement("div", {
+  }, "GitHub")), liveMode && analysis && (() => {
+    const cur = segments[player.segIndex];
+    const tgt = player.pendingTarget();
+    const eta = player.transitionEta();
+    const items = scenes.length ? scenes.map(sc => ({
+      kind: 'scene',
+      sc,
+      segIndex: sc.segIndex,
+      name: sc.name,
+      hotkey: sc.hotkey
+    })) : segments.map((s, i) => ({
+      kind: 'seg',
+      segIndex: i,
+      name: s.label,
+      hotkey: i < 9 ? String(i + 1) : null
+    }));
+    return /*#__PURE__*/React.createElement("div", {
+      className: "live"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "live-top"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "live-title"
+    }, "\u26F6 ", t.live_title, " ", /*#__PURE__*/React.createElement("span", {
+      className: "time"
+    }, trackName)), /*#__PURE__*/React.createElement("div", {
+      className: "row"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "lang-switch"
+    }, ['natural', 'soon', 'now'].map(m => /*#__PURE__*/React.createElement("button", {
+      key: m,
+      className: cueMode === m ? 'on' : '',
+      onClick: () => setCueMode(m)
+    }, t['cue_' + m]))), /*#__PURE__*/React.createElement("button", {
+      className: "ghost",
+      onClick: () => setLiveMode(false)
+    }, "\u2715 ", t.live_exit, " ", /*#__PURE__*/React.createElement("kbd", null, "Esc")))), /*#__PURE__*/React.createElement("div", {
+      className: "live-stage"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "live-now"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "live-label"
+    }, player.playing ? t.live_now : t.live_ready), /*#__PURE__*/React.createElement("div", {
+      className: "live-name"
+    }, cur ? cur.label : '–'), /*#__PURE__*/React.createElement("div", {
+      className: "live-sub"
+    }, player.playing && /*#__PURE__*/React.createElement("span", {
+      className: "eq"
+    }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), player.playing ? `${t.pass}${player.loopCount}` : t.live_press_play)), /*#__PURE__*/React.createElement("div", {
+      className: 'live-next' + (tgt != null ? ' armed' : '')
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "live-label"
+    }, t.live_next), /*#__PURE__*/React.createElement("div", {
+      className: "live-name"
+    }, tgt != null && segments[tgt] ? segments[tgt].label : '—'), /*#__PURE__*/React.createElement("div", {
+      className: "live-sub"
+    }, tgt != null ? eta != null ? `${t.live_in} ${Math.max(0, eta).toFixed(0)} s` : t.live_at_boundary : t.live_pick))), /*#__PURE__*/React.createElement("div", {
+      className: "live-grid"
+    }, items.map((it, k) => {
+      const isOn = player.playing && it.segIndex === player.segIndex;
+      const isQ = tgt != null && it.segIndex === tgt;
+      const seg = segments[it.segIndex];
+      const col = seg ? SEG_COLORS[(seg.group ? seg.group.charCodeAt(0) - 65 : it.segIndex) % SEG_COLORS.length] : 'var(--muted)';
+      return /*#__PURE__*/React.createElement("button", {
+        key: k,
+        className: 'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : ''),
+        style: {
+          '--scene-col': col
+        },
+        onClick: () => {
+          if (it.kind === 'scene') applyScene(it.sc);else if (!player.playing) player.play(it.segIndex);else if (it.segIndex === player.segIndex) player.cancelCue();else player.cue(it.segIndex, cueMode);
+        }
+      }, it.hotkey && /*#__PURE__*/React.createElement("kbd", null, it.hotkey), /*#__PURE__*/React.createElement("span", {
+        className: "live-pad-name"
+      }, it.name), /*#__PURE__*/React.createElement("span", {
+        className: "live-pad-sub"
+      }, isOn ? t.scene_on_air : isQ ? t.queued_badge : seg ? fmt(seg.end - seg.start) : ''));
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "live-bar"
+    }, !player.playing ? /*#__PURE__*/React.createElement("button", {
+      className: "primary big",
+      onClick: () => player.play()
+    }, "\u25B6 ", t.live_play) : /*#__PURE__*/React.createElement("button", {
+      className: "big",
+      onClick: () => player.fadeOut(2.5)
+    }, "\u25E2 ", t.live_fade, " ", /*#__PURE__*/React.createElement("kbd", null, "F")), /*#__PURE__*/React.createElement("button", {
+      className: 'go big' + (player.advanceArmed ? ' armed' : ''),
+      disabled: !player.playing || player.segIndex >= segments.length - 1,
+      onClick: () => player.advance()
+    }, t.next, " ", /*#__PURE__*/React.createElement("kbd", null, "\u2192")), /*#__PURE__*/React.createElement("button", {
+      className: "big",
+      disabled: !player.playing || tgt == null,
+      onClick: () => player.cancelCue()
+    }, "\u2715 ", t.cancel_cue, " ", /*#__PURE__*/React.createElement("kbd", null, "Bksp")), /*#__PURE__*/React.createElement("div", {
+      className: "live-vol"
+    }, /*#__PURE__*/React.createElement("span", null, volume === 0 ? '🔇' : '🔊'), /*#__PURE__*/React.createElement("input", {
+      type: "range",
+      min: "0",
+      max: "1",
+      step: "0.01",
+      value: volume,
+      onChange: e => setVolume(+e.target.value)
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "hint"
+    }, t.live_keys)));
+  })(), toast && /*#__PURE__*/React.createElement("div", {
     className: "toast"
   }, toast), /*#__PURE__*/React.createElement("div", {
     className: "volume-box",

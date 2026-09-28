@@ -259,6 +259,134 @@ def delete_track(track_id: str):
     return {"ok": True}
 
 
+# ----------------------------- Projects (set lists) -------------------------
+# A project groups tracks (and their scenes) for one session / level:
+#   {"id", "name", "created_at", "updated_at",
+#    "groups": [{"id", "name", "items": [{"id", "track_id", "scene_id"|null, "note"}]}]}
+# Stored as uploads/projects/{id}.json; the markup (segments + scenes) stays
+# with the track, the project only references it.
+PROJECTS_DIR = os.path.join(UPLOAD_DIR, "projects")
+os.makedirs(PROJECTS_DIR, exist_ok=True)
+
+
+def _project_path(pid: str) -> str:
+    return os.path.join(PROJECTS_DIR, f"{pid}.json")
+
+
+def _load_project(pid: str) -> dict | None:
+    p = _project_path(pid)
+    if not os.path.exists(p):
+        return None
+    try:
+        with open(p) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _save_project(proj: dict) -> None:
+    proj["updated_at"] = int(__import__("time").time())
+    with open(_project_path(proj["id"]), "w") as f:
+        json.dump(proj, f, ensure_ascii=False)
+
+
+def _clean_project(body: dict, proj: dict) -> dict:
+    """Validate/normalize an incoming project body onto `proj` (in place)."""
+    if "name" in body:
+        proj["name"] = str(body.get("name") or "")[:120]
+    if "groups" in body:
+        groups = []
+        for g in body.get("groups") or []:
+            if not isinstance(g, dict):
+                continue
+            items = []
+            for it in g.get("items") or []:
+                if not isinstance(it, dict) or not it.get("track_id"):
+                    continue
+                items.append({
+                    "id": str(it.get("id") or uuid.uuid4().hex[:8]),
+                    "track_id": str(it["track_id"]),
+                    "scene_id": (str(it["scene_id"]) if it.get("scene_id") else None),
+                    "note": str(it.get("note") or "")[:300],
+                })
+            groups.append({
+                "id": str(g.get("id") or uuid.uuid4().hex[:8]),
+                "name": str(g.get("name") or "")[:120],
+                "items": items,
+            })
+        proj["groups"] = groups
+    return proj
+
+
+def _project_summary(proj: dict) -> dict:
+    n_items = sum(len(g.get("items", [])) for g in proj.get("groups", []))
+    return {"id": proj["id"], "name": proj.get("name", ""),
+            "created_at": proj.get("created_at", 0), "updated_at": proj.get("updated_at", 0),
+            "n_groups": len(proj.get("groups", [])), "n_items": n_items}
+
+
+@app.get("/api/projects")
+def list_projects():
+    items = []
+    for fn in os.listdir(PROJECTS_DIR):
+        if fn.endswith(".json"):
+            proj = _load_project(fn[:-5])
+            if proj:
+                items.append(_project_summary(proj))
+    items.sort(key=lambda x: -x["updated_at"])
+    return {"projects": items}
+
+
+@app.post("/api/projects")
+def create_project(body: dict = Body(...)):
+    pid = uuid.uuid4().hex[:10]
+    proj = {"id": pid, "name": "", "groups": [],
+            "created_at": int(__import__("time").time())}
+    _clean_project(body, proj)
+    if not proj["name"]:
+        proj["name"] = "Project"
+    _save_project(proj)
+    return proj
+
+
+@app.get("/api/projects/{pid}")
+def get_project(pid: str):
+    proj = _load_project(pid)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+    # enrich items with the current track name / scene name / availability
+    for g in proj.get("groups", []):
+        for it in g.get("items", []):
+            tr = TRACKS.get(it["track_id"])
+            it["track_name"] = tr.get("name") if tr else None
+            it["available"] = tr is not None
+            it["scene_name"] = None
+            if tr and it.get("scene_id"):
+                for sc in ((tr.get("markup") or {}).get("scenes") or []):
+                    if isinstance(sc, dict) and sc.get("id") == it["scene_id"]:
+                        it["scene_name"] = sc.get("name")
+    return proj
+
+
+@app.put("/api/projects/{pid}")
+def update_project(pid: str, body: dict = Body(...)):
+    proj = _load_project(pid)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+    _clean_project(body, proj)
+    _save_project(proj)
+    return {"ok": True, "updated_at": proj["updated_at"]}
+
+
+@app.delete("/api/projects/{pid}")
+def delete_project(pid: str):
+    p = _project_path(pid)
+    if not os.path.exists(p):
+        raise HTTPException(404, "Project not found")
+    os.remove(p)
+    return {"ok": True}
+
+
 @app.get("/api/analyze/{track_id}")
 def analyze_track(track_id: str,
                   n_segments: int | None = Query(None, ge=2, le=24),
@@ -591,8 +719,14 @@ def import_url(body: dict = Body(...)):
 
 
 @app.post("/api/export/{track_id}")
-def export_loops(track_id: str, segments: list[dict] = Body(...)):
-    """Cut the track into loops at the boundaries and return a zip of WAV files.
+def export_loops(track_id: str, body: dict | list = Body(...)):
+    """Cut the track into loops at the boundaries and return a zip.
+
+    Body: either a bare list of segments (legacy) or
+    {"segments": [...], "scenes": [...], "tempo": float, "downbeats": [...],
+     "tails": bool} — with the extended form the zip also contains a
+    manifest.json describing loops, transition points and scenes (for game
+    engines), plus optional *_tail.wav files (post-exit tails).
 
     We cut the original file (full quality, 44.1kHz stereo 16bit), not the
     mono analysis WAV. ZIP_STORED: PCM barely compresses with deflate,
@@ -601,6 +735,14 @@ def export_loops(track_id: str, segments: list[dict] = Body(...)):
     track = TRACKS.get(track_id)
     if not track:
         raise HTTPException(404, "Track not found")
+    if isinstance(body, list):
+        segments, scenes, tempo, downbeats, tails = body, [], None, [], False
+    else:
+        segments = body.get("segments") or []
+        scenes = body.get("scenes") or []
+        tempo = body.get("tempo")
+        downbeats = body.get("downbeats") or []
+        tails = bool(body.get("tails"))
     if not segments:
         raise HTTPException(400, "Empty segment list")
 
@@ -626,17 +768,85 @@ def export_loops(track_id: str, segments: list[dict] = Body(...)):
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
+    TAIL_SEC = 1.2
+    manifest_loops = []
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as zf:
         for i, s in enumerate(segments):
-            a, b = int(float(s["start"]) * sr), int(float(s["end"]) * sr)
+            start, end = float(s["start"]), float(s["end"])
+            a, b = int(start * sr), int(end * sr)
             a, b = max(0, a), min(len(y), b)
             if b - a < sr // 10:
                 continue
             wav_io = io.BytesIO()
             sf.write(wav_io, y[a:b], sr, format="WAV", subtype="PCM_16")
             label = re.sub(r"[^\w\-]+", "_", str(s.get("label", f"part{i+1}")))
-            zf.writestr(f"{i+1:02d}_{label}.wav", wav_io.getvalue())
+            fname = f"{i+1:02d}_{label}.wav"
+            zf.writestr(fname, wav_io.getvalue())
+
+            entry = {
+                "index": i,
+                "name": s.get("label", f"part{i+1}"),
+                "file": fname,
+                "start_sec": round(start, 4),
+                "end_sec": round(end, 4),
+                "duration_sec": round((b - a) / sr, 4),
+                "sample_rate": sr,
+                "loop": s.get("loop", True) is not False,
+                # loop repeat may start later than the file start (loopStart)
+                "loop_start_sample": 0,
+                "loop_end_sample": b - a,
+                "stinger": s.get("stinger") or None,
+            }
+            ls = s.get("loopStart")
+            if isinstance(ls, (int, float)) and start < float(ls) < end - 0.5:
+                entry["loop_start_sample"] = int((float(ls) - start) * sr)
+            # phrase / bar grid inside the loop (for "soon" transitions)
+            if downbeats:
+                bars = [round(float(d) - start, 4) for d in downbeats if start <= float(d) < end]
+                entry["downbeats_sec"] = bars
+                entry["transition_points_sec"] = bars[::4] if bars else []
+            if tails:
+                ta, tb = b, min(len(y), b + int(TAIL_SEC * sr))
+                if tb - ta > sr // 20:
+                    t_io = io.BytesIO()
+                    sf.write(t_io, y[ta:tb], sr, format="WAV", subtype="PCM_16")
+                    tname = f"{i+1:02d}_{label}_tail.wav"
+                    zf.writestr(tname, t_io.getvalue())
+                    entry["tail_file"] = tname
+                    entry["tail_sec"] = round((tb - ta) / sr, 4)
+            manifest_loops.append(entry)
+
+        manifest = {
+            "format": "musslop-loops",
+            "version": 1,
+            "track": track.get("name"),
+            "bpm": tempo,
+            "sample_rate": sr,
+            "channels": int(y.shape[1]),
+            "loops": manifest_loops,
+            "scenes": [
+                {
+                    "name": sc.get("name"),
+                    "loop_index": sc.get("segIndex"),
+                    "cue": sc.get("cueMode", "natural"),
+                    "layers": sc.get("layers"),
+                    "rate": sc.get("rate", 1),
+                    "crossfade_sec": sc.get("crossfade", 0),
+                    "reverb": sc.get("reverb", 0),
+                    "hotkey": sc.get("hotkey"),
+                }
+                for sc in scenes
+                if isinstance(sc, dict)
+            ],
+            "notes": (
+                "loop_start_sample/loop_end_sample are relative to the file. "
+                "cue: natural = switch at loop end, soon = at the next transition point, "
+                "now = crossfade immediately. tail_file (if present) is the audio that "
+                "follows the loop end in the original track — play it over the next loop's start."
+            ),
+        }
+        zf.writestr("manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False))
     buf.seek(0)
 
     base = os.path.splitext(track["name"] or "loops")[0]

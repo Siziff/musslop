@@ -56,7 +56,12 @@ models have been downloaded. This is a personal passion project, shared freely.
 | **Transition controls** | outgoing tails, bass-swap, and one-shot stingers (cymbal / boom / riser) help shape section changes |
 | **Build-up detection** | suggests crescendo sections that should play once rather than repeat; loop behaviour is editable |
 | **Full editor** | drag boundaries with bar snapping, split/merge, loop-start markers, Ctrl+Z, zoom + scrollbar, everything auto-saved |
-| **Loop export** | download a ZIP of WAV sections for use in your own audio workflow |
+| **Audition the seam** | ⟲♪ plays the last seconds of a part and then its start; →♪ plays the end of a part into the next one — check a boundary in 6 seconds instead of a whole loop |
+| **Cue any part** | while playing, click any part to queue a transition into it — **natural** (loop end), **soon** (next 4/8-bar phrase) or **now** (short crossfade); cancel with Backspace |
+| **Scenes** | save the player state (part + layers + speed/crossfade/reverb + how to enter) as a named scene with a hotkey 1–9: *Empty corridor*, *Something is close*, *Ambush*, *Aftermath* — all from one track |
+| **Live mode** | full-screen desk for the session (key `L`): big current/next display, scene pads, ETA of the transition, fade-out — editing is locked |
+| **Projects (set lists)** | group tracks and scenes for a whole session or level (*Arrival → Inside → Finale*), with notes; open any item in one click |
+| **Loop export** | ZIP of WAV sections plus `manifest.json` (loop points, phrase transition points, tails, stingers, scenes) — see the [Godot example](examples/godot) |
 
 **Results depend on the source track.** Automatic boundaries are a starting point,
 not a guarantee of perfect loops. Listen to the repeat and transition, adjust the
@@ -91,11 +96,25 @@ ffmpeg is downloaded automatically with the dependencies — no manual install n
 
 1. Open **http://localhost:8801** after starting the server.
 2. Drop an audio file into the track area and let the base analysis identify sections.
-3. Select a section and press **Play** (or **Space**) to loop it.
-4. Press **Next** (or **→ / Enter**) to queue a transition. Playback moves on at the
-   selected loop or phrase boundary, rather than cutting immediately.
-5. Adjust section boundaries if needed; use **Ctrl+Z** to undo an edit.
-6. For game audio prototyping, choose **Files → Loops (zip)** to export WAV loops.
+3. Check a boundary with **⟲♪** (loop seam) or **→♪** (transition into the next part)
+   on its chip; drag the boundary on the waveform if the seam is audible.
+4. Select a section and press **Play** (or **Space**) to loop it.
+5. Press **Next** (or **→ / Enter**) — or click any other part — to queue a transition.
+   Pick when it lands: **natural** (loop end), **soon** (phrase), **now** (crossfade).
+   **Backspace** cancels a queued transition.
+6. Adjust section boundaries if needed; use **Ctrl+Z** to undo an edit.
+7. For game audio prototyping, choose **Files → Loops (zip)** to export WAV loops
+   with `manifest.json`.
+
+## Running a session
+
+1. Set up the player for a moment of the game (part, layers, speed, reverb) and hit
+   **Save scene**. Repeat for every mood you need from this track. Scenes get hotkeys 1–9.
+2. Optionally create a **Project**: groups like *Arrival / Inside / Finale* with the tracks
+   and scenes of the session, plus notes. Items open in one click and start their scene.
+3. At the table press **L** for **Live mode**: a full-screen desk with the current part, what
+   comes next and when, scene pads, **Next**, **Cancel** and **Fade out** (`F`). Editing
+   shortcuts are disabled while Live is on; `Esc` leaves it.
 
 ## Optional neural analysis and layers
 
@@ -161,9 +180,10 @@ plus classic MIR: Ellis 2007 (beat tracking), Foote 2000 (novelty segmentation).
 | `POST /api/upload` · `POST /api/import_url` | file upload / yt-dlp import |
 | `GET /api/analyze/{id}?engine=fast\|deep` | structure analysis |
 | `POST /api/stems/{id}` · `GET /api/stems/{id}/{stem}` | Demucs 4-stem split |
-| `POST /api/export/{id}` | zip of full-quality loop WAVs |
-| `GET/POST /api/markup/{id}` | segment markup persistence |
+| `POST /api/export/{id}` | zip of full-quality loop WAVs + `manifest.json` (body: `{segments, scenes, tempo, downbeats, tails}`) |
+| `GET/POST /api/markup/{id}` | segment markup + scenes persistence |
 | `GET /api/tracks` · `POST /api/favorite/{id}` | history & library |
+| `GET/POST /api/projects` · `GET/PUT/DELETE /api/projects/{pid}` | projects (set lists): groups of track / scene references |
 
 ## Troubleshooting
 
