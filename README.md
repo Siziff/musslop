@@ -57,8 +57,8 @@ models have been downloaded. This is a personal passion project, shared freely.
 | **Build-up detection** | suggests crescendo sections that should play once rather than repeat; loop behaviour is editable |
 | **Full editor** | drag boundaries with bar snapping, split/merge, loop-start markers, Ctrl+Z, zoom + scrollbar, everything auto-saved |
 | **Audition the seam** | ⟲♪ plays the last seconds of a part and then its start; →♪ plays the end of a part into the next one — check a boundary in 6 seconds instead of a whole loop |
-| **Cue any part** | while playing, click any part to queue a transition into it — **natural** (loop end), **soon** (next 4/8-bar phrase) or **now** (short crossfade); cancel with Backspace |
-| **Scenes** | save the player state (part + layers + speed/crossfade/reverb + how to enter) as a named scene with a hotkey 1–9: *Empty corridor*, *Something is close*, *Ambush*, *Aftermath* — all from one track |
+| **Cue any part** | while playing, click any part — or press its key **1–9, 0** (parts 1–10) — to queue a transition into it — **natural** (loop end), **soon** (next 4/8-bar phrase) or **now** (short crossfade); cancel with Backspace |
+| **Scenes** | save the player state (part + layers + speed/crossfade/reverb + how to enter) as a named scene with a hotkey Shift+1–9: *Empty corridor*, *Something is close*, *Ambush*, *Aftermath* — all from one track |
 | **Live mode** | full-screen desk for the session (key `L`): big current/next display, scene pads, ETA of the transition, fade-out — editing is locked |
 | **Projects (set lists)** | group tracks and scenes for a whole session or level (*Arrival → Inside → Finale*), with notes; open any item in one click |
 | **Loop export** | ZIP of WAV sections plus `manifest.json` (loop points, phrase transition points, tails, stingers, scenes) — see the [Godot example](examples/godot) |
@@ -109,7 +109,7 @@ ffmpeg is downloaded automatically with the dependencies — no manual install n
 ## Running a session
 
 1. Set up the player for a moment of the game (part, layers, speed, reverb) and hit
-   **Save scene**. Repeat for every mood you need from this track. Scenes get hotkeys 1–9.
+   **Save scene**. Repeat for every mood you need from this track. Scenes get hotkeys Shift+1–9; plain digits 1–9, 0 cue parts 1–10.
 2. Optionally create a **Project**: groups like *Arrival / Inside / Finale* with the tracks
    and scenes of the session, plus notes. Items open in one click and start their scene.
 3. At the table press **L** for **Live mode**: a full-screen desk with the current part, what

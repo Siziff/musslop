@@ -491,6 +491,9 @@
   .live-pad.on { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2), 0 0 18px var(--glow); }
   .live-pad.queued { border-color: var(--accent); border-style: dashed; border-left-style: solid; }
   .live-pad kbd { font-size: 12px; }
+  .live-pad.scene { background: var(--panel); }
+  .live-pad.first-seg { grid-column: 1; }
+  .chip-key { font-size: 10px; padding: 0 5px; color: var(--muted); }
   .live-pad-name { font-size: 16px; font-weight: 700; }
   .live-pad-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: auto; }
   .live-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 14px; }
@@ -596,7 +599,7 @@ const STR = {
     pass: 'проход №',
     transition_planned: '· переход запланирован',
     selected: 'Выбрана часть:',
-    keys_hint: <span><kbd>Пробел</kbd> — играть/стоп · <kbd>→</kbd> / <kbd>Enter</kbd> — «Дальше» · клик по части во время игры — переход в неё · <kbd>Backspace</kbd> — отменить переход · <kbd>1–9</kbd> — сцены · <kbd>F</kbd> — затухание · <kbd>L</kbd> — Live · <kbd>S</kbd> — разрезать · <kbd>Ctrl+Z</kbd> — отменить правку.</span>,
+    keys_hint: <span><kbd>Пробел</kbd> — играть/стоп · <kbd>→</kbd> / <kbd>Enter</kbd> — «Дальше» · <kbd>1–9</kbd>, <kbd>0</kbd> — переход в часть 1–10 · <kbd>Shift+1–9</kbd> — сцены · <kbd>Backspace</kbd> — отменить переход · <kbd>F</kbd> — затухание · <kbd>L</kbd> — Live · <kbd>S</kbd> — разрезать · <kbd>Ctrl+Z</kbd> — отменить правку.</span>,
     history_title: 'История',
     library_title: 'Библиотека ★',
     fav_btn: 'В библиотеку',
@@ -669,7 +672,7 @@ const STR = {
     audition_next_tip: 'Прослушать переход: конец этой части → начало следующей',
     // --- scenes ---
     scenes_title: 'Сцены',
-    scenes_hint: 'Сцена — сохранённое состояние: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Клавиши 1–9 переключают сцены во время игры.',
+    scenes_hint: 'Сцена — сохранённое состояние: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Shift+1–9 переключают сцены во время игры (цифры без Shift — части трека).',
     scene_capture: 'Сохранить сцену',
     scene_capture_tip: 'Запомнить текущее состояние плеера как сцену',
     scene_saved: 'Сцена сохранена:',
@@ -694,7 +697,8 @@ const STR = {
     live_press_play: 'нажми ▶ или пробел',
     live_play: 'Играть',
     live_fade: 'Затухание',
-    live_keys: 'Пробел — играть/стоп · → / Enter — дальше · Backspace — отменить переход · 1–9 — сцены · F — затухание · L / Esc — выйти из Live',
+    live_keys: 'Пробел — играть/стоп · → / Enter — дальше · 1–9, 0 — переход в часть 1–10 · Shift+1–9 — сцены · Backspace — отменить переход · F — затухание · L / Esc — выйти из Live',
+    part_hotkey_tip: 'Клавиша части: нажми во время игры — переход в неё; ещё раз — отмена',
     // --- projects ---
     project_title: 'Проект',
     project_hint: 'Проект — сет-лист сессии или уровня: группы («Прибытие», «Подземелье», «Финал») со ссылками на треки и сцены. Создай проект, открой трек и добавляй его сцены в группы.',
@@ -784,7 +788,7 @@ const STR = {
     pass: 'pass #',
     transition_planned: '· transition scheduled',
     selected: 'Selected part:',
-    keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next” · click a part while playing — queue a transition into it · <kbd>Backspace</kbd> — cancel · <kbd>1–9</kbd> — scenes · <kbd>F</kbd> — fade out · <kbd>L</kbd> — Live · <kbd>S</kbd> — split · <kbd>Ctrl+Z</kbd> — undo.</span>,
+    keys_hint: <span><kbd>Space</kbd> — play/stop · <kbd>→</kbd> / <kbd>Enter</kbd> — “Next” · <kbd>1–9</kbd>, <kbd>0</kbd> — cue part 1–10 · <kbd>Shift+1–9</kbd> — scenes · <kbd>Backspace</kbd> — cancel · <kbd>F</kbd> — fade out · <kbd>L</kbd> — Live · <kbd>S</kbd> — split · <kbd>Ctrl+Z</kbd> — undo.</span>,
     history_title: 'History',
     library_title: 'Library ★',
     fav_btn: 'Add to library',
@@ -857,7 +861,7 @@ const STR = {
     audition_next_tip: 'Audition the transition: end of this part → start of the next one',
     // --- scenes ---
     scenes_title: 'Scenes',
-    scenes_hint: 'A scene is a saved state: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Keys 1–9 switch scenes during the session.',
+    scenes_hint: 'A scene is a saved state: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Shift+1–9 switch scenes during the session (plain digits cue parts).',
     scene_capture: 'Save scene',
     scene_capture_tip: 'Remember the current player state as a scene',
     scene_saved: 'Scene saved:',
@@ -882,7 +886,8 @@ const STR = {
     live_press_play: 'press ▶ or Space',
     live_play: 'Play',
     live_fade: 'Fade out',
-    live_keys: 'Space — play/stop · → / Enter — next · Backspace — cancel transition · 1–9 — scenes · F — fade out · L / Esc — leave Live',
+    live_keys: 'Space — play/stop · → / Enter — next · 1–9, 0 — cue part 1–10 · Shift+1–9 — scenes · Backspace — cancel transition · F — fade out · L / Esc — leave Live',
+    part_hotkey_tip: 'Part hotkey: press while playing to cue this part; press again to cancel',
     // --- projects ---
     project_title: 'Project',
     project_hint: 'A project is the set list of a session or a level: groups (“Arrival”, “Dungeon”, “Finale”) with links to tracks and scenes. Create a project, open a track and add its scenes to the groups.',
@@ -973,7 +978,7 @@ const STR = {
     pass_suffix: '遍',
     transition_planned: '· 已计划切换',
     selected: '已选段落:',
-    keys_hint: <span><kbd>空格</kbd> — 播放/停止 · <kbd>→</kbd> / <kbd>Enter</kbd> — 「下一段」 · 播放时点击某段 — 排队切换到它 · <kbd>Backspace</kbd> — 取消 · <kbd>1–9</kbd> — 场景 · <kbd>F</kbd> — 淡出 · <kbd>L</kbd> — 现场 · <kbd>S</kbd> — 切分 · <kbd>Ctrl+Z</kbd> — 撤销。</span>,
+    keys_hint: <span><kbd>空格</kbd> — 播放/停止 · <kbd>→</kbd> / <kbd>Enter</kbd> — 「下一段」 · <kbd>1–9</kbd>、<kbd>0</kbd> — 切到第 1–10 段 · <kbd>Shift+1–9</kbd> — 场景 · <kbd>Backspace</kbd> — 取消 · <kbd>F</kbd> — 淡出 · <kbd>L</kbd> — 现场 · <kbd>S</kbd> — 切分 · <kbd>Ctrl+Z</kbd> — 撤销。</span>,
     history_title: '历史记录',
     library_title: '收藏库 ★',
     fav_btn: '加入收藏库',
@@ -1046,7 +1051,7 @@ const STR = {
     audition_next_tip: '试听切换：此段结尾 → 下一段开头',
     // --- scenes ---
     scenes_title: '场景',
-    scenes_hint: '场景是保存的状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。演出时用 1–9 键切换场景。',
+    scenes_hint: '场景是保存的状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。演出时用 Shift+1–9 切换场景（不带 Shift 的数字切换段）。',
     scene_capture: '保存场景',
     scene_capture_tip: '将当前播放器状态记为场景',
     scene_saved: '场景已保存：',
@@ -1071,7 +1076,8 @@ const STR = {
     live_press_play: '按 ▶ 或空格',
     live_play: '播放',
     live_fade: '淡出',
-    live_keys: '空格 — 播放/停止 · → / Enter — 下一个 · Backspace — 取消切换 · 1–9 — 场景 · F — 淡出 · L / Esc — 退出现场模式',
+    live_keys: '空格 — 播放/停止 · → / Enter — 下一个 · 1–9、0 — 切到第 1–10 段 · Shift+1–9 — 场景 · Backspace — 取消切换 · F — 淡出 · L / Esc — 退出现场模式',
+    part_hotkey_tip: '段快捷键：播放时按下排队切换到此段；再按一次取消',
     // --- projects ---
     project_title: '项目',
     project_hint: '项目是一次团或一个关卡的曲目单：分组（“到达”“地牢”“终章”）并关联曲目和场景。创建项目，打开曲目，把它的场景加入分组。',
@@ -3212,19 +3218,21 @@ function App() {
       if (e.code === 'Backspace') { e.preventDefault(); player.cancelCue(); }
       if (e.code === 'KeyF' && player.playing) { e.preventDefault(); player.fadeOut(2.5); }
       if (e.code === 'KeyL') { e.preventDefault(); k.setLiveMode(v => !v); }
-      // 1-9: scenes (or parts when there are no scenes)
-      if (/^Digit[1-9]$/.test(e.code)) {
+      // 1-9, 0: parts 1-10 (cue while playing, select/play when stopped).
+      // Shift + 1-9: scenes by hotkey.
+      if (/^(Digit[0-9]|Numpad[0-9])$/.test(e.code)) {
         e.preventDefault();
-        const d = e.code.slice(5);
-        const sc = k.scenes.find(s => s.hotkey === d);
-        if (sc) { k.applyScene(sc); return; }
-        if (!k.scenes.length) {
-          const i = +d - 1;
-          if (i < k.segments.length) {
-            if (!player.playing) player.play(i);
-            else if (i === player.segIndex) player.cancelCue();
-            else player.cue(i, k.cueMode);
-          }
+        const d = e.code.slice(-1);
+        if (e.shiftKey) {
+          const sc = k.scenes.find(s => s.hotkey === d);
+          if (sc) k.applyScene(sc);
+          return;
+        }
+        const i = d === '0' ? 9 : +d - 1;
+        if (i < k.segments.length) {
+          if (!player.playing) player.play(i);
+          else if (i === player.segIndex) player.cancelCue();
+          else player.cue(i, k.cueMode);
         }
         return;
       }
@@ -3431,6 +3439,7 @@ function App() {
                 }}
                 title={player.playing ? t.chip_cue_tip : t.chip_select_tip}>
                 <div className="dot" style={{ background: col }}></div>
+                {i < 10 && <kbd className="chip-key" title={t.part_hotkey_tip}>{(i + 1) % 10}</kbd>}
                 <input value={s.label} onClick={e => e.stopPropagation()}
                   onChange={e => setSegments(segs => {
                     const ns = segs.map(x => ({ ...x }));
@@ -3591,7 +3600,7 @@ function App() {
                 style={{ '--scene-col': col }}
                 onClick={() => applyScene(sc)}>
                 <div className="scene-head">
-                  {sc.hotkey && <kbd>{sc.hotkey}</kbd>}
+                  {sc.hotkey && <kbd>⇧{sc.hotkey}</kbd>}
                   <input className="scene-name" value={sc.name}
                     onClick={e => e.stopPropagation()}
                     onChange={e => updateScene(sc.id, { name: e.target.value })} />
@@ -3620,7 +3629,7 @@ function App() {
                     setSceneMenu(null); showToast(t.scene_updated);
                   }}>{t.scene_update}</div>
                   <div className="dropdown-item">
-                    {t.scene_hotkey}: <select value={sc.hotkey || ''}
+                    {t.scene_hotkey} (⇧): <select value={sc.hotkey || ''}
                       onChange={e => { updateScene(sc.id, { hotkey: e.target.value || null }); }}>
                       <option value="">—</option>
                       {'123456789'.split('').map(k => <option key={k} value={k}
@@ -3780,8 +3789,10 @@ function App() {
         const cur = segments[player.segIndex];
         const tgt = player.pendingTarget();
         const eta = player.transitionEta();
-        const items = scenes.length ? scenes.map(sc => ({ kind: 'scene', sc, segIndex: sc.segIndex, name: sc.name, hotkey: sc.hotkey }))
-          : segments.map((s, i) => ({ kind: 'seg', segIndex: i, name: s.label, hotkey: i < 9 ? String(i + 1) : null }));
+        const items = [
+          ...scenes.map(sc => ({ kind: 'scene', sc, segIndex: sc.segIndex, name: sc.name, hotkey: sc.hotkey ? '⇧' + sc.hotkey : null })),
+          ...segments.map((s, i) => ({ kind: 'seg', segIndex: i, name: s.label, hotkey: i < 10 ? String((i + 1) % 10) : null })),
+        ];
         return (
           <div className="live">
             <div className="live-top">
@@ -3813,12 +3824,13 @@ function App() {
             </div>
             <div className="live-grid">
               {items.map((it, k) => {
+                const firstSeg = it.kind === 'seg' && (k === 0 || items[k - 1].kind === 'scene');
                 const isOn = player.playing && it.segIndex === player.segIndex;
                 const isQ = tgt != null && it.segIndex === tgt;
                 const seg = segments[it.segIndex];
                 const col = seg ? SEG_COLORS[(seg.group ? seg.group.charCodeAt(0) - 65 : it.segIndex) % SEG_COLORS.length] : 'var(--muted)';
                 return (
-                  <button key={k} className={'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : '')}
+                  <button key={k} className={'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : '') + (it.kind === 'scene' ? ' scene' : '') + (firstSeg && k > 0 ? ' first-seg' : '')}
                     style={{ '--scene-col': col }}
                     onClick={() => {
                       if (it.kind === 'scene') applyScene(it.sc);

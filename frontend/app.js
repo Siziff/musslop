@@ -75,7 +75,7 @@ const STR = {
     pass: 'проход №',
     transition_planned: '· переход запланирован',
     selected: 'Выбрана часть:',
-    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u041F\u0440\u043E\u0431\u0435\u043B"), " \u2014 \u0438\u0433\u0440\u0430\u0442\u044C/\u0441\u0442\u043E\u043F \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \xAB\u0414\u0430\u043B\u044C\u0448\u0435\xBB \xB7 \u043A\u043B\u0438\u043A \u043F\u043E \u0447\u0430\u0441\u0442\u0438 \u0432\u043E \u0432\u0440\u0435\u043C\u044F \u0438\u0433\u0440\u044B \u2014 \u043F\u0435\u0440\u0435\u0445\u043E\u0434 \u0432 \u043D\u0435\u0451 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0435\u0440\u0435\u0445\u043E\u0434 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), " \u2014 \u0441\u0446\u0435\u043D\u044B \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 \u0437\u0430\u0442\u0443\u0445\u0430\u043D\u0438\u0435 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 Live \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u0440\u0430\u0437\u0440\u0435\u0437\u0430\u0442\u044C \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0440\u0430\u0432\u043A\u0443."),
+    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u041F\u0440\u043E\u0431\u0435\u043B"), " \u2014 \u0438\u0433\u0440\u0430\u0442\u044C/\u0441\u0442\u043E\u043F \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \xAB\u0414\u0430\u043B\u044C\u0448\u0435\xBB \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), ", ", /*#__PURE__*/React.createElement("kbd", null, "0"), " \u2014 \u043F\u0435\u0440\u0435\u0445\u043E\u0434 \u0432 \u0447\u0430\u0441\u0442\u044C 1\u201310 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Shift+1\u20139"), " \u2014 \u0441\u0446\u0435\u043D\u044B \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0435\u0440\u0435\u0445\u043E\u0434 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 \u0437\u0430\u0442\u0443\u0445\u0430\u043D\u0438\u0435 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 Live \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u0440\u0430\u0437\u0440\u0435\u0437\u0430\u0442\u044C \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0440\u0430\u0432\u043A\u0443."),
     history_title: 'История',
     library_title: 'Библиотека ★',
     fav_btn: 'В библиотеку',
@@ -148,7 +148,7 @@ const STR = {
     audition_next_tip: 'Прослушать переход: конец этой части → начало следующей',
     // --- scenes ---
     scenes_title: 'Сцены',
-    scenes_hint: 'Сцена — сохранённое состояние: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Клавиши 1–9 переключают сцены во время игры.',
+    scenes_hint: 'Сцена — сохранённое состояние: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Shift+1–9 переключают сцены во время игры (цифры без Shift — части трека).',
     scene_capture: 'Сохранить сцену',
     scene_capture_tip: 'Запомнить текущее состояние плеера как сцену',
     scene_saved: 'Сцена сохранена:',
@@ -173,7 +173,8 @@ const STR = {
     live_press_play: 'нажми ▶ или пробел',
     live_play: 'Играть',
     live_fade: 'Затухание',
-    live_keys: 'Пробел — играть/стоп · → / Enter — дальше · Backspace — отменить переход · 1–9 — сцены · F — затухание · L / Esc — выйти из Live',
+    live_keys: 'Пробел — играть/стоп · → / Enter — дальше · 1–9, 0 — переход в часть 1–10 · Shift+1–9 — сцены · Backspace — отменить переход · F — затухание · L / Esc — выйти из Live',
+    part_hotkey_tip: 'Клавиша части: нажми во время игры — переход в неё; ещё раз — отмена',
     // --- projects ---
     project_title: 'Проект',
     project_hint: 'Проект — сет-лист сессии или уровня: группы («Прибытие», «Подземелье», «Финал») со ссылками на треки и сцены. Создай проект, открой трек и добавляй его сцены в группы.',
@@ -263,7 +264,7 @@ const STR = {
     pass: 'pass #',
     transition_planned: '· transition scheduled',
     selected: 'Selected part:',
-    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "Space"), " \u2014 play/stop \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u201CNext\u201D \xB7 click a part while playing \u2014 queue a transition into it \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 cancel \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), " \u2014 scenes \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 fade out \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 Live \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 split \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 undo."),
+    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "Space"), " \u2014 play/stop \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u201CNext\u201D \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), ", ", /*#__PURE__*/React.createElement("kbd", null, "0"), " \u2014 cue part 1\u201310 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Shift+1\u20139"), " \u2014 scenes \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 cancel \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 fade out \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 Live \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 split \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 undo."),
     history_title: 'History',
     library_title: 'Library ★',
     fav_btn: 'Add to library',
@@ -336,7 +337,7 @@ const STR = {
     audition_next_tip: 'Audition the transition: end of this part → start of the next one',
     // --- scenes ---
     scenes_title: 'Scenes',
-    scenes_hint: 'A scene is a saved state: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Keys 1–9 switch scenes during the session.',
+    scenes_hint: 'A scene is a saved state: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Shift+1–9 switch scenes during the session (plain digits cue parts).',
     scene_capture: 'Save scene',
     scene_capture_tip: 'Remember the current player state as a scene',
     scene_saved: 'Scene saved:',
@@ -361,7 +362,8 @@ const STR = {
     live_press_play: 'press ▶ or Space',
     live_play: 'Play',
     live_fade: 'Fade out',
-    live_keys: 'Space — play/stop · → / Enter — next · Backspace — cancel transition · 1–9 — scenes · F — fade out · L / Esc — leave Live',
+    live_keys: 'Space — play/stop · → / Enter — next · 1–9, 0 — cue part 1–10 · Shift+1–9 — scenes · Backspace — cancel transition · F — fade out · L / Esc — leave Live',
+    part_hotkey_tip: 'Part hotkey: press while playing to cue this part; press again to cancel',
     // --- projects ---
     project_title: 'Project',
     project_hint: 'A project is the set list of a session or a level: groups (“Arrival”, “Dungeon”, “Finale”) with links to tracks and scenes. Create a project, open a track and add its scenes to the groups.',
@@ -452,7 +454,7 @@ const STR = {
     pass_suffix: '遍',
     transition_planned: '· 已计划切换',
     selected: '已选段落:',
-    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u7A7A\u683C"), " \u2014 \u64AD\u653E/\u505C\u6B62 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u300C\u4E0B\u4E00\u6BB5\u300D \xB7 \u64AD\u653E\u65F6\u70B9\u51FB\u67D0\u6BB5 \u2014 \u6392\u961F\u5207\u6362\u5230\u5B83 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 \u53D6\u6D88 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), " \u2014 \u573A\u666F \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 \u6DE1\u51FA \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 \u73B0\u573A \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u5207\u5206 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u64A4\u9500\u3002"),
+    keys_hint: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("kbd", null, "\u7A7A\u683C"), " \u2014 \u64AD\u653E/\u505C\u6B62 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "\u2192"), " / ", /*#__PURE__*/React.createElement("kbd", null, "Enter"), " \u2014 \u300C\u4E0B\u4E00\u6BB5\u300D \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "1\u20139"), "\u3001", /*#__PURE__*/React.createElement("kbd", null, "0"), " \u2014 \u5207\u5230\u7B2C 1\u201310 \u6BB5 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Shift+1\u20139"), " \u2014 \u573A\u666F \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Backspace"), " \u2014 \u53D6\u6D88 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "F"), " \u2014 \u6DE1\u51FA \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "L"), " \u2014 \u73B0\u573A \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "S"), " \u2014 \u5207\u5206 \xB7 ", /*#__PURE__*/React.createElement("kbd", null, "Ctrl+Z"), " \u2014 \u64A4\u9500\u3002"),
     history_title: '历史记录',
     library_title: '收藏库 ★',
     fav_btn: '加入收藏库',
@@ -525,7 +527,7 @@ const STR = {
     audition_next_tip: '试听切换：此段结尾 → 下一段开头',
     // --- scenes ---
     scenes_title: '场景',
-    scenes_hint: '场景是保存的状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。演出时用 1–9 键切换场景。',
+    scenes_hint: '场景是保存的状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。演出时用 Shift+1–9 切换场景（不带 Shift 的数字切换段）。',
     scene_capture: '保存场景',
     scene_capture_tip: '将当前播放器状态记为场景',
     scene_saved: '场景已保存：',
@@ -550,7 +552,8 @@ const STR = {
     live_press_play: '按 ▶ 或空格',
     live_play: '播放',
     live_fade: '淡出',
-    live_keys: '空格 — 播放/停止 · → / Enter — 下一个 · Backspace — 取消切换 · 1–9 — 场景 · F — 淡出 · L / Esc — 退出现场模式',
+    live_keys: '空格 — 播放/停止 · → / Enter — 下一个 · 1–9、0 — 切到第 1–10 段 · Shift+1–9 — 场景 · Backspace — 取消切换 · F — 淡出 · L / Esc — 退出现场模式',
+    part_hotkey_tip: '段快捷键：播放时按下排队切换到此段；再按一次取消',
     // --- projects ---
     project_title: '项目',
     project_hint: '项目是一次团或一个关卡的曲目单：分组（“到达”“地牢”“终章”）并关联曲目和场景。创建项目，打开曲目，把它的场景加入分组。',
@@ -3227,20 +3230,19 @@ function App() {
         e.preventDefault();
         k.setLiveMode(v => !v);
       }
-      // 1-9: scenes (or parts when there are no scenes)
-      if (/^Digit[1-9]$/.test(e.code)) {
+      // 1-9, 0: parts 1-10 (cue while playing, select/play when stopped).
+      // Shift + 1-9: scenes by hotkey.
+      if (/^(Digit[0-9]|Numpad[0-9])$/.test(e.code)) {
         e.preventDefault();
-        const d = e.code.slice(5);
-        const sc = k.scenes.find(s => s.hotkey === d);
-        if (sc) {
-          k.applyScene(sc);
+        const d = e.code.slice(-1);
+        if (e.shiftKey) {
+          const sc = k.scenes.find(s => s.hotkey === d);
+          if (sc) k.applyScene(sc);
           return;
         }
-        if (!k.scenes.length) {
-          const i = +d - 1;
-          if (i < k.segments.length) {
-            if (!player.playing) player.play(i);else if (i === player.segIndex) player.cancelCue();else player.cue(i, k.cueMode);
-          }
+        const i = d === '0' ? 9 : +d - 1;
+        if (i < k.segments.length) {
+          if (!player.playing) player.play(i);else if (i === player.segIndex) player.cancelCue();else player.cue(i, k.cueMode);
         }
         return;
       }
@@ -3599,7 +3601,10 @@ function App() {
       style: {
         background: col
       }
-    }), /*#__PURE__*/React.createElement("input", {
+    }), i < 10 && /*#__PURE__*/React.createElement("kbd", {
+      className: "chip-key",
+      title: t.part_hotkey_tip
+    }, (i + 1) % 10), /*#__PURE__*/React.createElement("input", {
       value: s.label,
       onClick: e => e.stopPropagation(),
       onChange: e => setSegments(segs => {
@@ -3896,7 +3901,7 @@ function App() {
       onClick: () => applyScene(sc)
     }, /*#__PURE__*/React.createElement("div", {
       className: "scene-head"
-    }, sc.hotkey && /*#__PURE__*/React.createElement("kbd", null, sc.hotkey), /*#__PURE__*/React.createElement("input", {
+    }, sc.hotkey && /*#__PURE__*/React.createElement("kbd", null, "\u21E7", sc.hotkey), /*#__PURE__*/React.createElement("input", {
       className: "scene-name",
       value: sc.name,
       onClick: e => e.stopPropagation(),
@@ -3959,7 +3964,7 @@ function App() {
       }
     }, t.scene_update), /*#__PURE__*/React.createElement("div", {
       className: "dropdown-item"
-    }, t.scene_hotkey, ": ", /*#__PURE__*/React.createElement("select", {
+    }, t.scene_hotkey, " (\u21E7): ", /*#__PURE__*/React.createElement("select", {
       value: sc.hotkey || '',
       onChange: e => {
         updateScene(sc.id, {
@@ -4257,18 +4262,18 @@ function App() {
     const cur = segments[player.segIndex];
     const tgt = player.pendingTarget();
     const eta = player.transitionEta();
-    const items = scenes.length ? scenes.map(sc => ({
+    const items = [...scenes.map(sc => ({
       kind: 'scene',
       sc,
       segIndex: sc.segIndex,
       name: sc.name,
-      hotkey: sc.hotkey
-    })) : segments.map((s, i) => ({
+      hotkey: sc.hotkey ? '⇧' + sc.hotkey : null
+    })), ...segments.map((s, i) => ({
       kind: 'seg',
       segIndex: i,
       name: s.label,
-      hotkey: i < 9 ? String(i + 1) : null
-    }));
+      hotkey: i < 10 ? String((i + 1) % 10) : null
+    }))];
     return /*#__PURE__*/React.createElement("div", {
       className: "live"
     }, /*#__PURE__*/React.createElement("div", {
@@ -4311,13 +4316,14 @@ function App() {
     }, tgt != null ? eta != null ? `${t.live_in} ${Math.max(0, eta).toFixed(0)} s` : t.live_at_boundary : t.live_pick))), /*#__PURE__*/React.createElement("div", {
       className: "live-grid"
     }, items.map((it, k) => {
+      const firstSeg = it.kind === 'seg' && (k === 0 || items[k - 1].kind === 'scene');
       const isOn = player.playing && it.segIndex === player.segIndex;
       const isQ = tgt != null && it.segIndex === tgt;
       const seg = segments[it.segIndex];
       const col = seg ? SEG_COLORS[(seg.group ? seg.group.charCodeAt(0) - 65 : it.segIndex) % SEG_COLORS.length] : 'var(--muted)';
       return /*#__PURE__*/React.createElement("button", {
         key: k,
-        className: 'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : ''),
+        className: 'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : '') + (it.kind === 'scene' ? ' scene' : '') + (firstSeg && k > 0 ? ' first-seg' : ''),
         style: {
           '--scene-col': col
         },
