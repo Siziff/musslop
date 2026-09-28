@@ -136,19 +136,19 @@ const STR = {
     cancel_cue: 'Отменить переход',
     cancel_cue_tip: 'Остаться в текущей части (отменить запланированный переход)',
     cue_mode: 'Когда переходить:',
-    cue_mode_tip: 'Момент перехода при выборе части или сцены: естественно — в конце лупа, скоро — на ближайшей границе фразы, сейчас — немедленно с коротким кроссфейдом',
-    cue_natural: 'естественно',
-    cue_soon: 'скоро',
-    cue_now: 'сейчас',
-    cue_natural_tip: 'Дождаться конца текущего прохода лупа',
-    cue_soon_tip: 'На ближайшей границе фразы (4/8 тактов)',
-    cue_now_tip: 'Немедленно, с коротким кроссфейдом',
+    cue_mode_tip: 'Когда сработает переход — для кнопки «Дальше», клика по части, клавиш 1–9 и сцен: в конце лупа / на ближайшей границе фразы / сразу',
+    cue_natural: 'в конце лупа',
+    cue_soon: 'на фразе',
+    cue_now: 'сразу',
+    cue_natural_tip: 'Дождаться конца текущего прохода лупа — самый музыкальный вариант',
+    cue_soon_tip: 'На ближайшей границе фразы (4 или 8 тактов от начала лупа) — быстрее, но всё ещё по музыке',
+    cue_now_tip: 'Немедленно, с коротким кроссфейдом (~0.25 с) — стык может быть слышен',
     previewing: 'прослушивание стыка…',
     audition_seam_tip: 'Прослушать стык лупа: последние 3 с части → её начало',
     audition_next_tip: 'Прослушать переход: конец этой части → начало следующей',
     // --- scenes ---
     scenes_title: 'Сцены',
-    scenes_hint: 'Сцена — сохранённое состояние: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Shift+1–9 переключают сцены во время игры (цифры без Shift — части трека).',
+    scenes_hint: 'Сцена — сохранённое состояние трека: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Сцены других треков показаны ниже — клик загрузит трек и запустит сцену. Shift+1–9 переключают сцены (цифры без Shift — части).',
     scene_capture: 'Сохранить сцену',
     scene_capture_tip: 'Запомнить текущее состояние плеера как сцену',
     scene_saved: 'Сцена сохранена:',
@@ -173,6 +173,23 @@ const STR = {
     live_press_play: 'нажми ▶ или пробел',
     live_play: 'Играть',
     live_fade: 'Затухание',
+    drawer_tip: 'Проекты · Библиотека · Папки с музыкой',
+    drawer_library: 'Библиотека',
+    drawer_folders: 'Папки',
+    drawer_library_empty: 'Пока пусто — загрузите трек или добавьте папку с музыкой во вкладке «Папки».',
+    folders_hint: 'Укажите папку на этом компьютере — все аудиофайлы из неё (и вложенных папок) появятся списком. Клик по файлу импортирует его один раз и открывает как обычный трек.',
+    folders_ph: '/путь/к/папке/с/музыкой',
+    folders_add: 'Добавить',
+    folders_err: 'Папка не найдена',
+    folders_missing: 'папка недоступна',
+    folders_rescan: 'Пересканировать',
+    folders_remove: 'Убрать папку из списка (файлы не удаляются)',
+    folders_scanning: 'Сканирую…',
+    folders_none: 'Аудиофайлов не найдено',
+    folders_importing: 'Импортирую файл из папки…',
+    scenes_this_track: 'Этот трек',
+    scenes_other_track: 'Трек:',
+    scene_remote_tip: 'Сцена другого трека: клик загрузит трек и запустит сцену',
     live_keys: 'Пробел — играть/стоп · → / Enter — дальше · 1–9, 0 — переход в часть 1–10 · Shift+1–9 — сцены · Backspace — отменить переход · F — затухание · L / Esc — выйти из Live',
     part_hotkey_tip: 'Клавиша части: нажми во время игры — переход в неё; ещё раз — отмена',
     // --- projects ---
@@ -325,19 +342,19 @@ const STR = {
     cancel_cue: 'Cancel transition',
     cancel_cue_tip: 'Stay in the current part (cancel the scheduled transition)',
     cue_mode: 'Move on:',
-    cue_mode_tip: 'When to transition after picking a part or a scene: natural — at the loop end, soon — at the nearest phrase boundary, now — immediately with a short crossfade',
-    cue_natural: 'natural',
-    cue_soon: 'soon',
-    cue_now: 'now',
-    cue_natural_tip: 'Wait for the current loop pass to finish',
-    cue_soon_tip: 'At the nearest phrase boundary (4/8 bars)',
-    cue_now_tip: 'Immediately, with a short crossfade',
+    cue_mode_tip: 'When a transition lands — for Next, part clicks, keys 1–9 and scenes: at the loop end / at the nearest phrase boundary / right away',
+    cue_natural: 'at loop end',
+    cue_soon: 'at phrase',
+    cue_now: 'right away',
+    cue_natural_tip: 'Wait for the current loop pass to finish — the most musical option',
+    cue_soon_tip: 'At the nearest phrase boundary (4 or 8 bars from the loop start) — sooner, still musical',
+    cue_now_tip: 'Immediately, with a short (~0.25 s) crossfade — the seam may be audible',
     previewing: 'auditioning the seam…',
     audition_seam_tip: 'Audition the loop seam: last 3 s of this part → its start',
     audition_next_tip: 'Audition the transition: end of this part → start of the next one',
     // --- scenes ---
     scenes_title: 'Scenes',
-    scenes_hint: 'A scene is a saved state: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Shift+1–9 switch scenes during the session (plain digits cue parts).',
+    scenes_hint: 'A scene is a saved state of a track: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Scenes of other tracks are listed below — clicking loads the track and starts the scene. Shift+1–9 switch scenes (plain digits cue parts).',
     scene_capture: 'Save scene',
     scene_capture_tip: 'Remember the current player state as a scene',
     scene_saved: 'Scene saved:',
@@ -362,6 +379,23 @@ const STR = {
     live_press_play: 'press ▶ or Space',
     live_play: 'Play',
     live_fade: 'Fade out',
+    drawer_tip: 'Projects · Library · Music folders',
+    drawer_library: 'Library',
+    drawer_folders: 'Folders',
+    drawer_library_empty: 'Nothing here yet — load a track or add a music folder in the “Folders” tab.',
+    folders_hint: 'Point musslop at a folder on this computer — every audio file inside (including subfolders) is listed here. Clicking a file imports it once and opens it like any other track.',
+    folders_ph: '/path/to/your/music',
+    folders_add: 'Add',
+    folders_err: 'Folder not found',
+    folders_missing: 'folder unavailable',
+    folders_rescan: 'Rescan',
+    folders_remove: 'Remove folder from the list (files are not deleted)',
+    folders_scanning: 'Scanning…',
+    folders_none: 'No audio files found',
+    folders_importing: 'Importing file from folder…',
+    scenes_this_track: 'This track',
+    scenes_other_track: 'Track:',
+    scene_remote_tip: 'Scene of another track: click loads the track and starts the scene',
     live_keys: 'Space — play/stop · → / Enter — next · 1–9, 0 — cue part 1–10 · Shift+1–9 — scenes · Backspace — cancel transition · F — fade out · L / Esc — leave Live',
     part_hotkey_tip: 'Part hotkey: press while playing to cue this part; press again to cancel',
     // --- projects ---
@@ -515,10 +549,10 @@ const STR = {
     cancel_cue: '取消切换',
     cancel_cue_tip: '留在当前段（取消已安排的切换）',
     cue_mode: '切换时机：',
-    cue_mode_tip: '选择段或场景后何时切换：自然 — 循环结束时，稍后 — 最近的乐句边界，立即 — 马上以短交叉淡化切换',
-    cue_natural: '自然',
-    cue_soon: '稍后',
-    cue_now: '立即',
+    cue_mode_tip: '切换何时发生 — 适用于“下一段”、点击段、1–9 键和场景：循环结束 / 最近的乐句边界 / 马上',
+    cue_natural: '循环结束',
+    cue_soon: '乐句边界',
+    cue_now: '马上',
     cue_natural_tip: '等待当前循环结束',
     cue_soon_tip: '在最近的乐句边界（4/8 小节）',
     cue_now_tip: '立即切换，带短交叉淡化',
@@ -527,7 +561,7 @@ const STR = {
     audition_next_tip: '试听切换：此段结尾 → 下一段开头',
     // --- scenes ---
     scenes_title: '场景',
-    scenes_hint: '场景是保存的状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。演出时用 Shift+1–9 切换场景（不带 Shift 的数字切换段）。',
+    scenes_hint: '场景是曲目的保存状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。其他曲目的场景列在下方 — 点击会加载曲目并启动场景。Shift+1–9 切换场景（不带 Shift 的数字切换段）。',
     scene_capture: '保存场景',
     scene_capture_tip: '将当前播放器状态记为场景',
     scene_saved: '场景已保存：',
@@ -552,6 +586,23 @@ const STR = {
     live_press_play: '按 ▶ 或空格',
     live_play: '播放',
     live_fade: '淡出',
+    drawer_tip: '项目 · 收藏库 · 音乐文件夹',
+    drawer_library: '收藏库',
+    drawer_folders: '文件夹',
+    drawer_library_empty: '暂无内容 — 加载曲目，或在“文件夹”标签添加音乐文件夹。',
+    folders_hint: '指定本机上的文件夹 — 其中（含子文件夹）的所有音频文件都会列出。点击文件会导入一次并像普通曲目一样打开。',
+    folders_ph: '/音乐/文件夹/路径',
+    folders_add: '添加',
+    folders_err: '未找到文件夹',
+    folders_missing: '文件夹不可用',
+    folders_rescan: '重新扫描',
+    folders_remove: '从列表移除文件夹（不删除文件）',
+    folders_scanning: '扫描中…',
+    folders_none: '未找到音频文件',
+    folders_importing: '正在从文件夹导入…',
+    scenes_this_track: '当前曲目',
+    scenes_other_track: '曲目：',
+    scene_remote_tip: '其他曲目的场景：点击将加载该曲目并启动场景',
     live_keys: '空格 — 播放/停止 · → / Enter — 下一个 · 1–9、0 — 切到第 1–10 段 · Shift+1–9 — 场景 · Backspace — 取消切换 · F — 淡出 · L / Esc — 退出现场模式',
     part_hotkey_tip: '段快捷键：播放时按下排队切换到此段；再按一次取消',
     // --- projects ---
@@ -626,7 +677,7 @@ class LoopPlayer {
     this.crossfade = 0; // sec, 0 = seam at the boundary with a micro-fade
     this.reverb = 0; // 0..1 wet level ("slowed + reverb" style)
     this.rate = 1; // playback speed (0.5..1.5); changes tempo AND pitch
-    this.transitionMode = 'loop'; // 'loop' = at loop end, 'phrase' = phrase boundary
+    this.transitionMode = 'natural'; // natural | soon | now // 'loop' = at loop end, 'phrase' = phrase boundary
     this.phraseBars = 4; // phrase length in bars for 'phrase' mode
     this.tailEnabled = true; // post-exit: the old part's tail rings out
     this.TAIL = 1.2; // tail seconds
@@ -1171,10 +1222,10 @@ class LoopPlayer {
       this.onState();
     }
   }
-  // "Next": queue the following part (the default transition mode)
+  // "Next": queue the following part using the global transition mode
   advance() {
     if (!this.playing) return;
-    this.cue(this.segIndex + 1, this.transitionMode === 'phrase' ? 'soon' : 'natural');
+    this.cue(this.segIndex + 1, this.transitionMode || 'natural');
   }
   // Queue a transition into part `target`.
   //  urgency: 'natural' — at the end of the current loop pass;
@@ -2203,9 +2254,9 @@ function App() {
   const [rate, setRateState] = useState(1);
   const [crossfade, setCrossfade] = useState(0); // sec
   const [reverbAmt, setReverbAmt] = useState(0); // 0..1 wet
-  const [transMode, setTransMode] = useState('loop'); // 'loop' | 'phrase'
   const [phraseBars, setPhraseBars] = useState(4); // 4 or 8 bars
-  // cue urgency for "go to part": natural (loop end) | soon (phrase) | now
+  // when a transition lands (Next, part click, hotkeys, scenes):
+  // natural (loop end) | soon (phrase boundary) | now (short crossfade)
   const [cueMode, setCueMode] = useState('natural');
   // --- Scenes: saved playback states of this track (part + layers + fx) ----
   const [scenes, setScenesRaw] = useState([]);
@@ -2266,8 +2317,8 @@ function App() {
     player.setReverb(reverbAmt);
   }, [reverbAmt]);
   useEffect(() => {
-    player.transitionMode = transMode;
-  }, [transMode]);
+    player.transitionMode = cueMode;
+  }, [cueMode]);
   useEffect(() => {
     player.phraseBars = phraseBars;
   }, [phraseBars]);
@@ -2635,7 +2686,7 @@ function App() {
           segments,
           scenes
         })
-      }).catch(() => {});
+      }).then(() => loadAllScenes()).catch(() => {});
     }, 1200);
     return () => clearTimeout(saveT.current);
   }, [trackId, segments, analysis, scenes]);
@@ -2733,7 +2784,125 @@ function App() {
   // tracks / scenes from the list during play.
   const [projects, setProjects] = useState([]); // summaries
   const [project, setProject] = useState(null); // the open project (full)
-  const [projectOpen, setProjectOpen] = useState(true);
+  // --- side drawer ------------------------------------------------------------
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState(() => localStorage.getItem('musslop_drawer_tab') || 'library');
+  useEffect(() => {
+    localStorage.setItem('musslop_drawer_tab', drawerTab);
+  }, [drawerTab]);
+  // --- music folders -----------------------------------------------------------
+  const [folders, setFolders] = useState([]);
+  const [folderInput, setFolderInput] = useState('');
+  const [folderError, setFolderError] = useState(null);
+  const [folderFiles, setFolderFiles] = useState({}); // path -> files[] | undefined (scanning)
+  const [openFolders, setOpenFolders] = useState({});
+  const loadFolders = useCallback(async () => {
+    try {
+      const r = await fetch('/api/folders');
+      if (r.ok) setFolders((await r.json()).folders);
+    } catch (e) {}
+  }, []);
+  useEffect(() => {
+    loadFolders();
+  }, []);
+  const scanFolder = async path => {
+    setFolderFiles(ff => ({
+      ...ff,
+      [path]: undefined
+    }));
+    try {
+      const r = await fetch(`/api/folders/scan?path=${encodeURIComponent(path)}`);
+      const files = r.ok ? (await r.json()).files : [];
+      setFolderFiles(ff => ({
+        ...ff,
+        [path]: files
+      }));
+    } catch (e) {
+      setFolderFiles(ff => ({
+        ...ff,
+        [path]: []
+      }));
+    }
+  };
+  const toggleFolder = path => {
+    const open = !openFolders[path];
+    setOpenFolders(o => ({
+      ...o,
+      [path]: open
+    }));
+    if (open && folderFiles[path] === undefined) scanFolder(path);
+  };
+  const addFolder = async () => {
+    const path = folderInput.trim();
+    if (!path) return;
+    setFolderError(null);
+    try {
+      const r = await fetch('/api/folders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          path
+        })
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || t.folders_err);
+      const {
+        path: real
+      } = await r.json();
+      setFolderInput('');
+      await loadFolders();
+      setOpenFolders(o => ({
+        ...o,
+        [real]: true
+      }));
+      scanFolder(real);
+    } catch (e) {
+      setFolderError(String(e.message || e));
+    }
+  };
+  const removeFolder = async path => {
+    await fetch(`/api/folders?path=${encodeURIComponent(path)}`, {
+      method: 'DELETE'
+    });
+    loadFolders();
+  };
+  // click on a file: import (once) then open like a history item
+  const openFolderFile = async (root, file) => {
+    setError(null);
+    try {
+      setLoading(t.folders_importing);
+      const r = await fetch('/api/folders/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          path: file.path
+        })
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || t.err_upload);
+      const {
+        track_id,
+        name
+      } = await r.json();
+      loadHistory();
+      setFolderFiles(ff => ({
+        ...ff,
+        [root]: (ff[root] || []).map(x => x.path === file.path ? {
+          ...x,
+          track_id
+        } : x)
+      }));
+      await openFromHistory({
+        track_id,
+        name
+      });
+    } catch (e) {
+      setError(String(e.message || e));
+      setLoading(null);
+    }
+  };
   const projSaveT = useRef(null);
   const loadProjects = useCallback(async () => {
     try {
@@ -2991,6 +3160,40 @@ function App() {
     setActiveScene(scene.id);
   };
   const [activeScene, setActiveScene] = useState(null);
+  // scenes of ALL tracks (server-side list) -> cross-track scene switching
+  const [allScenes, setAllScenes] = useState([]);
+  const loadAllScenes = useCallback(async () => {
+    try {
+      const r = await fetch('/api/scenes');
+      if (r.ok) setAllScenes((await r.json()).scenes);
+    } catch (e) {}
+  }, []);
+  useEffect(() => {
+    loadAllScenes();
+  }, []);
+  // scenes of other tracks, grouped by track (current track's scenes come from `scenes`)
+  const otherSceneGroups = (() => {
+    const g = {};
+    for (const sc of allScenes) {
+      if (sc.track_id === trackId) continue;
+      (g[sc.track_id] = g[sc.track_id] || {
+        track_id: sc.track_id,
+        track_name: sc.track_name,
+        scenes: []
+      }).scenes.push(sc);
+    }
+    return Object.values(g);
+  })();
+  // apply a scene that lives on another track: load that track, then run the scene
+  const applyRemoteScene = async sc => {
+    pendingSceneRef.current = sc.id;
+    await openFromHistory({
+      track_id: sc.track_id,
+      name: sc.track_name
+    });
+  };
+  // Shift+digit: current track's scenes win; otherwise any track's scene with that hotkey
+  const sceneByHotkey = d => scenes.find(s => s.hotkey === d) || allScenes.find(s => s.hotkey === d && s.track_id !== trackId) || null;
   // the active scene highlight follows the playing part
   useEffect(() => {
     if (!scenes.length) return;
@@ -3193,7 +3396,10 @@ function App() {
     cueMode,
     applyScene,
     segments,
-    setLiveMode
+    setLiveMode,
+    sceneByHotkey,
+    applyRemoteScene,
+    trackId
   };
   useEffect(() => {
     const h = e => {
@@ -3236,8 +3442,8 @@ function App() {
         e.preventDefault();
         const d = e.code.slice(-1);
         if (e.shiftKey) {
-          const sc = k.scenes.find(s => s.hotkey === d);
-          if (sc) k.applyScene(sc);
+          const sc = k.sceneByHotkey(d);
+          if (sc) sc.track_id && sc.track_id !== k.trackId ? k.applyRemoteScene(sc) : k.applyScene(sc);
           return;
         }
         const i = d === '0' ? 9 : +d - 1;
@@ -3263,7 +3469,11 @@ function App() {
   }, [liveMode]);
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("header", null, /*#__PURE__*/React.createElement("div", {
     className: "logo"
-  }, /*#__PURE__*/React.createElement("h1", null, theme === 'tavern' ? 'Musslop' : 'musslop'), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    className: 'drawer-btn' + (drawerOpen ? ' on' : ''),
+    onClick: () => setDrawerOpen(o => !o),
+    title: t.drawer_tip
+  }, "\u2630"), /*#__PURE__*/React.createElement("h1", null, theme === 'tavern' ? 'Musslop' : 'musslop'), /*#__PURE__*/React.createElement("div", {
     className: "sub"
   }, t.tagline)), /*#__PURE__*/React.createElement("div", {
     className: "row",
@@ -3373,77 +3583,7 @@ function App() {
       cursor: 'pointer'
     },
     onClick: () => setError(null)
-  }, "\u2715"), t.err_prefix, " ", error), history.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14
-    }
-  }, [{
-    key: 'lib',
-    title: t.library_title,
-    items: history.filter(h => h.favorite)
-  }, {
-    key: 'hist',
-    title: t.history_title,
-    items: history.filter(h => !h.favorite)
-  }].map(group => group.items.length > 0 && /*#__PURE__*/React.createElement("div", {
-    key: group.key,
-    style: {
-      marginBottom: 6
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "collapse-head",
-    onClick: () => setOpenGroups(o => ({
-      ...o,
-      [group.key]: !o[group.key]
-    }))
-  }, /*#__PURE__*/React.createElement("span", {
-    className: 'caret' + (openGroups[group.key] ? ' open' : '')
-  }, "\u25B6"), /*#__PURE__*/React.createElement("div", {
-    className: "panel-title",
-    style: {
-      marginBottom: 0
-    }
-  }, group.title), /*#__PURE__*/React.createElement("span", {
-    className: "count"
-  }, "(", group.items.length, ")")), openGroups[group.key] && /*#__PURE__*/React.createElement("div", {
-    className: "seg-list",
-    style: {
-      marginTop: 6
-    }
-  }, group.items.map(item => /*#__PURE__*/React.createElement("div", {
-    key: item.track_id,
-    className: 'seg-chip' + (item.track_id === trackId ? ' active' : ''),
-    onClick: () => openFromHistory(item),
-    title: t.history_open_tip
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "x",
-    style: {
-      color: item.favorite ? '#ffb84f' : 'var(--muted)',
-      fontSize: 14
-    },
-    title: item.favorite ? t.fav_remove_tip : t.fav_add_tip,
-    onClick: e => toggleFavorite(e, item)
-  }, item.favorite ? '★' : '☆'), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13
-    }
-  }, item.has_markup ? '💾' : '♫'), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 600,
-      maxWidth: 220,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    }
-  }, item.name), item.duration != null && /*#__PURE__*/React.createElement("span", {
-    className: "time"
-  }, fmt(item.duration)), item.n_segments > 0 && /*#__PURE__*/React.createElement("span", {
-    className: "time"
-  }, item.n_segments, " ", t.history_parts), /*#__PURE__*/React.createElement("span", {
-    className: "x",
-    title: t.history_del_tip,
-    onClick: e => deleteFromHistory(e, item)
-  }, "\u2715")))))))), analysis && /*#__PURE__*/React.createElement("div", {
+  }, "\u2715"), t.err_prefix, " ", error)), analysis && /*#__PURE__*/React.createElement("div", {
     className: "panel"
   }, /*#__PURE__*/React.createElement("div", {
     className: "panel-title"
@@ -3719,147 +3859,7 @@ function App() {
         removeSeg(i);
       }
     }, "\u2715"));
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "panel"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "row between"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "row"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "collapse-head",
-    onClick: () => setProjectOpen(o => !o)
-  }, /*#__PURE__*/React.createElement("span", {
-    className: 'caret' + (projectOpen ? ' open' : '')
-  }, "\u25B6"), /*#__PURE__*/React.createElement("div", {
-    className: "panel-title",
-    style: {
-      marginBottom: 0
-    }
-  }, t.project_title)), project && /*#__PURE__*/React.createElement("input", {
-    className: "proj-name",
-    value: project.name,
-    onChange: e => editProject(p => ({
-      ...p,
-      name: e.target.value
-    }))
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "row"
-  }, projects.length > 0 && /*#__PURE__*/React.createElement("select", {
-    className: "proj-select",
-    value: project ? project.id : '',
-    onChange: e => e.target.value ? openProject(e.target.value) : (setProject(null), localStorage.removeItem('musslop_project'))
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, t.project_none), projects.map(p => /*#__PURE__*/React.createElement("option", {
-    key: p.id,
-    value: p.id
-  }, p.name, " \xB7 ", p.n_items))), /*#__PURE__*/React.createElement("button", {
-    onClick: createProject
-  }, "+ ", t.project_new), project && /*#__PURE__*/React.createElement("button", {
-    className: "ghost",
-    title: t.project_delete_tip,
-    onClick: () => confirm(`${t.project_delete_confirm} "${project.name}"?`) && deleteProject(project.id)
-  }, "\u2715"))), projectOpen && !project && /*#__PURE__*/React.createElement("div", {
-    className: "hint",
-    style: {
-      marginTop: 8
-    }
-  }, t.project_hint), projectOpen && project && /*#__PURE__*/React.createElement("div", {
-    className: "proj-groups"
-  }, project.groups.map((g, gi) => /*#__PURE__*/React.createElement("div", {
-    key: g.id,
-    className: "proj-group"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "proj-group-head"
-  }, /*#__PURE__*/React.createElement("input", {
-    className: "proj-group-name",
-    value: g.name,
-    onChange: e => renameGroup(g.id, e.target.value)
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "count"
-  }, "(", g.items.length, ")"), /*#__PURE__*/React.createElement("span", {
-    className: "x",
-    title: t.project_move_up,
-    onClick: () => moveGroup(g.id, -1)
-  }, "\u2191"), /*#__PURE__*/React.createElement("span", {
-    className: "x",
-    title: t.project_move_down,
-    onClick: () => moveGroup(g.id, 1)
-  }, "\u2193"), trackId && /*#__PURE__*/React.createElement("button", {
-    className: "ghost small",
-    onClick: () => addItem(g.id),
-    title: t.project_add_track_tip
-  }, "+ \u266B ", t.project_add_track), trackId && scenes.length > 0 && /*#__PURE__*/React.createElement("select", {
-    className: "proj-select small",
-    value: "",
-    onChange: e => {
-      if (e.target.value) addItem(g.id, e.target.value);
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "+ ", t.project_add_scene), scenes.map(sc => /*#__PURE__*/React.createElement("option", {
-    key: sc.id,
-    value: sc.id
-  }, sc.name))), /*#__PURE__*/React.createElement("span", {
-    className: "x",
-    style: {
-      marginLeft: 'auto'
-    },
-    title: t.project_group_delete,
-    onClick: () => (g.items.length === 0 || confirm(t.project_group_delete_confirm)) && removeGroup(g.id)
-  }, "\u2715")), g.items.length === 0 && /*#__PURE__*/React.createElement("div", {
-    className: "hint",
-    style: {
-      margin: '4px 0 0 14px'
-    }
-  }, t.project_group_empty), g.items.map(it => {
-    const isCur = it.track_id === trackId && (!it.scene_id || player.playing && (scenes.find(s => s.id === it.scene_id) || {}).segIndex === player.segIndex);
-    return /*#__PURE__*/React.createElement("div", {
-      key: it.id,
-      className: 'proj-item' + (isCur ? ' active' : '') + (it.available === false ? ' missing' : ''),
-      onClick: () => openItem(it),
-      title: t.project_item_open_tip
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "proj-item-icon"
-    }, it.scene_id ? '◈' : '♫'), /*#__PURE__*/React.createElement("span", {
-      className: "proj-item-name"
-    }, it.scene_id ? /*#__PURE__*/React.createElement("span", null, it.scene_name || '?', " ", /*#__PURE__*/React.createElement("span", {
-      className: "time"
-    }, "\xB7 ", it.track_name || it.track_id)) : it.track_name || it.track_id, it.available === false && /*#__PURE__*/React.createElement("span", {
-      className: "time",
-      style: {
-        color: 'var(--danger)',
-        marginLeft: 6
-      }
-    }, t.project_item_missing)), /*#__PURE__*/React.createElement("input", {
-      className: "proj-note",
-      placeholder: t.project_note_ph,
-      value: it.note || '',
-      onClick: e => e.stopPropagation(),
-      onChange: e => noteItem(g.id, it.id, e.target.value)
-    }), /*#__PURE__*/React.createElement("span", {
-      className: "x",
-      onClick: e => {
-        e.stopPropagation();
-        moveItem(g.id, it.id, -1);
-      }
-    }, "\u2191"), /*#__PURE__*/React.createElement("span", {
-      className: "x",
-      onClick: e => {
-        e.stopPropagation();
-        moveItem(g.id, it.id, 1);
-      }
-    }, "\u2193"), /*#__PURE__*/React.createElement("span", {
-      className: "x",
-      onClick: e => {
-        e.stopPropagation();
-        removeItem(g.id, it.id);
-      }
-    }, "\u2715"));
-  }))), /*#__PURE__*/React.createElement("button", {
-    className: "ghost",
-    onClick: addGroup
-  }, "+ ", t.project_add_group))), analysis && /*#__PURE__*/React.createElement("div", {
+  }))), (analysis || otherSceneGroups.length > 0) && /*#__PURE__*/React.createElement("div", {
     className: "panel"
   }, /*#__PURE__*/React.createElement("div", {
     className: "row between"
@@ -3872,13 +3872,13 @@ function App() {
     }
   }, t.scenes_title), /*#__PURE__*/React.createElement("span", {
     className: "count"
-  }, "(", scenes.length, ")")), /*#__PURE__*/React.createElement("div", {
+  }, "(", scenes.length + otherSceneGroups.reduce((n, g) => n + g.scenes.length, 0), ")")), /*#__PURE__*/React.createElement("div", {
     className: "row"
   }, /*#__PURE__*/React.createElement("button", {
     className: "primary",
     onClick: () => captureScene(),
     title: t.scene_capture_tip,
-    disabled: !segments[player.segIndex]
+    disabled: !analysis || !segments[player.segIndex]
   }, "+ ", t.scene_capture))), /*#__PURE__*/React.createElement("div", {
     className: "hint",
     style: {
@@ -3894,11 +3894,11 @@ function App() {
     const layerSummary = sc.layers ? ['drums', 'bass', 'other', 'vocals'].filter(n => sc.layers[n] && sc.layers[n].on).map(n => t['layer_' + n][0]).join('') : null;
     return /*#__PURE__*/React.createElement("div", {
       key: sc.id,
-      className: 'scene-card' + (isActive ? ' active' : '') + (isQueued ? ' queued' : ''),
+      className: 'scene-card' + (isActive ? ' active' : '') + (isQueued ? ' queued' : '') + (sceneMenu === sc.id ? ' open' : ''),
       style: {
         '--scene-col': col
       },
-      onClick: () => applyScene(sc)
+      onClick: () => sceneMenu === sc.id ? null : applyScene(sc)
     }, /*#__PURE__*/React.createElement("div", {
       className: "scene-head"
     }, sc.hotkey && /*#__PURE__*/React.createElement("kbd", null, "\u21E7", sc.hotkey), /*#__PURE__*/React.createElement("input", {
@@ -3935,11 +3935,7 @@ function App() {
     }, t.scene_on_air), isQueued && /*#__PURE__*/React.createElement("div", {
       className: "scene-state"
     }, t.queued_badge), sceneMenu === sc.id && /*#__PURE__*/React.createElement("div", {
-      className: "dropdown-menu",
-      style: {
-        left: 'auto',
-        right: 0
-      },
+      className: "scene-menu",
       onClick: e => e.stopPropagation()
     }, /*#__PURE__*/React.createElement("div", {
       className: "dropdown-item",
@@ -3963,8 +3959,8 @@ function App() {
         showToast(t.scene_updated);
       }
     }, t.scene_update), /*#__PURE__*/React.createElement("div", {
-      className: "dropdown-item"
-    }, t.scene_hotkey, " (\u21E7): ", /*#__PURE__*/React.createElement("select", {
+      className: "dropdown-item row-item"
+    }, t.scene_hotkey, " (\u21E7) ", /*#__PURE__*/React.createElement("select", {
       value: sc.hotkey || '',
       onChange: e => {
         updateScene(sc.id, {
@@ -3978,8 +3974,8 @@ function App() {
       value: k,
       disabled: scenes.some(o => o.id !== sc.id && o.hotkey === k)
     }, k)))), /*#__PURE__*/React.createElement("div", {
-      className: "dropdown-item"
-    }, t.cue_mode, " ", /*#__PURE__*/React.createElement("select", {
+      className: "dropdown-item row-item"
+    }, t.trans_mode, " ", /*#__PURE__*/React.createElement("select", {
       value: sc.cueMode || 'natural',
       onChange: e => updateScene(sc.id, {
         cueMode: e.target.value
@@ -3997,7 +3993,34 @@ function App() {
         setSceneMenu(null);
       }
     }, "\u2715 ", t.scene_delete)));
-  }))), analysis && /*#__PURE__*/React.createElement("div", {
+  })), analysis && scenes.length > 0 && otherSceneGroups.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "scene-track-head",
+    style: {
+      marginTop: 14
+    }
+  }, t.scenes_this_track, ": ", /*#__PURE__*/React.createElement("b", null, trackName)), otherSceneGroups.map(g => /*#__PURE__*/React.createElement("div", {
+    key: g.track_id,
+    className: "scene-track"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "scene-track-head"
+  }, t.scenes_other_track, " ", /*#__PURE__*/React.createElement("b", null, g.track_name), /*#__PURE__*/React.createElement("span", {
+    className: "count"
+  }, "(", g.scenes.length, ")")), /*#__PURE__*/React.createElement("div", {
+    className: "scene-grid"
+  }, g.scenes.map(sc => /*#__PURE__*/React.createElement("div", {
+    key: sc.id,
+    className: "scene-card remote",
+    onClick: () => applyRemoteScene(sc),
+    title: t.scene_remote_tip
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "scene-head"
+  }, sc.hotkey && /*#__PURE__*/React.createElement("kbd", null, "\u21E7", sc.hotkey), /*#__PURE__*/React.createElement("span", {
+    className: "scene-name"
+  }, sc.name)), /*#__PURE__*/React.createElement("div", {
+    className: "scene-meta"
+  }, /*#__PURE__*/React.createElement("span", null, sc.part_label || `#${sc.segIndex + 1}`), /*#__PURE__*/React.createElement("span", {
+    className: "time"
+  }, t['cue_' + (sc.cueMode || 'natural')])))))))), analysis && /*#__PURE__*/React.createElement("div", {
     className: "panel"
   }, /*#__PURE__*/React.createElement("div", {
     className: "row between"
@@ -4059,7 +4082,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("span", {
     className: "badge tip",
     "data-tip": t.cue_mode_tip
-  }, t.cue_mode), /*#__PURE__*/React.createElement("div", {
+  }, t.trans_mode), /*#__PURE__*/React.createElement("div", {
     className: "lang-switch"
   }, /*#__PURE__*/React.createElement("button", {
     className: cueMode === 'natural' ? 'on' : '',
@@ -4073,22 +4096,7 @@ function App() {
     className: cueMode === 'now' ? 'on' : '',
     onClick: () => setCueMode('now'),
     title: t.cue_now_tip
-  }, t.cue_now)), /*#__PURE__*/React.createElement("span", {
-    className: "badge",
-    style: {
-      marginLeft: 12
-    }
-  }, t.trans_mode), /*#__PURE__*/React.createElement("div", {
-    className: "lang-switch"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: transMode === 'loop' ? 'on' : '',
-    onClick: () => setTransMode('loop'),
-    title: t.mode_loop_tip
-  }, t.mode_loop), /*#__PURE__*/React.createElement("button", {
-    className: transMode === 'phrase' ? 'on' : '',
-    onClick: () => setTransMode('phrase'),
-    title: t.mode_phrase_tip
-  }, t.mode_phrase)), transMode === 'phrase' && /*#__PURE__*/React.createElement("div", {
+  }, t.cue_now)), cueMode === 'soon' && /*#__PURE__*/React.createElement("div", {
     className: "lang-switch",
     title: t.phrase_len_tip
   }, /*#__PURE__*/React.createElement("button", {
@@ -4255,7 +4263,304 @@ function App() {
     onClick: unloadStems
   }, t.stems_off))), /*#__PURE__*/React.createElement("div", {
     className: "hint"
-  }, t.keys_hint)), /*#__PURE__*/React.createElement("footer", null, t.footer, " \xB7 ", /*#__PURE__*/React.createElement("a", {
+  }, t.keys_hint)), drawerOpen && /*#__PURE__*/React.createElement("div", {
+    className: "drawer-backdrop",
+    onClick: () => setDrawerOpen(false)
+  }), /*#__PURE__*/React.createElement("aside", {
+    className: 'drawer' + (drawerOpen ? ' open' : '')
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "drawer-head"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "lang-switch"
+  }, [['projects', t.project_title], ['library', t.drawer_library], ['folders', t.drawer_folders]].map(([k, lbl]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: drawerTab === k ? 'on' : '',
+    onClick: () => setDrawerTab(k)
+  }, lbl))), /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: () => setDrawerOpen(false)
+  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
+    className: "drawer-body"
+  }, drawerTab === 'projects' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "drawer-section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "panel-title",
+    style: {
+      marginBottom: 0
+    }
+  }, t.project_title), project && /*#__PURE__*/React.createElement("input", {
+    className: "proj-name",
+    value: project.name,
+    onChange: e => editProject(p => ({
+      ...p,
+      name: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, projects.length > 0 && /*#__PURE__*/React.createElement("select", {
+    className: "proj-select",
+    value: project ? project.id : '',
+    onChange: e => e.target.value ? openProject(e.target.value) : (setProject(null), localStorage.removeItem('musslop_project'))
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, t.project_none), projects.map(p => /*#__PURE__*/React.createElement("option", {
+    key: p.id,
+    value: p.id
+  }, p.name, " \xB7 ", p.n_items))), /*#__PURE__*/React.createElement("button", {
+    onClick: createProject
+  }, "+ ", t.project_new), project && /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    title: t.project_delete_tip,
+    onClick: () => confirm(`${t.project_delete_confirm} "${project.name}"?`) && deleteProject(project.id)
+  }, "\u2715"))), !project && /*#__PURE__*/React.createElement("div", {
+    className: "hint",
+    style: {
+      marginTop: 8
+    }
+  }, t.project_hint), project && /*#__PURE__*/React.createElement("div", {
+    className: "proj-groups"
+  }, project.groups.map((g, gi) => /*#__PURE__*/React.createElement("div", {
+    key: g.id,
+    className: "proj-group"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "proj-group-head"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "proj-group-name",
+    value: g.name,
+    onChange: e => renameGroup(g.id, e.target.value)
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "count"
+  }, "(", g.items.length, ")"), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    title: t.project_move_up,
+    onClick: () => moveGroup(g.id, -1)
+  }, "\u2191"), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    title: t.project_move_down,
+    onClick: () => moveGroup(g.id, 1)
+  }, "\u2193"), trackId && /*#__PURE__*/React.createElement("button", {
+    className: "ghost small",
+    onClick: () => addItem(g.id),
+    title: t.project_add_track_tip
+  }, "+ \u266B ", t.project_add_track), trackId && scenes.length > 0 && /*#__PURE__*/React.createElement("select", {
+    className: "proj-select small",
+    value: "",
+    onChange: e => {
+      if (e.target.value) addItem(g.id, e.target.value);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "+ ", t.project_add_scene), scenes.map(sc => /*#__PURE__*/React.createElement("option", {
+    key: sc.id,
+    value: sc.id
+  }, sc.name))), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    style: {
+      marginLeft: 'auto'
+    },
+    title: t.project_group_delete,
+    onClick: () => (g.items.length === 0 || confirm(t.project_group_delete_confirm)) && removeGroup(g.id)
+  }, "\u2715")), g.items.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "hint",
+    style: {
+      margin: '4px 0 0 14px'
+    }
+  }, t.project_group_empty), g.items.map(it => {
+    const isCur = it.track_id === trackId && (!it.scene_id || player.playing && (scenes.find(s => s.id === it.scene_id) || {}).segIndex === player.segIndex);
+    return /*#__PURE__*/React.createElement("div", {
+      key: it.id,
+      className: 'proj-item' + (isCur ? ' active' : '') + (it.available === false ? ' missing' : ''),
+      onClick: () => openItem(it),
+      title: t.project_item_open_tip
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "proj-item-icon"
+    }, it.scene_id ? '◈' : '♫'), /*#__PURE__*/React.createElement("span", {
+      className: "proj-item-name"
+    }, it.scene_id ? /*#__PURE__*/React.createElement("span", null, it.scene_name || '?', " ", /*#__PURE__*/React.createElement("span", {
+      className: "time"
+    }, "\xB7 ", it.track_name || it.track_id)) : it.track_name || it.track_id, it.available === false && /*#__PURE__*/React.createElement("span", {
+      className: "time",
+      style: {
+        color: 'var(--danger)',
+        marginLeft: 6
+      }
+    }, t.project_item_missing)), /*#__PURE__*/React.createElement("input", {
+      className: "proj-note",
+      placeholder: t.project_note_ph,
+      value: it.note || '',
+      onClick: e => e.stopPropagation(),
+      onChange: e => noteItem(g.id, it.id, e.target.value)
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "x",
+      onClick: e => {
+        e.stopPropagation();
+        moveItem(g.id, it.id, -1);
+      }
+    }, "\u2191"), /*#__PURE__*/React.createElement("span", {
+      className: "x",
+      onClick: e => {
+        e.stopPropagation();
+        moveItem(g.id, it.id, 1);
+      }
+    }, "\u2193"), /*#__PURE__*/React.createElement("span", {
+      className: "x",
+      onClick: e => {
+        e.stopPropagation();
+        removeItem(g.id, it.id);
+      }
+    }, "\u2715"));
+  }))), /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: addGroup
+  }, "+ ", t.project_add_group)))), drawerTab === 'library' && /*#__PURE__*/React.createElement("div", {
+    className: "drawer-section"
+  }, history.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "hint"
+  }, t.drawer_library_empty), history.length > 0 && /*#__PURE__*/React.createElement("div", null, [{
+    key: 'lib',
+    title: t.library_title,
+    items: history.filter(h => h.favorite)
+  }, {
+    key: 'hist',
+    title: t.history_title,
+    items: history.filter(h => !h.favorite)
+  }].map(group => group.items.length > 0 && /*#__PURE__*/React.createElement("div", {
+    key: group.key,
+    style: {
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "collapse-head",
+    onClick: () => setOpenGroups(o => ({
+      ...o,
+      [group.key]: !o[group.key]
+    }))
+  }, /*#__PURE__*/React.createElement("span", {
+    className: 'caret' + (openGroups[group.key] ? ' open' : '')
+  }, "\u25B6"), /*#__PURE__*/React.createElement("div", {
+    className: "panel-title",
+    style: {
+      marginBottom: 0
+    }
+  }, group.title), /*#__PURE__*/React.createElement("span", {
+    className: "count"
+  }, "(", group.items.length, ")")), openGroups[group.key] && /*#__PURE__*/React.createElement("div", {
+    className: "seg-list",
+    style: {
+      marginTop: 6
+    }
+  }, group.items.map(item => /*#__PURE__*/React.createElement("div", {
+    key: item.track_id,
+    className: 'seg-chip' + (item.track_id === trackId ? ' active' : ''),
+    onClick: () => openFromHistory(item),
+    title: t.history_open_tip
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    style: {
+      color: item.favorite ? '#ffb84f' : 'var(--muted)',
+      fontSize: 14
+    },
+    title: item.favorite ? t.fav_remove_tip : t.fav_add_tip,
+    onClick: e => toggleFavorite(e, item)
+  }, item.favorite ? '★' : '☆'), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13
+    }
+  }, item.has_markup ? '💾' : '♫'), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      maxWidth: 220,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, item.name), item.duration != null && /*#__PURE__*/React.createElement("span", {
+    className: "time"
+  }, fmt(item.duration)), item.n_segments > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "time"
+  }, item.n_segments, " ", t.history_parts), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    title: t.history_del_tip,
+    onClick: e => deleteFromHistory(e, item)
+  }, "\u2715")))))))), drawerTab === 'folders' && /*#__PURE__*/React.createElement("div", {
+    className: "drawer-section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "hint",
+    style: {
+      marginBottom: 8
+    }
+  }, t.folders_hint), /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    className: "folder-input",
+    placeholder: t.folders_ph,
+    value: folderInput,
+    onChange: e => setFolderInput(e.target.value),
+    onKeyDown: e => e.key === 'Enter' && addFolder()
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: addFolder,
+    disabled: !folderInput.trim()
+  }, "+ ", t.folders_add)), folderError && /*#__PURE__*/React.createElement("div", {
+    className: "error-box"
+  }, folderError), folders.map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.path,
+    className: "folder"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "folder-head",
+    onClick: () => toggleFolder(f.path)
+  }, /*#__PURE__*/React.createElement("span", {
+    className: 'caret' + (openFolders[f.path] ? ' open' : '')
+  }, "\u25B6"), /*#__PURE__*/React.createElement("span", {
+    className: "folder-path",
+    title: f.path
+  }, f.path), !f.exists && /*#__PURE__*/React.createElement("span", {
+    className: "time",
+    style: {
+      color: 'var(--danger)'
+    }
+  }, t.folders_missing), folderFiles[f.path] && /*#__PURE__*/React.createElement("span", {
+    className: "count"
+  }, "(", folderFiles[f.path].length, ")"), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    title: t.folders_rescan,
+    onClick: e => {
+      e.stopPropagation();
+      scanFolder(f.path);
+    }
+  }, "\u21BB"), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    title: t.folders_remove,
+    onClick: e => {
+      e.stopPropagation();
+      removeFolder(f.path);
+    }
+  }, "\u2715")), openFolders[f.path] && /*#__PURE__*/React.createElement("div", {
+    className: "folder-files"
+  }, folderFiles[f.path] === undefined && /*#__PURE__*/React.createElement("div", {
+    className: "status"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), t.folders_scanning), folderFiles[f.path] && folderFiles[f.path].length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "hint"
+  }, t.folders_none), (folderFiles[f.path] || []).map(file => /*#__PURE__*/React.createElement("div", {
+    key: file.path,
+    className: 'folder-file' + (file.track_id && file.track_id === trackId ? ' active' : ''),
+    onClick: () => openFolderFile(f.path, file),
+    title: file.path
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13
+    }
+  }, file.has_markup ? '💾' : file.track_id ? '♫' : '·'), /*#__PURE__*/React.createElement("span", {
+    className: "folder-file-name"
+  }, file.rel), /*#__PURE__*/React.createElement("span", {
+    className: "time"
+  }, (file.size / 1048576).toFixed(1), " MB"))))))))), /*#__PURE__*/React.createElement("footer", null, t.footer, " \xB7 ", /*#__PURE__*/React.createElement("a", {
     href: "https://github.com/Siziff/musslop",
     target: "_blank"
   }, "GitHub")), liveMode && analysis && (() => {
@@ -4268,6 +4573,13 @@ function App() {
       segIndex: sc.segIndex,
       name: sc.name,
       hotkey: sc.hotkey ? '⇧' + sc.hotkey : null
+    })), ...allScenes.filter(sc => sc.track_id !== trackId).map(sc => ({
+      kind: 'remote',
+      sc,
+      segIndex: -1,
+      name: sc.name,
+      sub: sc.track_name,
+      hotkey: sc.hotkey && !scenes.some(o => o.hotkey === sc.hotkey) ? '⇧' + sc.hotkey : null
     })), ...segments.map((s, i) => ({
       kind: 'seg',
       segIndex: i,
@@ -4316,25 +4628,25 @@ function App() {
     }, tgt != null ? eta != null ? `${t.live_in} ${Math.max(0, eta).toFixed(0)} s` : t.live_at_boundary : t.live_pick))), /*#__PURE__*/React.createElement("div", {
       className: "live-grid"
     }, items.map((it, k) => {
-      const firstSeg = it.kind === 'seg' && (k === 0 || items[k - 1].kind === 'scene');
+      const firstSeg = it.kind === 'seg' && (k === 0 || items[k - 1].kind !== 'seg');
       const isOn = player.playing && it.segIndex === player.segIndex;
       const isQ = tgt != null && it.segIndex === tgt;
       const seg = segments[it.segIndex];
       const col = seg ? SEG_COLORS[(seg.group ? seg.group.charCodeAt(0) - 65 : it.segIndex) % SEG_COLORS.length] : 'var(--muted)';
       return /*#__PURE__*/React.createElement("button", {
         key: k,
-        className: 'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : '') + (it.kind === 'scene' ? ' scene' : '') + (firstSeg && k > 0 ? ' first-seg' : ''),
+        className: 'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : '') + (it.kind !== 'seg' ? ' scene' : '') + (it.kind === 'remote' ? ' remote' : '') + (firstSeg && k > 0 ? ' first-seg' : ''),
         style: {
           '--scene-col': col
         },
         onClick: () => {
-          if (it.kind === 'scene') applyScene(it.sc);else if (!player.playing) player.play(it.segIndex);else if (it.segIndex === player.segIndex) player.cancelCue();else player.cue(it.segIndex, cueMode);
+          if (it.kind === 'remote') applyRemoteScene(it.sc);else if (it.kind === 'scene') applyScene(it.sc);else if (!player.playing) player.play(it.segIndex);else if (it.segIndex === player.segIndex) player.cancelCue();else player.cue(it.segIndex, cueMode);
         }
       }, it.hotkey && /*#__PURE__*/React.createElement("kbd", null, it.hotkey), /*#__PURE__*/React.createElement("span", {
         className: "live-pad-name"
       }, it.name), /*#__PURE__*/React.createElement("span", {
         className: "live-pad-sub"
-      }, isOn ? t.scene_on_air : isQ ? t.queued_badge : seg ? fmt(seg.end - seg.start) : ''));
+      }, isOn ? t.scene_on_air : isQ ? t.queued_badge : it.sub ? it.sub : seg ? fmt(seg.end - seg.start) : ''));
     })), /*#__PURE__*/React.createElement("div", {
       className: "live-bar"
     }, !player.playing ? /*#__PURE__*/React.createElement("button", {

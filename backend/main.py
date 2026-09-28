@@ -245,6 +245,22 @@ def get_markup(track_id: str):
     return {"markup": track.get("markup")}
 
 
+@app.get("/api/scenes")
+def list_scenes():
+    """All scenes of all tracks (for the cross-track scene list and hotkeys)."""
+    items = []
+    for tid, m in TRACKS.items():
+        markup = m.get("markup") or {}
+        segs = markup.get("segments") or []
+        for sc in markup.get("scenes") or []:
+            if not isinstance(sc, dict):
+                continue
+            idx = sc.get("segIndex")
+            label = segs[idx].get("label") if isinstance(idx, int) and 0 <= idx < len(segs) else None
+            items.append({**sc, "track_id": tid, "track_name": m.get("name"), "part_label": label})
+    return {"scenes": items}
+
+
 @app.delete("/api/tracks/{track_id}")
 def delete_track(track_id: str):
     track = TRACKS.pop(track_id, None)
@@ -257,6 +273,128 @@ def delete_track(track_id: str):
             except OSError:
                 pass
     return {"ok": True}
+
+
+# ----------------------------- Music folders --------------------------------
+# The user points musslop at folders on disk; we list the audio files inside
+# and import them on demand (copy into uploads/ + analysis WAV), remembering
+# the source path so a file is imported only once.
+FOLDERS_PATH = os.path.join(UPLOAD_DIR, "folders.json")
+
+
+def _load_folders() -> list[str]:
+    try:
+        with open(FOLDERS_PATH) as f:
+            data = json.load(f)
+        return [p for p in data if isinstance(p, str)]
+    except Exception:
+        return []
+
+
+def _save_folders(folders: list[str]) -> None:
+    with open(FOLDERS_PATH, "w") as f:
+        json.dump(folders, f, ensure_ascii=False)
+
+
+def _source_index() -> dict[str, str]:
+    """source path -> track_id for already imported files."""
+    return {m["source"]: tid for tid, m in TRACKS.items() if m.get("source")}
+
+
+def _scan_folder(root: str, limit: int = 2000) -> list[dict]:
+    out = []
+    src = _source_index()
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+        for fn in sorted(filenames):
+            ext = os.path.splitext(fn)[1].lower()
+            if ext not in ALLOWED_EXT:
+                continue
+            full = os.path.join(dirpath, fn)
+            try:
+                size = os.path.getsize(full)
+            except OSError:
+                continue
+            tid = src.get(full)
+            out.append({
+                "path": full, "name": fn, "size": size,
+                "rel": os.path.relpath(full, root),
+                "track_id": tid,
+                "has_markup": bool(TRACKS.get(tid, {}).get("markup")) if tid else False,
+            })
+            if len(out) >= limit:
+                return out
+    return out
+
+
+@app.get("/api/folders")
+def list_folders():
+    folders = _load_folders()
+    return {"folders": [{"path": p, "exists": os.path.isdir(p)} for p in folders]}
+
+
+@app.post("/api/folders")
+def add_folder(body: dict = Body(...)):
+    path = os.path.abspath(os.path.expanduser(str(body.get("path") or "").strip()))
+    if not path or not os.path.isdir(path):
+        raise HTTPException(400, "Folder not found")
+    folders = _load_folders()
+    if path not in folders:
+        folders.append(path)
+        _save_folders(folders)
+    return {"ok": True, "path": path}
+
+
+@app.delete("/api/folders")
+def remove_folder(path: str = Query(...)):
+    folders = [p for p in _load_folders() if p != path]
+    _save_folders(folders)
+    return {"ok": True}
+
+
+@app.get("/api/folders/scan")
+def scan_folder(path: str = Query(...)):
+    if path not in _load_folders() or not os.path.isdir(path):
+        raise HTTPException(404, "Folder not registered")
+    return {"path": path, "files": _scan_folder(path)}
+
+
+@app.post("/api/folders/import")
+def import_from_folder(body: dict = Body(...)):
+    """Import one file from a registered folder (or return the existing track)."""
+    full = str(body.get("path") or "")
+    folders = _load_folders()
+    if not any(os.path.commonpath([full, root]) == root for root in folders if os.path.isdir(root)):
+        raise HTTPException(400, "File is outside the registered folders")
+    if not os.path.isfile(full):
+        raise HTTPException(404, "File not found")
+    existing = _source_index().get(full)
+    if existing and existing in TRACKS:
+        return {"track_id": existing, "name": TRACKS[existing]["name"], "existing": True}
+
+    ext = os.path.splitext(full)[1].lower()
+    if ext not in ALLOWED_EXT:
+        raise HTTPException(400, f"Unsupported format: {ext}")
+    track_id = uuid.uuid4().hex[:12]
+    orig_path = os.path.join(UPLOAD_DIR, f"{track_id}{ext}")
+    shutil.copyfile(full, orig_path)
+    wav_path = os.path.join(UPLOAD_DIR, f"{track_id}.analysis.wav")
+    if ext == ".wav":
+        wav_path = orig_path
+    else:
+        try:
+            _to_wav(orig_path, wav_path)
+        except subprocess.CalledProcessError:
+            os.remove(orig_path)
+            raise HTTPException(400, "Failed to decode the file (ffmpeg)")
+    meta = {"id": track_id, "orig": orig_path, "wav": wav_path,
+            "name": os.path.basename(full), "mime": MIME.get(ext, "application/octet-stream"),
+            "uploaded_at": int(__import__("time").time()), "source": full}
+    TRACKS[track_id] = meta
+    with open(_meta_path(track_id), "w") as f:
+        json.dump(meta, f)
+    log.info("import from folder: '%s' -> %s", full, track_id)
+    return {"track_id": track_id, "name": meta["name"], "existing": False}
 
 
 # ----------------------------- Projects (set lists) -------------------------

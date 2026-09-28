@@ -83,6 +83,7 @@
   header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px;
            border-bottom: 1px solid var(--border); padding-bottom: 16px; }
   .logo { display: flex; align-items: baseline; gap: 14px; }
+  .logo .drawer-btn { align-self: center; }
   h1 {
     font-size: 24px; margin: 0; letter-spacing: 1px; font-weight: 700;
     font-family: var(--font-title); color: var(--text);
@@ -438,6 +439,45 @@
   .proj-item .x { color: var(--muted); cursor: pointer; padding: 0 3px; }
   .proj-item .x:hover { color: var(--danger); }
 
+  /* ---------- side drawer ---------- */
+  .drawer-btn {
+    padding: 6px 11px; font-size: 16px; line-height: 1; margin-right: 6px; align-self: center;
+  }
+  .drawer-btn.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 60; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 92vw); z-index: 61;
+    background: var(--panel); border-left: 1px solid var(--border);
+    box-shadow: -20px 0 60px rgba(0,0,0,.5); transform: translateX(100%);
+    transition: transform .22s ease; display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .drawer-body { overflow: auto; padding: 14px 16px 30px; flex: 1; }
+  .drawer-section { display: flex; flex-direction: column; gap: 10px; }
+  .drawer .seg-chip { max-width: 100%; }
+  .drawer .proj-note { width: 140px; }
+  .folder-input {
+    flex: 1; min-width: 160px; background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; font-family: var(--mono); outline: none;
+  }
+  .folder-input:focus { border-color: var(--accent); }
+  .folder { border: 1px solid var(--border-soft); border-radius: var(--radius-sm); }
+  .folder-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; }
+  .folder-head:hover { background: var(--panel2); }
+  .folder-path { font-family: var(--mono); font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+  .folder-head .x { color: var(--muted); cursor: pointer; padding: 0 3px; }
+  .folder-head .x:hover { color: var(--accent); }
+  .folder-files { border-top: 1px solid var(--border-soft); padding: 6px; max-height: 50vh; overflow: auto; }
+  .folder-file {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius-sm);
+    cursor: pointer; font-size: 13px;
+  }
+  .folder-file:hover { background: var(--panel2); }
+  .folder-file.active { box-shadow: inset 0 0 0 1px var(--accent2); }
+  .folder-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .folder-file .time { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
   /* ---------- scenes ---------- */
   .scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 12px; }
   .scene-card {
@@ -445,7 +485,16 @@
     border-left: 4px solid var(--scene-col, var(--border)); border-radius: var(--radius-sm);
     padding: 10px 12px; cursor: pointer; transition: border-color .15s, transform .1s;
   }
-  .scene-card:hover { border-color: var(--border); transform: translateY(-1px); }
+  .scene-card:hover { border-color: var(--border); }
+  .scene-card.open { border-color: var(--border); }
+  .scene-card .scene-menu {
+    margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-soft);
+    display: flex; flex-direction: column; gap: 4px; cursor: default;
+  }
+  .scene-card .scene-menu .dropdown-item { padding: 6px 8px; }
+  .scene-card .scene-menu select { margin-left: auto; }
+  .scene-card .scene-menu .dropdown-item.row-item { display: flex; align-items: center; gap: 8px; cursor: default; }
+  .scene-card .scene-menu .dropdown-item.row-item:hover { background: transparent; color: inherit; }
   .scene-card.active { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2); }
   .scene-card.queued { border-color: var(--accent); border-style: dashed; border-left-style: solid; }
   .scene-head { display: flex; align-items: center; gap: 8px; }
@@ -459,6 +508,12 @@
   .scene-meta .dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
   .scene-meta .time { font-family: var(--mono); font-size: 11px; }
   .scene-state { margin-top: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); }
+  .scene-card.remote { opacity: .8; border-style: dashed; border-left-style: solid; }
+  .scene-card.remote:hover { opacity: 1; }
+  .scene-card.remote .scene-name { display: block; }
+  .scene-track { margin-top: 12px; }
+  .scene-track-head { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+  .scene-track-head b { color: var(--text); font-weight: 600; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dropdown-item select {
     background: var(--panel); color: var(--text); border: 1px solid var(--border);
     border-radius: var(--radius-sm); padding: 3px 6px; font-family: inherit; font-size: 12.5px; margin-left: 6px;
@@ -492,6 +547,8 @@
   .live-pad.queued { border-color: var(--accent); border-style: dashed; border-left-style: solid; }
   .live-pad kbd { font-size: 12px; }
   .live-pad.scene { background: var(--panel); }
+  .live-pad.remote { border-style: dashed; border-left-style: solid; opacity: .85; }
+  .live-pad.remote .live-pad-sub { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .live-pad.first-seg { grid-column: 1; }
   .chip-key { font-size: 10px; padding: 0 5px; color: var(--muted); }
   .live-pad-name { font-size: 16px; font-weight: 700; }
@@ -660,19 +717,19 @@ const STR = {
     cancel_cue: 'Отменить переход',
     cancel_cue_tip: 'Остаться в текущей части (отменить запланированный переход)',
     cue_mode: 'Когда переходить:',
-    cue_mode_tip: 'Момент перехода при выборе части или сцены: естественно — в конце лупа, скоро — на ближайшей границе фразы, сейчас — немедленно с коротким кроссфейдом',
-    cue_natural: 'естественно',
-    cue_soon: 'скоро',
-    cue_now: 'сейчас',
-    cue_natural_tip: 'Дождаться конца текущего прохода лупа',
-    cue_soon_tip: 'На ближайшей границе фразы (4/8 тактов)',
-    cue_now_tip: 'Немедленно, с коротким кроссфейдом',
+    cue_mode_tip: 'Когда сработает переход — для кнопки «Дальше», клика по части, клавиш 1–9 и сцен: в конце лупа / на ближайшей границе фразы / сразу',
+    cue_natural: 'в конце лупа',
+    cue_soon: 'на фразе',
+    cue_now: 'сразу',
+    cue_natural_tip: 'Дождаться конца текущего прохода лупа — самый музыкальный вариант',
+    cue_soon_tip: 'На ближайшей границе фразы (4 или 8 тактов от начала лупа) — быстрее, но всё ещё по музыке',
+    cue_now_tip: 'Немедленно, с коротким кроссфейдом (~0.25 с) — стык может быть слышен',
     previewing: 'прослушивание стыка…',
     audition_seam_tip: 'Прослушать стык лупа: последние 3 с части → её начало',
     audition_next_tip: 'Прослушать переход: конец этой части → начало следующей',
     // --- scenes ---
     scenes_title: 'Сцены',
-    scenes_hint: 'Сцена — сохранённое состояние: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Shift+1–9 переключают сцены во время игры (цифры без Shift — части трека).',
+    scenes_hint: 'Сцена — сохранённое состояние трека: часть + слои + скорость/кроссфейд/реверб. Настрой плеер и нажми «Сохранить сцену». Сцены других треков показаны ниже — клик загрузит трек и запустит сцену. Shift+1–9 переключают сцены (цифры без Shift — части).',
     scene_capture: 'Сохранить сцену',
     scene_capture_tip: 'Запомнить текущее состояние плеера как сцену',
     scene_saved: 'Сцена сохранена:',
@@ -697,6 +754,23 @@ const STR = {
     live_press_play: 'нажми ▶ или пробел',
     live_play: 'Играть',
     live_fade: 'Затухание',
+    drawer_tip: 'Проекты · Библиотека · Папки с музыкой',
+    drawer_library: 'Библиотека',
+    drawer_folders: 'Папки',
+    drawer_library_empty: 'Пока пусто — загрузите трек или добавьте папку с музыкой во вкладке «Папки».',
+    folders_hint: 'Укажите папку на этом компьютере — все аудиофайлы из неё (и вложенных папок) появятся списком. Клик по файлу импортирует его один раз и открывает как обычный трек.',
+    folders_ph: '/путь/к/папке/с/музыкой',
+    folders_add: 'Добавить',
+    folders_err: 'Папка не найдена',
+    folders_missing: 'папка недоступна',
+    folders_rescan: 'Пересканировать',
+    folders_remove: 'Убрать папку из списка (файлы не удаляются)',
+    folders_scanning: 'Сканирую…',
+    folders_none: 'Аудиофайлов не найдено',
+    folders_importing: 'Импортирую файл из папки…',
+    scenes_this_track: 'Этот трек',
+    scenes_other_track: 'Трек:',
+    scene_remote_tip: 'Сцена другого трека: клик загрузит трек и запустит сцену',
     live_keys: 'Пробел — играть/стоп · → / Enter — дальше · 1–9, 0 — переход в часть 1–10 · Shift+1–9 — сцены · Backspace — отменить переход · F — затухание · L / Esc — выйти из Live',
     part_hotkey_tip: 'Клавиша части: нажми во время игры — переход в неё; ещё раз — отмена',
     // --- projects ---
@@ -849,19 +923,19 @@ const STR = {
     cancel_cue: 'Cancel transition',
     cancel_cue_tip: 'Stay in the current part (cancel the scheduled transition)',
     cue_mode: 'Move on:',
-    cue_mode_tip: 'When to transition after picking a part or a scene: natural — at the loop end, soon — at the nearest phrase boundary, now — immediately with a short crossfade',
-    cue_natural: 'natural',
-    cue_soon: 'soon',
-    cue_now: 'now',
-    cue_natural_tip: 'Wait for the current loop pass to finish',
-    cue_soon_tip: 'At the nearest phrase boundary (4/8 bars)',
-    cue_now_tip: 'Immediately, with a short crossfade',
+    cue_mode_tip: 'When a transition lands — for Next, part clicks, keys 1–9 and scenes: at the loop end / at the nearest phrase boundary / right away',
+    cue_natural: 'at loop end',
+    cue_soon: 'at phrase',
+    cue_now: 'right away',
+    cue_natural_tip: 'Wait for the current loop pass to finish — the most musical option',
+    cue_soon_tip: 'At the nearest phrase boundary (4 or 8 bars from the loop start) — sooner, still musical',
+    cue_now_tip: 'Immediately, with a short (~0.25 s) crossfade — the seam may be audible',
     previewing: 'auditioning the seam…',
     audition_seam_tip: 'Audition the loop seam: last 3 s of this part → its start',
     audition_next_tip: 'Audition the transition: end of this part → start of the next one',
     // --- scenes ---
     scenes_title: 'Scenes',
-    scenes_hint: 'A scene is a saved state: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Shift+1–9 switch scenes during the session (plain digits cue parts).',
+    scenes_hint: 'A scene is a saved state of a track: part + layers + speed/crossfade/reverb. Set up the player and hit “Save scene”. Scenes of other tracks are listed below — clicking loads the track and starts the scene. Shift+1–9 switch scenes (plain digits cue parts).',
     scene_capture: 'Save scene',
     scene_capture_tip: 'Remember the current player state as a scene',
     scene_saved: 'Scene saved:',
@@ -886,6 +960,23 @@ const STR = {
     live_press_play: 'press ▶ or Space',
     live_play: 'Play',
     live_fade: 'Fade out',
+    drawer_tip: 'Projects · Library · Music folders',
+    drawer_library: 'Library',
+    drawer_folders: 'Folders',
+    drawer_library_empty: 'Nothing here yet — load a track or add a music folder in the “Folders” tab.',
+    folders_hint: 'Point musslop at a folder on this computer — every audio file inside (including subfolders) is listed here. Clicking a file imports it once and opens it like any other track.',
+    folders_ph: '/path/to/your/music',
+    folders_add: 'Add',
+    folders_err: 'Folder not found',
+    folders_missing: 'folder unavailable',
+    folders_rescan: 'Rescan',
+    folders_remove: 'Remove folder from the list (files are not deleted)',
+    folders_scanning: 'Scanning…',
+    folders_none: 'No audio files found',
+    folders_importing: 'Importing file from folder…',
+    scenes_this_track: 'This track',
+    scenes_other_track: 'Track:',
+    scene_remote_tip: 'Scene of another track: click loads the track and starts the scene',
     live_keys: 'Space — play/stop · → / Enter — next · 1–9, 0 — cue part 1–10 · Shift+1–9 — scenes · Backspace — cancel transition · F — fade out · L / Esc — leave Live',
     part_hotkey_tip: 'Part hotkey: press while playing to cue this part; press again to cancel',
     // --- projects ---
@@ -1039,10 +1130,10 @@ const STR = {
     cancel_cue: '取消切换',
     cancel_cue_tip: '留在当前段（取消已安排的切换）',
     cue_mode: '切换时机：',
-    cue_mode_tip: '选择段或场景后何时切换：自然 — 循环结束时，稍后 — 最近的乐句边界，立即 — 马上以短交叉淡化切换',
-    cue_natural: '自然',
-    cue_soon: '稍后',
-    cue_now: '立即',
+    cue_mode_tip: '切换何时发生 — 适用于“下一段”、点击段、1–9 键和场景：循环结束 / 最近的乐句边界 / 马上',
+    cue_natural: '循环结束',
+    cue_soon: '乐句边界',
+    cue_now: '马上',
     cue_natural_tip: '等待当前循环结束',
     cue_soon_tip: '在最近的乐句边界（4/8 小节）',
     cue_now_tip: '立即切换，带短交叉淡化',
@@ -1051,7 +1142,7 @@ const STR = {
     audition_next_tip: '试听切换：此段结尾 → 下一段开头',
     // --- scenes ---
     scenes_title: '场景',
-    scenes_hint: '场景是保存的状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。演出时用 Shift+1–9 切换场景（不带 Shift 的数字切换段）。',
+    scenes_hint: '场景是曲目的保存状态：段 + 分层 + 速度/交叉淡化/混响。调好播放器后点“保存场景”。其他曲目的场景列在下方 — 点击会加载曲目并启动场景。Shift+1–9 切换场景（不带 Shift 的数字切换段）。',
     scene_capture: '保存场景',
     scene_capture_tip: '将当前播放器状态记为场景',
     scene_saved: '场景已保存：',
@@ -1076,6 +1167,23 @@ const STR = {
     live_press_play: '按 ▶ 或空格',
     live_play: '播放',
     live_fade: '淡出',
+    drawer_tip: '项目 · 收藏库 · 音乐文件夹',
+    drawer_library: '收藏库',
+    drawer_folders: '文件夹',
+    drawer_library_empty: '暂无内容 — 加载曲目，或在“文件夹”标签添加音乐文件夹。',
+    folders_hint: '指定本机上的文件夹 — 其中（含子文件夹）的所有音频文件都会列出。点击文件会导入一次并像普通曲目一样打开。',
+    folders_ph: '/音乐/文件夹/路径',
+    folders_add: '添加',
+    folders_err: '未找到文件夹',
+    folders_missing: '文件夹不可用',
+    folders_rescan: '重新扫描',
+    folders_remove: '从列表移除文件夹（不删除文件）',
+    folders_scanning: '扫描中…',
+    folders_none: '未找到音频文件',
+    folders_importing: '正在从文件夹导入…',
+    scenes_this_track: '当前曲目',
+    scenes_other_track: '曲目：',
+    scene_remote_tip: '其他曲目的场景：点击将加载该曲目并启动场景',
     live_keys: '空格 — 播放/停止 · → / Enter — 下一个 · 1–9、0 — 切到第 1–10 段 · Shift+1–9 — 场景 · Backspace — 取消切换 · F — 淡出 · L / Esc — 退出现场模式',
     part_hotkey_tip: '段快捷键：播放时按下排队切换到此段；再按一次取消',
     // --- projects ---
@@ -1149,7 +1257,7 @@ class LoopPlayer {
     this.crossfade = 0;         // sec, 0 = seam at the boundary with a micro-fade
     this.reverb = 0;            // 0..1 wet level ("slowed + reverb" style)
     this.rate = 1;              // playback speed (0.5..1.5); changes tempo AND pitch
-    this.transitionMode = 'loop'; // 'loop' = at loop end, 'phrase' = phrase boundary
+    this.transitionMode = 'natural'; // natural | soon | now // 'loop' = at loop end, 'phrase' = phrase boundary
     this.phraseBars = 4;          // phrase length in bars for 'phrase' mode
     this.tailEnabled = true;      // post-exit: the old part's tail rings out
     this.TAIL = 1.2;              // tail seconds
@@ -1624,10 +1732,10 @@ class LoopPlayer {
       this.onState();
     }
   }
-  // "Next": queue the following part (the default transition mode)
+  // "Next": queue the following part using the global transition mode
   advance() {
     if (!this.playing) return;
-    this.cue(this.segIndex + 1, this.transitionMode === 'phrase' ? 'soon' : 'natural');
+    this.cue(this.segIndex + 1, this.transitionMode || 'natural');
   }
   // Queue a transition into part `target`.
   //  urgency: 'natural' — at the end of the current loop pass;
@@ -2430,9 +2538,9 @@ function App() {
   const [rate, setRateState] = useState(1);
   const [crossfade, setCrossfade] = useState(0);       // sec
   const [reverbAmt, setReverbAmt] = useState(0);       // 0..1 wet
-  const [transMode, setTransMode] = useState('loop');  // 'loop' | 'phrase'
   const [phraseBars, setPhraseBars] = useState(4);     // 4 or 8 bars
-  // cue urgency for "go to part": natural (loop end) | soon (phrase) | now
+  // when a transition lands (Next, part click, hotkeys, scenes):
+  // natural (loop end) | soon (phrase boundary) | now (short crossfade)
   const [cueMode, setCueMode] = useState('natural');
   // --- Scenes: saved playback states of this track (part + layers + fx) ----
   const [scenes, setScenesRaw] = useState([]);
@@ -2484,7 +2592,7 @@ function App() {
   useEffect(() => { player.setSegments(segments); }, [segments]);
   useEffect(() => { player.crossfade = crossfade; }, [crossfade]);
   useEffect(() => { player.setReverb(reverbAmt); }, [reverbAmt]);
-  useEffect(() => { player.transitionMode = transMode; }, [transMode]);
+  useEffect(() => { player.transitionMode = cueMode; }, [cueMode]);
   useEffect(() => { player.phraseBars = phraseBars; }, [phraseBars]);
   useEffect(() => {
     if (analysis) player.downbeats = analysis.downbeats || [];
@@ -2773,7 +2881,7 @@ function App() {
           engine: analysis.engine,
           segments, scenes,
         }),
-      }).catch(() => {});
+      }).then(() => loadAllScenes()).catch(() => {});
     }, 1200);
     return () => clearTimeout(saveT.current);
   }, [trackId, segments, analysis, scenes]);
@@ -2861,7 +2969,63 @@ function App() {
   // tracks / scenes from the list during play.
   const [projects, setProjects] = useState([]);          // summaries
   const [project, setProject] = useState(null);          // the open project (full)
-  const [projectOpen, setProjectOpen] = useState(true);
+  // --- side drawer ------------------------------------------------------------
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState(() => localStorage.getItem('musslop_drawer_tab') || 'library');
+  useEffect(() => { localStorage.setItem('musslop_drawer_tab', drawerTab); }, [drawerTab]);
+  // --- music folders -----------------------------------------------------------
+  const [folders, setFolders] = useState([]);
+  const [folderInput, setFolderInput] = useState('');
+  const [folderError, setFolderError] = useState(null);
+  const [folderFiles, setFolderFiles] = useState({});     // path -> files[] | undefined (scanning)
+  const [openFolders, setOpenFolders] = useState({});
+  const loadFolders = useCallback(async () => {
+    try { const r = await fetch('/api/folders'); if (r.ok) setFolders((await r.json()).folders); } catch (e) {}
+  }, []);
+  useEffect(() => { loadFolders(); }, []);
+  const scanFolder = async path => {
+    setFolderFiles(ff => ({ ...ff, [path]: undefined }));
+    try {
+      const r = await fetch(`/api/folders/scan?path=${encodeURIComponent(path)}`);
+      const files = r.ok ? (await r.json()).files : [];
+      setFolderFiles(ff => ({ ...ff, [path]: files }));
+    } catch (e) { setFolderFiles(ff => ({ ...ff, [path]: [] })); }
+  };
+  const toggleFolder = path => {
+    const open = !openFolders[path];
+    setOpenFolders(o => ({ ...o, [path]: open }));
+    if (open && folderFiles[path] === undefined) scanFolder(path);
+  };
+  const addFolder = async () => {
+    const path = folderInput.trim(); if (!path) return;
+    setFolderError(null);
+    try {
+      const r = await fetch('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) });
+      if (!r.ok) throw new Error((await r.json()).detail || t.folders_err);
+      const { path: real } = await r.json();
+      setFolderInput('');
+      await loadFolders();
+      setOpenFolders(o => ({ ...o, [real]: true }));
+      scanFolder(real);
+    } catch (e) { setFolderError(String(e.message || e)); }
+  };
+  const removeFolder = async path => {
+    await fetch(`/api/folders?path=${encodeURIComponent(path)}`, { method: 'DELETE' });
+    loadFolders();
+  };
+  // click on a file: import (once) then open like a history item
+  const openFolderFile = async (root, file) => {
+    setError(null);
+    try {
+      setLoading(t.folders_importing);
+      const r = await fetch('/api/folders/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: file.path }) });
+      if (!r.ok) throw new Error((await r.json()).detail || t.err_upload);
+      const { track_id, name } = await r.json();
+      loadHistory();
+      setFolderFiles(ff => ({ ...ff, [root]: (ff[root] || []).map(x => x.path === file.path ? { ...x, track_id } : x) }));
+      await openFromHistory({ track_id, name });
+    } catch (e) { setError(String(e.message || e)); setLoading(null); }
+  };
   const projSaveT = useRef(null);
   const loadProjects = useCallback(async () => {
     try {
@@ -3020,6 +3184,28 @@ function App() {
     setActiveScene(scene.id);
   };
   const [activeScene, setActiveScene] = useState(null);
+  // scenes of ALL tracks (server-side list) -> cross-track scene switching
+  const [allScenes, setAllScenes] = useState([]);
+  const loadAllScenes = useCallback(async () => {
+    try { const r = await fetch('/api/scenes'); if (r.ok) setAllScenes((await r.json()).scenes); } catch (e) {}
+  }, []);
+  useEffect(() => { loadAllScenes(); }, []);
+  // scenes of other tracks, grouped by track (current track's scenes come from `scenes`)
+  const otherSceneGroups = (() => {
+    const g = {};
+    for (const sc of allScenes) {
+      if (sc.track_id === trackId) continue;
+      (g[sc.track_id] = g[sc.track_id] || { track_id: sc.track_id, track_name: sc.track_name, scenes: [] }).scenes.push(sc);
+    }
+    return Object.values(g);
+  })();
+  // apply a scene that lives on another track: load that track, then run the scene
+  const applyRemoteScene = async sc => {
+    pendingSceneRef.current = sc.id;
+    await openFromHistory({ track_id: sc.track_id, name: sc.track_name });
+  };
+  // Shift+digit: current track's scenes win; otherwise any track's scene with that hotkey
+  const sceneByHotkey = d => scenes.find(s => s.hotkey === d) || allScenes.find(s => s.hotkey === d && s.track_id !== trackId) || null;
   // the active scene highlight follows the playing part
   useEffect(() => {
     if (!scenes.length) return;
@@ -3202,7 +3388,7 @@ function App() {
   splitRef.current = splitAtPlayhead;
   // hotkey handlers read the latest state through a ref (the listener is bound once)
   const keyCtx = useRef({});
-  keyCtx.current = { scenes, liveMode, cueMode, applyScene, segments, setLiveMode };
+  keyCtx.current = { scenes, liveMode, cueMode, applyScene, segments, setLiveMode, sceneByHotkey, applyRemoteScene, trackId };
 
   useEffect(() => {
     const h = e => {
@@ -3224,8 +3410,8 @@ function App() {
         e.preventDefault();
         const d = e.code.slice(-1);
         if (e.shiftKey) {
-          const sc = k.scenes.find(s => s.hotkey === d);
-          if (sc) k.applyScene(sc);
+          const sc = k.sceneByHotkey(d);
+          if (sc) (sc.track_id && sc.track_id !== k.trackId) ? k.applyRemoteScene(sc) : k.applyScene(sc);
           return;
         }
         const i = d === '0' ? 9 : +d - 1;
@@ -3251,6 +3437,8 @@ function App() {
     <div>
       <header>
         <div className="logo">
+          <button className={'drawer-btn' + (drawerOpen ? ' on' : '')} onClick={() => setDrawerOpen(o => !o)}
+            title={t.drawer_tip}>☰</button>
           <h1>{theme === 'tavern' ? 'Musslop' : 'musslop'}</h1>
           <div className="sub">{t.tagline}</div>
         </div>
@@ -3311,40 +3499,6 @@ function App() {
           <span className="x" style={{ float: 'right', marginLeft: 10, cursor: 'pointer' }}
             onClick={() => setError(null)}>✕</span>
           {t.err_prefix} {error}
-        </div>}
-        {history.length > 0 && <div style={{ marginTop: 14 }}>
-          {[
-            { key: 'lib', title: t.library_title, items: history.filter(h => h.favorite) },
-            { key: 'hist', title: t.history_title, items: history.filter(h => !h.favorite) },
-          ].map(group => group.items.length > 0 && (
-            <div key={group.key} style={{ marginBottom: 6 }}>
-              <div className="collapse-head"
-                onClick={() => setOpenGroups(o => ({ ...o, [group.key]: !o[group.key] }))}>
-                <span className={'caret' + (openGroups[group.key] ? ' open' : '')}>▶</span>
-                <div className="panel-title" style={{ marginBottom: 0 }}>{group.title}</div>
-                <span className="count">({group.items.length})</span>
-              </div>
-              {openGroups[group.key] && <div className="seg-list" style={{ marginTop: 6 }}>
-                {group.items.map(item => (
-                  <div key={item.track_id}
-                    className={'seg-chip' + (item.track_id === trackId ? ' active' : '')}
-                    onClick={() => openFromHistory(item)}
-                    title={t.history_open_tip}>
-                    <span className="x" style={{ color: item.favorite ? '#ffb84f' : 'var(--muted)', fontSize: 14 }}
-                      title={item.favorite ? t.fav_remove_tip : t.fav_add_tip}
-                      onClick={e => toggleFavorite(e, item)}>{item.favorite ? '★' : '☆'}</span>
-                    <span style={{ fontSize: 13 }}>{item.has_markup ? '💾' : '♫'}</span>
-                    <span style={{ fontWeight: 600, maxWidth: 220, overflow: 'hidden',
-                                   textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-                    {item.duration != null && <span className="time">{fmt(item.duration)}</span>}
-                    {item.n_segments > 0 && <span className="time">{item.n_segments} {t.history_parts}</span>}
-                    <span className="x" title={t.history_del_tip}
-                      onClick={e => deleteFromHistory(e, item)}>✕</span>
-                  </div>
-                ))}
-              </div>}
-            </div>
-          ))}
         </div>}
       </div>
 
@@ -3507,80 +3661,15 @@ function App() {
         </div>
       </div>}
 
-      <div className="panel">
-        <div className="row between">
-          <div className="row">
-            <div className="collapse-head" onClick={() => setProjectOpen(o => !o)}>
-              <span className={'caret' + (projectOpen ? ' open' : '')}>▶</span>
-              <div className="panel-title" style={{ marginBottom: 0 }}>{t.project_title}</div>
-            </div>
-            {project && <input className="proj-name" value={project.name}
-              onChange={e => editProject(p => ({ ...p, name: e.target.value }))} />}
-          </div>
-          <div className="row">
-            {projects.length > 0 && <select className="proj-select" value={project ? project.id : ''}
-              onChange={e => e.target.value ? openProject(e.target.value) : (setProject(null), localStorage.removeItem('musslop_project'))}>
-              <option value="">{t.project_none}</option>
-              {projects.map(p => <option key={p.id} value={p.id}>{p.name} · {p.n_items}</option>)}
-            </select>}
-            <button onClick={createProject}>+ {t.project_new}</button>
-            {project && <button className="ghost" title={t.project_delete_tip}
-              onClick={() => confirm(`${t.project_delete_confirm} "${project.name}"?`) && deleteProject(project.id)}>✕</button>}
-          </div>
-        </div>
-        {projectOpen && !project && <div className="hint" style={{ marginTop: 8 }}>{t.project_hint}</div>}
-        {projectOpen && project && <div className="proj-groups">
-          {project.groups.map((g, gi) => (
-            <div key={g.id} className="proj-group">
-              <div className="proj-group-head">
-                <input className="proj-group-name" value={g.name} onChange={e => renameGroup(g.id, e.target.value)} />
-                <span className="count">({g.items.length})</span>
-                <span className="x" title={t.project_move_up} onClick={() => moveGroup(g.id, -1)}>↑</span>
-                <span className="x" title={t.project_move_down} onClick={() => moveGroup(g.id, 1)}>↓</span>
-                {trackId && <button className="ghost small" onClick={() => addItem(g.id)} title={t.project_add_track_tip}>+ ♫ {t.project_add_track}</button>}
-                {trackId && scenes.length > 0 && <select className="proj-select small" value=""
-                  onChange={e => { if (e.target.value) addItem(g.id, e.target.value); }}>
-                  <option value="">+ {t.project_add_scene}</option>
-                  {scenes.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
-                </select>}
-                <span className="x" style={{ marginLeft: 'auto' }} title={t.project_group_delete}
-                  onClick={() => (g.items.length === 0 || confirm(t.project_group_delete_confirm)) && removeGroup(g.id)}>✕</span>
-              </div>
-              {g.items.length === 0 && <div className="hint" style={{ margin: '4px 0 0 14px' }}>{t.project_group_empty}</div>}
-              {g.items.map(it => {
-                const isCur = it.track_id === trackId && (!it.scene_id || (player.playing && (scenes.find(s => s.id === it.scene_id) || {}).segIndex === player.segIndex));
-                return (
-                  <div key={it.id} className={'proj-item' + (isCur ? ' active' : '') + (it.available === false ? ' missing' : '')}
-                    onClick={() => openItem(it)} title={t.project_item_open_tip}>
-                    <span className="proj-item-icon">{it.scene_id ? '◈' : '♫'}</span>
-                    <span className="proj-item-name">
-                      {it.scene_id ? <span>{it.scene_name || '?'} <span className="time">· {it.track_name || it.track_id}</span></span>
-                        : (it.track_name || it.track_id)}
-                      {it.available === false && <span className="time" style={{ color: 'var(--danger)', marginLeft: 6 }}>{t.project_item_missing}</span>}
-                    </span>
-                    <input className="proj-note" placeholder={t.project_note_ph} value={it.note || ''}
-                      onClick={e => e.stopPropagation()} onChange={e => noteItem(g.id, it.id, e.target.value)} />
-                    <span className="x" onClick={e => { e.stopPropagation(); moveItem(g.id, it.id, -1); }}>↑</span>
-                    <span className="x" onClick={e => { e.stopPropagation(); moveItem(g.id, it.id, 1); }}>↓</span>
-                    <span className="x" onClick={e => { e.stopPropagation(); removeItem(g.id, it.id); }}>✕</span>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          <button className="ghost" onClick={addGroup}>+ {t.project_add_group}</button>
-        </div>}
-      </div>
-
-      {analysis && <div className="panel">
+      {(analysis || otherSceneGroups.length > 0) && <div className="panel">
         <div className="row between">
           <div className="row">
             <div className="panel-title" style={{ marginBottom: 0 }}>{t.scenes_title}</div>
-            <span className="count">({scenes.length})</span>
+            <span className="count">({scenes.length + otherSceneGroups.reduce((n, g) => n + g.scenes.length, 0)})</span>
           </div>
           <div className="row">
             <button className="primary" onClick={() => captureScene()} title={t.scene_capture_tip}
-              disabled={!segments[player.segIndex]}>
+              disabled={!analysis || !segments[player.segIndex]}>
               + {t.scene_capture}
             </button>
           </div>
@@ -3596,9 +3685,9 @@ function App() {
               ? ['drums', 'bass', 'other', 'vocals'].filter(n => sc.layers[n] && sc.layers[n].on).map(n => t['layer_' + n][0]).join('')
               : null;
             return (
-              <div key={sc.id} className={'scene-card' + (isActive ? ' active' : '') + (isQueued ? ' queued' : '')}
+              <div key={sc.id} className={'scene-card' + (isActive ? ' active' : '') + (isQueued ? ' queued' : '') + (sceneMenu === sc.id ? ' open' : '')}
                 style={{ '--scene-col': col }}
-                onClick={() => applyScene(sc)}>
+                onClick={() => sceneMenu === sc.id ? null : applyScene(sc)}>
                 <div className="scene-head">
                   {sc.hotkey && <kbd>⇧{sc.hotkey}</kbd>}
                   <input className="scene-name" value={sc.name}
@@ -3616,8 +3705,7 @@ function App() {
                 </div>
                 {isActive && <div className="scene-state">{t.scene_on_air}</div>}
                 {isQueued && <div className="scene-state">{t.queued_badge}</div>}
-                {sceneMenu === sc.id && <div className="dropdown-menu" style={{ left: 'auto', right: 0 }}
-                  onClick={e => e.stopPropagation()}>
+                {sceneMenu === sc.id && <div className="scene-menu" onClick={e => e.stopPropagation()}>
                   <div className="dropdown-item" onClick={() => { applyScene(sc, 'now'); setSceneMenu(null); }}>{t.scene_go_now}</div>
                   <div className="dropdown-item" onClick={() => {
                     // overwrite the scene with the current player state
@@ -3628,16 +3716,16 @@ function App() {
                     });
                     setSceneMenu(null); showToast(t.scene_updated);
                   }}>{t.scene_update}</div>
-                  <div className="dropdown-item">
-                    {t.scene_hotkey} (⇧): <select value={sc.hotkey || ''}
+                  <div className="dropdown-item row-item">
+                    {t.scene_hotkey} (⇧) <select value={sc.hotkey || ''}
                       onChange={e => { updateScene(sc.id, { hotkey: e.target.value || null }); }}>
                       <option value="">—</option>
                       {'123456789'.split('').map(k => <option key={k} value={k}
                         disabled={scenes.some(o => o.id !== sc.id && o.hotkey === k)}>{k}</option>)}
                     </select>
                   </div>
-                  <div className="dropdown-item">
-                    {t.cue_mode} <select value={sc.cueMode || 'natural'}
+                  <div className="dropdown-item row-item">
+                    {t.trans_mode} <select value={sc.cueMode || 'natural'}
                       onChange={e => updateScene(sc.id, { cueMode: e.target.value })}>
                       {['natural', 'soon', 'now'].map(m => <option key={m} value={m}>{t['cue_' + m]}</option>)}
                     </select>
@@ -3649,6 +3737,27 @@ function App() {
             );
           })}
         </div>}
+        {analysis && scenes.length > 0 && otherSceneGroups.length > 0 && <div className="scene-track-head" style={{ marginTop: 14 }}>{t.scenes_this_track}: <b>{trackName}</b></div>}
+        {otherSceneGroups.map(g => (
+          <div key={g.track_id} className="scene-track">
+            <div className="scene-track-head">{t.scenes_other_track} <b>{g.track_name}</b>
+              <span className="count">({g.scenes.length})</span></div>
+            <div className="scene-grid">
+              {g.scenes.map(sc => (
+                <div key={sc.id} className="scene-card remote" onClick={() => applyRemoteScene(sc)} title={t.scene_remote_tip}>
+                  <div className="scene-head">
+                    {sc.hotkey && <kbd>⇧{sc.hotkey}</kbd>}
+                    <span className="scene-name">{sc.name}</span>
+                  </div>
+                  <div className="scene-meta">
+                    <span>{sc.part_label || `#${sc.segIndex + 1}`}</span>
+                    <span className="time">{t['cue_' + (sc.cueMode || 'natural')]}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>}
 
       {analysis && <div className="panel">
@@ -3689,7 +3798,7 @@ function App() {
         </div>
         {/* row: transition */}
         <div className="row" style={{ marginTop: 12 }}>
-          <span className="badge tip" data-tip={t.cue_mode_tip}>{t.cue_mode}</span>
+          <span className="badge tip" data-tip={t.cue_mode_tip}>{t.trans_mode}</span>
           <div className="lang-switch">
             <button className={cueMode === 'natural' ? 'on' : ''}
               onClick={() => setCueMode('natural')} title={t.cue_natural_tip}>{t.cue_natural}</button>
@@ -3698,14 +3807,7 @@ function App() {
             <button className={cueMode === 'now' ? 'on' : ''}
               onClick={() => setCueMode('now')} title={t.cue_now_tip}>{t.cue_now}</button>
           </div>
-          <span className="badge" style={{ marginLeft: 12 }}>{t.trans_mode}</span>
-          <div className="lang-switch">
-            <button className={transMode === 'loop' ? 'on' : ''}
-              onClick={() => setTransMode('loop')} title={t.mode_loop_tip}>{t.mode_loop}</button>
-            <button className={transMode === 'phrase' ? 'on' : ''}
-              onClick={() => setTransMode('phrase')} title={t.mode_phrase_tip}>{t.mode_phrase}</button>
-          </div>
-          {transMode === 'phrase' && <div className="lang-switch" title={t.phrase_len_tip}>
+          {cueMode === 'soon' && <div className="lang-switch" title={t.phrase_len_tip}>
             <button className={phraseBars === 4 ? 'on' : ''}
               onClick={() => setPhraseBars(4)}>4 {t.bars}</button>
             <button className={phraseBars === 8 ? 'on' : ''}
@@ -3783,6 +3885,156 @@ function App() {
         <div className="hint">{t.keys_hint}</div>
       </div>}
 
+      {/* ---- side drawer: projects · library · music folders ---- */}
+      {drawerOpen && <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />}
+      <aside className={'drawer' + (drawerOpen ? ' open' : '')}>
+        <div className="drawer-head">
+          <div className="lang-switch">
+            {[['projects', t.project_title], ['library', t.drawer_library], ['folders', t.drawer_folders]].map(([k, lbl]) =>
+              <button key={k} className={drawerTab === k ? 'on' : ''} onClick={() => setDrawerTab(k)}>{lbl}</button>)}
+          </div>
+          <button className="ghost" onClick={() => setDrawerOpen(false)}>✕</button>
+        </div>
+        <div className="drawer-body">
+          {drawerTab === 'projects' && <React.Fragment>
+      <div className="drawer-section">
+            <div className="row between">
+              <div className="row">
+                <div className="panel-title" style={{ marginBottom: 0 }}>{t.project_title}</div>
+                {project && <input className="proj-name" value={project.name}
+                  onChange={e => editProject(p => ({ ...p, name: e.target.value }))} />}
+              </div>
+              <div className="row">
+                {projects.length > 0 && <select className="proj-select" value={project ? project.id : ''}
+                  onChange={e => e.target.value ? openProject(e.target.value) : (setProject(null), localStorage.removeItem('musslop_project'))}>
+                  <option value="">{t.project_none}</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name} · {p.n_items}</option>)}
+                </select>}
+                <button onClick={createProject}>+ {t.project_new}</button>
+                {project && <button className="ghost" title={t.project_delete_tip}
+                  onClick={() => confirm(`${t.project_delete_confirm} "${project.name}"?`) && deleteProject(project.id)}>✕</button>}
+              </div>
+            </div>
+            {!project && <div className="hint" style={{ marginTop: 8 }}>{t.project_hint}</div>}
+            {project && <div className="proj-groups">
+              {project.groups.map((g, gi) => (
+                <div key={g.id} className="proj-group">
+                  <div className="proj-group-head">
+                    <input className="proj-group-name" value={g.name} onChange={e => renameGroup(g.id, e.target.value)} />
+                    <span className="count">({g.items.length})</span>
+                    <span className="x" title={t.project_move_up} onClick={() => moveGroup(g.id, -1)}>↑</span>
+                    <span className="x" title={t.project_move_down} onClick={() => moveGroup(g.id, 1)}>↓</span>
+                    {trackId && <button className="ghost small" onClick={() => addItem(g.id)} title={t.project_add_track_tip}>+ ♫ {t.project_add_track}</button>}
+                    {trackId && scenes.length > 0 && <select className="proj-select small" value=""
+                      onChange={e => { if (e.target.value) addItem(g.id, e.target.value); }}>
+                      <option value="">+ {t.project_add_scene}</option>
+                      {scenes.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+                    </select>}
+                    <span className="x" style={{ marginLeft: 'auto' }} title={t.project_group_delete}
+                      onClick={() => (g.items.length === 0 || confirm(t.project_group_delete_confirm)) && removeGroup(g.id)}>✕</span>
+                  </div>
+                  {g.items.length === 0 && <div className="hint" style={{ margin: '4px 0 0 14px' }}>{t.project_group_empty}</div>}
+                  {g.items.map(it => {
+                    const isCur = it.track_id === trackId && (!it.scene_id || (player.playing && (scenes.find(s => s.id === it.scene_id) || {}).segIndex === player.segIndex));
+                    return (
+                      <div key={it.id} className={'proj-item' + (isCur ? ' active' : '') + (it.available === false ? ' missing' : '')}
+                        onClick={() => openItem(it)} title={t.project_item_open_tip}>
+                        <span className="proj-item-icon">{it.scene_id ? '◈' : '♫'}</span>
+                        <span className="proj-item-name">
+                          {it.scene_id ? <span>{it.scene_name || '?'} <span className="time">· {it.track_name || it.track_id}</span></span>
+                            : (it.track_name || it.track_id)}
+                          {it.available === false && <span className="time" style={{ color: 'var(--danger)', marginLeft: 6 }}>{t.project_item_missing}</span>}
+                        </span>
+                        <input className="proj-note" placeholder={t.project_note_ph} value={it.note || ''}
+                          onClick={e => e.stopPropagation()} onChange={e => noteItem(g.id, it.id, e.target.value)} />
+                        <span className="x" onClick={e => { e.stopPropagation(); moveItem(g.id, it.id, -1); }}>↑</span>
+                        <span className="x" onClick={e => { e.stopPropagation(); moveItem(g.id, it.id, 1); }}>↓</span>
+                        <span className="x" onClick={e => { e.stopPropagation(); removeItem(g.id, it.id); }}>✕</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+              <button className="ghost" onClick={addGroup}>+ {t.project_add_group}</button>
+            </div>}
+          </div>
+    
+          </React.Fragment>}
+          {drawerTab === 'library' && <div className="drawer-section">
+            {history.length === 0 && <div className="hint">{t.drawer_library_empty}</div>}
+            {history.length > 0 && <div>
+              {[
+                { key: 'lib', title: t.library_title, items: history.filter(h => h.favorite) },
+                { key: 'hist', title: t.history_title, items: history.filter(h => !h.favorite) },
+              ].map(group => group.items.length > 0 && (
+                <div key={group.key} style={{ marginBottom: 6 }}>
+                  <div className="collapse-head"
+                    onClick={() => setOpenGroups(o => ({ ...o, [group.key]: !o[group.key] }))}>
+                    <span className={'caret' + (openGroups[group.key] ? ' open' : '')}>▶</span>
+                    <div className="panel-title" style={{ marginBottom: 0 }}>{group.title}</div>
+                    <span className="count">({group.items.length})</span>
+                  </div>
+                  {openGroups[group.key] && <div className="seg-list" style={{ marginTop: 6 }}>
+                    {group.items.map(item => (
+                      <div key={item.track_id}
+                        className={'seg-chip' + (item.track_id === trackId ? ' active' : '')}
+                        onClick={() => openFromHistory(item)}
+                        title={t.history_open_tip}>
+                        <span className="x" style={{ color: item.favorite ? '#ffb84f' : 'var(--muted)', fontSize: 14 }}
+                          title={item.favorite ? t.fav_remove_tip : t.fav_add_tip}
+                          onClick={e => toggleFavorite(e, item)}>{item.favorite ? '★' : '☆'}</span>
+                        <span style={{ fontSize: 13 }}>{item.has_markup ? '💾' : '♫'}</span>
+                        <span style={{ fontWeight: 600, maxWidth: 220, overflow: 'hidden',
+                                       textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                        {item.duration != null && <span className="time">{fmt(item.duration)}</span>}
+                        {item.n_segments > 0 && <span className="time">{item.n_segments} {t.history_parts}</span>}
+                        <span className="x" title={t.history_del_tip}
+                          onClick={e => deleteFromHistory(e, item)}>✕</span>
+                      </div>
+                    ))}
+                  </div>}
+                </div>
+              ))}
+            </div>}
+
+          </div>}
+          {drawerTab === 'folders' && <div className="drawer-section">
+            <div className="hint" style={{ marginBottom: 8 }}>{t.folders_hint}</div>
+            <div className="row">
+              <input type="text" className="folder-input" placeholder={t.folders_ph} value={folderInput}
+                onChange={e => setFolderInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addFolder()} />
+              <button onClick={addFolder} disabled={!folderInput.trim()}>+ {t.folders_add}</button>
+            </div>
+            {folderError && <div className="error-box">{folderError}</div>}
+            {folders.map(f => (
+              <div key={f.path} className="folder">
+                <div className="folder-head" onClick={() => toggleFolder(f.path)}>
+                  <span className={'caret' + (openFolders[f.path] ? ' open' : '')}>▶</span>
+                  <span className="folder-path" title={f.path}>{f.path}</span>
+                  {!f.exists && <span className="time" style={{ color: 'var(--danger)' }}>{t.folders_missing}</span>}
+                  {folderFiles[f.path] && <span className="count">({folderFiles[f.path].length})</span>}
+                  <span className="x" title={t.folders_rescan} onClick={e => { e.stopPropagation(); scanFolder(f.path); }}>↻</span>
+                  <span className="x" title={t.folders_remove} onClick={e => { e.stopPropagation(); removeFolder(f.path); }}>✕</span>
+                </div>
+                {openFolders[f.path] && <div className="folder-files">
+                  {folderFiles[f.path] === undefined && <div className="status"><div className="spinner"></div>{t.folders_scanning}</div>}
+                  {folderFiles[f.path] && folderFiles[f.path].length === 0 && <div className="hint">{t.folders_none}</div>}
+                  {(folderFiles[f.path] || []).map(file => (
+                    <div key={file.path} className={'folder-file' + (file.track_id && file.track_id === trackId ? ' active' : '')}
+                      onClick={() => openFolderFile(f.path, file)} title={file.path}>
+                      <span style={{ fontSize: 13 }}>{file.has_markup ? '💾' : file.track_id ? '♫' : '·'}</span>
+                      <span className="folder-file-name">{file.rel}</span>
+                      <span className="time">{(file.size / 1048576).toFixed(1)} MB</span>
+                    </div>
+                  ))}
+                </div>}
+              </div>
+            ))}
+          </div>}
+        </div>
+      </aside>
+
       <footer>{t.footer} · <a href="https://github.com/Siziff/musslop" target="_blank">GitHub</a></footer>
 
       {liveMode && analysis && (() => {
@@ -3791,6 +4043,8 @@ function App() {
         const eta = player.transitionEta();
         const items = [
           ...scenes.map(sc => ({ kind: 'scene', sc, segIndex: sc.segIndex, name: sc.name, hotkey: sc.hotkey ? '⇧' + sc.hotkey : null })),
+          ...allScenes.filter(sc => sc.track_id !== trackId).map(sc => ({ kind: 'remote', sc, segIndex: -1, name: sc.name, sub: sc.track_name,
+            hotkey: sc.hotkey && !scenes.some(o => o.hotkey === sc.hotkey) ? '⇧' + sc.hotkey : null })),
           ...segments.map((s, i) => ({ kind: 'seg', segIndex: i, name: s.label, hotkey: i < 10 ? String((i + 1) % 10) : null })),
         ];
         return (
@@ -3824,23 +4078,24 @@ function App() {
             </div>
             <div className="live-grid">
               {items.map((it, k) => {
-                const firstSeg = it.kind === 'seg' && (k === 0 || items[k - 1].kind === 'scene');
+                const firstSeg = it.kind === 'seg' && (k === 0 || items[k - 1].kind !== 'seg');
                 const isOn = player.playing && it.segIndex === player.segIndex;
                 const isQ = tgt != null && it.segIndex === tgt;
                 const seg = segments[it.segIndex];
                 const col = seg ? SEG_COLORS[(seg.group ? seg.group.charCodeAt(0) - 65 : it.segIndex) % SEG_COLORS.length] : 'var(--muted)';
                 return (
-                  <button key={k} className={'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : '') + (it.kind === 'scene' ? ' scene' : '') + (firstSeg && k > 0 ? ' first-seg' : '')}
+                  <button key={k} className={'live-pad' + (isOn ? ' on' : '') + (isQ ? ' queued' : '') + (it.kind !== 'seg' ? ' scene' : '') + (it.kind === 'remote' ? ' remote' : '') + (firstSeg && k > 0 ? ' first-seg' : '')}
                     style={{ '--scene-col': col }}
                     onClick={() => {
-                      if (it.kind === 'scene') applyScene(it.sc);
+                      if (it.kind === 'remote') applyRemoteScene(it.sc);
+                      else if (it.kind === 'scene') applyScene(it.sc);
                       else if (!player.playing) player.play(it.segIndex);
                       else if (it.segIndex === player.segIndex) player.cancelCue();
                       else player.cue(it.segIndex, cueMode);
                     }}>
                     {it.hotkey && <kbd>{it.hotkey}</kbd>}
                     <span className="live-pad-name">{it.name}</span>
-                    <span className="live-pad-sub">{isOn ? t.scene_on_air : isQ ? t.queued_badge : (seg ? fmt(seg.end - seg.start) : '')}</span>
+                    <span className="live-pad-sub">{isOn ? t.scene_on_air : isQ ? t.queued_badge : it.sub ? it.sub : (seg ? fmt(seg.end - seg.start) : '')}</span>
                   </button>
                 );
               })}

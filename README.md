@@ -47,10 +47,13 @@ models have been downloaded. This is a personal passion project, shared freely.
 | Feature | Status | Where |
 |---|---|---|
 | **Audition the seam** — ⟲♪ / →♪ on part chips: hear the loop seam or the transition into the next part in ~6 s; snippets highlighted on the waveform | ✅ done | player `previewSeam` / `previewTransition` |
-| **Cue any part** — click a part (or press **1–9, 0**) while playing to queue a transition into it; **natural / soon / now** urgency; cancel with Backspace; status shows `→ target · ETA` | ✅ done | player `cue` / `cancelCue` / `pendingTarget` |
+| **Cue any part** — click a part (or press **1–9, 0**) while playing to queue a transition into it; lands **at loop end / at phrase / right away**; cancel with Backspace; status shows `→ target · ETA` | ✅ done | player `cue` / `cancelCue` / `pendingTarget` |
 | **Scenes** — save the player state (part, layers, speed, crossfade, reverb, cue mode) as a named scene; **Shift+1–9** hotkeys; stored in the track markup and `*.musslop.json` | ✅ done | Scenes panel |
 | **Live mode** (`L`) — full-screen session desk: now / next with ETA, part & scene pads, Next, Cancel, **Fade out** (`F`); editing locked | ✅ done | Player → “Live mode” |
-| **Projects (set lists)** — groups of track / scene items with notes for a whole session or level; persisted server-side; items open in one click | ✅ done | Project panel, `/api/projects` |
+| **Projects (set lists)** — groups of track / scene items with notes for a whole session or level; persisted server-side; items open in one click | ✅ done | Side drawer → Project, `/api/projects` |
+| **Side drawer (☰)** — Projects · Library/History · **Music folders**: point musslop at a folder on disk, every audio file inside is listed; a click imports it once and opens it | ✅ done | `/api/folders`, `/api/folders/scan`, `/api/folders/import` |
+| **Scenes across tracks** — scenes of every track are listed under the current one; clicking (or Shift+hotkey) loads that track and starts the scene | ✅ done | `/api/scenes` |
+| One transition switch — *at loop end / at phrase / right away* applies to Next, part clicks, keys and scenes (the old “loop end / phrase end” toggle is merged into it) | ✅ done | Player |
 | **Export with `manifest.json`** — loop points, downbeats, phrase transition points, stingers, scenes, optional `*_tail.wav` | ✅ done | `/api/export`, `examples/godot` |
 | Godot 4 example — `MusslopPlayer.gd` plays the export with natural / soon / now cues | ✅ done | `examples/godot` |
 | Phone remote (LAN / QR) | 🔜 planned separately | — |
@@ -75,7 +78,7 @@ When merging into `main`, move the finished rows into the release notes and clea
 | **Build-up detection** | suggests crescendo sections that should play once rather than repeat; loop behaviour is editable |
 | **Full editor** | drag boundaries with bar snapping, split/merge, loop-start markers, Ctrl+Z, zoom + scrollbar, everything auto-saved |
 | **Audition the seam** | ⟲♪ plays the last seconds of a part and then its start; →♪ plays the end of a part into the next one — check a boundary in 6 seconds instead of a whole loop |
-| **Cue any part** | while playing, click any part — or press its key **1–9, 0** (parts 1–10) — to queue a transition into it — **natural** (loop end), **soon** (next 4/8-bar phrase) or **now** (short crossfade); cancel with Backspace |
+| **Cue any part** | while playing, click any part — or press its key **1–9, 0** (parts 1–10) — to queue a transition into it — **at loop end**, **at phrase** (next 4/8-bar boundary) or **right away** (short crossfade); cancel with Backspace |
 | **Scenes** | save the player state (part + layers + speed/crossfade/reverb + how to enter) as a named scene with a hotkey Shift+1–9: *Empty corridor*, *Something is close*, *Ambush*, *Aftermath* — all from one track |
 | **Live mode** | full-screen desk for the session (key `L`): big current/next display, scene pads, ETA of the transition, fade-out — editing is locked |
 | **Projects (set lists)** | group tracks and scenes for a whole session or level (*Arrival → Inside → Finale*), with notes; open any item in one click |
@@ -118,7 +121,7 @@ ffmpeg is downloaded automatically with the dependencies — no manual install n
    on its chip; drag the boundary on the waveform if the seam is audible.
 4. Select a section and press **Play** (or **Space**) to loop it.
 5. Press **Next** (or **→ / Enter**) — or click any other part — to queue a transition.
-   Pick when it lands: **natural** (loop end), **soon** (phrase), **now** (crossfade).
+   Pick when it lands: **at loop end**, **at phrase** (4/8 bars), **right away** (short crossfade).
    **Backspace** cancels a queued transition.
 6. Adjust section boundaries if needed; use **Ctrl+Z** to undo an edit.
 7. For game audio prototyping, choose **Files → Loops (zip)** to export WAV loops
@@ -128,8 +131,9 @@ ffmpeg is downloaded automatically with the dependencies — no manual install n
 
 1. Set up the player for a moment of the game (part, layers, speed, reverb) and hit
    **Save scene**. Repeat for every mood you need from this track. Scenes get hotkeys Shift+1–9; plain digits 1–9, 0 cue parts 1–10.
-2. Optionally create a **Project**: groups like *Arrival / Inside / Finale* with the tracks
-   and scenes of the session, plus notes. Items open in one click and start their scene.
+2. Optionally create a **Project** (☰ → Project): groups like *Arrival / Inside / Finale* with the
+   tracks and scenes of the session, plus notes. Items open in one click and start their scene.
+   ☰ → Folders lets you point musslop at your music folder so every file is one click away.
 3. At the table press **L** for **Live mode**: a full-screen desk with the current part, what
    comes next and when, scene pads, **Next**, **Cancel** and **Fade out** (`F`). Editing
    shortcuts are disabled while Live is on; `Esc` leaves it.
