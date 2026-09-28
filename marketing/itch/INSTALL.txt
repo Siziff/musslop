@@ -1,0 +1,17 @@
+musslop — install
+=================
+Requires Python 3.10+ (python.org, tick "Add to PATH" on Windows) and Git.
+
+Linux / macOS:
+  git clone https://github.com/Siziff/musslop.git && cd musslop
+  ./setup.sh
+  ./run.sh          -> open http://localhost:8801
+
+Windows:
+  git clone https://github.com/Siziff/musslop.git
+  cd musslop
+  setup.bat
+  run.bat           -> open http://localhost:8801
+
+Optional AI engines: ./setup-ai-songformer.sh (all platforms), ./setup-ai-allin1.sh (Linux/macOS/WSL).
+Docs & issues: https://github.com/Siziff/musslop
