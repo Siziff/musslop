@@ -298,15 +298,17 @@ def _save_folders(folders: list[str]) -> None:
 
 def _source_index() -> dict[str, str]:
     """source path -> track_id for already imported files."""
-    return {m["source"]: tid for tid, m in TRACKS.items() if m.get("source")}
+    return {os.path.normpath(m["source"]): tid for tid, m in TRACKS.items() if m.get("source")}
 
 
 def _scan_folder(root: str, limit: int = 2000) -> list[dict]:
     out = []
     src = _source_index()
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(root, onerror=lambda e: None):
         dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
         for fn in sorted(filenames):
+            if fn.startswith("."):
+                continue
             ext = os.path.splitext(fn)[1].lower()
             if ext not in ALLOWED_EXT:
                 continue
@@ -315,7 +317,7 @@ def _scan_folder(root: str, limit: int = 2000) -> list[dict]:
                 size = os.path.getsize(full)
             except OSError:
                 continue
-            tid = src.get(full)
+            tid = src.get(os.path.normpath(full))
             out.append({
                 "path": full, "name": fn, "size": size,
                 "rel": os.path.relpath(full, root),
@@ -333,11 +335,52 @@ def list_folders():
     return {"folders": [{"path": p, "exists": os.path.isdir(p)} for p in folders]}
 
 
+def _resolve_folder(raw: str) -> tuple[str | None, list[str]]:
+    """Turn user input into an existing absolute directory path.
+
+    Accepts absolute and relative paths, ~ , quotes around the path, Windows
+    backslashes and drive letters (also when typed on a POSIX host), and
+    trailing separators. Relative paths are tried against the current working
+    directory, the project root and the user's home. Returns (path, tried)."""
+    raw = (raw or "").strip().strip('"').strip("'").strip()
+    # `file://` URLs (drag & drop from a file manager) -> plain path
+    if raw.lower().startswith("file://"):
+        from urllib.parse import unquote, urlparse
+        raw = unquote(urlparse(raw).path)
+        if os.name == "nt" and raw.startswith("/") and len(raw) > 2 and raw[2] == ":":
+            raw = raw[1:]
+    if not raw:
+        return None, []
+    candidates: list[str] = []
+
+    def add(p: str) -> None:
+        p = os.path.normpath(p)
+        if p not in candidates:
+            candidates.append(p)
+
+    variants = [raw]
+    # Windows-style input on any host: backslashes -> os separator
+    if "\\" in raw:
+        variants.append(raw.replace("\\", os.sep))
+    for v in variants:
+        v = os.path.expandvars(os.path.expanduser(v))
+        add(v)
+        if not os.path.isabs(v):
+            add(os.path.join(os.getcwd(), v))
+            add(os.path.join(BASE_DIR, v))
+            add(os.path.join(os.path.expanduser("~"), v))
+    for c in candidates:
+        if os.path.isdir(c):
+            return os.path.abspath(c), candidates
+    return None, candidates
+
+
 @app.post("/api/folders")
 def add_folder(body: dict = Body(...)):
-    path = os.path.abspath(os.path.expanduser(str(body.get("path") or "").strip()))
-    if not path or not os.path.isdir(path):
-        raise HTTPException(400, "Folder not found")
+    path, tried = _resolve_folder(str(body.get("path") or ""))
+    if not path:
+        hint = "; ".join(tried[:4]) if tried else "empty path"
+        raise HTTPException(400, f"Folder not found. Tried: {hint}")
     folders = _load_folders()
     if path not in folders:
         folders.append(path)
@@ -345,30 +388,50 @@ def add_folder(body: dict = Body(...)):
     return {"ok": True, "path": path}
 
 
+def _same_path(a: str, b: str) -> bool:
+    return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
+
+
+def _registered(path: str) -> str | None:
+    for p in _load_folders():
+        if _same_path(p, path):
+            return p
+    return None
+
+
 @app.delete("/api/folders")
 def remove_folder(path: str = Query(...)):
-    folders = [p for p in _load_folders() if p != path]
+    folders = [p for p in _load_folders() if not _same_path(p, path)]
     _save_folders(folders)
     return {"ok": True}
 
 
 @app.get("/api/folders/scan")
 def scan_folder(path: str = Query(...)):
-    if path not in _load_folders() or not os.path.isdir(path):
+    reg = _registered(path)
+    if not reg or not os.path.isdir(reg):
         raise HTTPException(404, "Folder not registered")
-    return {"path": path, "files": _scan_folder(path)}
+    return {"path": reg, "files": _scan_folder(reg)}
 
 
 @app.post("/api/folders/import")
 def import_from_folder(body: dict = Body(...)):
     """Import one file from a registered folder (or return the existing track)."""
-    full = str(body.get("path") or "")
+    full = os.path.normpath(str(body.get("path") or ""))
     folders = _load_folders()
-    if not any(os.path.commonpath([full, root]) == root for root in folders if os.path.isdir(root)):
+
+    def inside(root: str) -> bool:
+        try:
+            return os.path.commonpath([os.path.normcase(full), os.path.normcase(os.path.normpath(root))]) \
+                == os.path.normcase(os.path.normpath(root))
+        except ValueError:  # different drives on Windows
+            return False
+
+    if not any(inside(root) for root in folders if os.path.isdir(root)):
         raise HTTPException(400, "File is outside the registered folders")
     if not os.path.isfile(full):
         raise HTTPException(404, "File not found")
-    existing = _source_index().get(full)
+    existing = _source_index().get(os.path.normpath(full))
     if existing and existing in TRACKS:
         return {"track_id": existing, "name": TRACKS[existing]["name"], "existing": True}
 

@@ -441,18 +441,36 @@
 
   /* ---------- side drawer ---------- */
   .drawer-btn {
-    padding: 6px 11px; font-size: 16px; line-height: 1; margin-right: 6px; align-self: center;
+    width: 38px; height: 36px; padding: 0; margin-right: 8px; align-self: center; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
   }
+  .drawer-btn .burger { position: relative; width: 18px; height: 14px; display: block; }
+  .drawer-btn .burger i {
+    position: absolute; left: 0; width: 18px; height: 2px; border-radius: 1px; background: currentColor;
+    transition: transform .22s ease, opacity .18s ease, top .22s ease;
+  }
+  .drawer-btn .burger i:nth-child(1) { top: 0; }
+  .drawer-btn .burger i:nth-child(2) { top: 6px; }
+  .drawer-btn .burger i:nth-child(3) { top: 12px; }
+  /* open: the three bars fold into an X — the same control closes the drawer */
   .drawer-btn.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .drawer-btn.on .burger i:nth-child(1) { top: 6px; transform: rotate(45deg); }
+  .drawer-btn.on .burger i:nth-child(2) { opacity: 0; transform: scaleX(.2); }
+  .drawer-btn.on .burger i:nth-child(3) { top: 6px; transform: rotate(-45deg); }
   .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 60; }
   .drawer {
-    position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 92vw); z-index: 61;
-    background: var(--panel); border-left: 1px solid var(--border);
-    box-shadow: -20px 0 60px rgba(0,0,0,.5); transform: translateX(100%);
+    position: fixed; top: 0; left: 0; bottom: 0; width: min(520px, 92vw); z-index: 61;
+    background: var(--panel); border-right: 1px solid var(--border);
+    box-shadow: 20px 0 60px rgba(0,0,0,.5); transform: translateX(-100%);
     transition: transform .22s ease; display: flex; flex-direction: column;
   }
   .drawer.open { transform: translateX(0); }
-  .drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  /* head mirrors the page header so the burger sits exactly where it was */
+  .drawer-head {
+    display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
+    padding: 44px 16px 16px max(22px, calc((100vw - 1180px) / 2 + 22px));
+  }
+  .drawer-head .lang-switch { flex-wrap: wrap; }
   .drawer-body { overflow: auto; padding: 14px 16px 30px; flex: 1; }
   .drawer-section { display: flex; flex-direction: column; gap: 10px; }
   .drawer .seg-chip { max-width: 100%; }
@@ -755,6 +773,7 @@ const STR = {
     live_play: 'Играть',
     live_fade: 'Затухание',
     drawer_tip: 'Проекты · Библиотека · Папки с музыкой',
+    drawer_close: 'Закрыть панель',
     drawer_library: 'Библиотека',
     drawer_folders: 'Папки',
     drawer_library_empty: 'Пока пусто — загрузите трек или добавьте папку с музыкой во вкладке «Папки».',
@@ -961,6 +980,7 @@ const STR = {
     live_play: 'Play',
     live_fade: 'Fade out',
     drawer_tip: 'Projects · Library · Music folders',
+    drawer_close: 'Close panel',
     drawer_library: 'Library',
     drawer_folders: 'Folders',
     drawer_library_empty: 'Nothing here yet — load a track or add a music folder in the “Folders” tab.',
@@ -1168,6 +1188,7 @@ const STR = {
     live_play: '播放',
     live_fade: '淡出',
     drawer_tip: '项目 · 收藏库 · 音乐文件夹',
+    drawer_close: '关闭面板',
     drawer_library: '收藏库',
     drawer_folders: '文件夹',
     drawer_library_empty: '暂无内容 — 加载曲目，或在“文件夹”标签添加音乐文件夹。',
@@ -3438,7 +3459,9 @@ function App() {
       <header>
         <div className="logo">
           <button className={'drawer-btn' + (drawerOpen ? ' on' : '')} onClick={() => setDrawerOpen(o => !o)}
-            title={t.drawer_tip}>☰</button>
+            title={t.drawer_tip} aria-label={t.drawer_tip} aria-expanded={drawerOpen}>
+            <span className="burger"><i></i><i></i><i></i></span>
+          </button>
           <h1>{theme === 'tavern' ? 'Musslop' : 'musslop'}</h1>
           <div className="sub">{t.tagline}</div>
         </div>
@@ -3889,11 +3912,14 @@ function App() {
       {drawerOpen && <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />}
       <aside className={'drawer' + (drawerOpen ? ' open' : '')}>
         <div className="drawer-head">
+          <button className="drawer-btn on" onClick={() => setDrawerOpen(false)} title={t.drawer_close}
+            aria-label={t.drawer_close}>
+            <span className="burger"><i></i><i></i><i></i></span>
+          </button>
           <div className="lang-switch">
             {[['projects', t.project_title], ['library', t.drawer_library], ['folders', t.drawer_folders]].map(([k, lbl]) =>
               <button key={k} className={drawerTab === k ? 'on' : ''} onClick={() => setDrawerTab(k)}>{lbl}</button>)}
           </div>
-          <button className="ghost" onClick={() => setDrawerOpen(false)}>✕</button>
         </div>
         <div className="drawer-body">
           {drawerTab === 'projects' && <React.Fragment>

@@ -174,6 +174,7 @@ const STR = {
     live_play: 'Играть',
     live_fade: 'Затухание',
     drawer_tip: 'Проекты · Библиотека · Папки с музыкой',
+    drawer_close: 'Закрыть панель',
     drawer_library: 'Библиотека',
     drawer_folders: 'Папки',
     drawer_library_empty: 'Пока пусто — загрузите трек или добавьте папку с музыкой во вкладке «Папки».',
@@ -380,6 +381,7 @@ const STR = {
     live_play: 'Play',
     live_fade: 'Fade out',
     drawer_tip: 'Projects · Library · Music folders',
+    drawer_close: 'Close panel',
     drawer_library: 'Library',
     drawer_folders: 'Folders',
     drawer_library_empty: 'Nothing here yet — load a track or add a music folder in the “Folders” tab.',
@@ -587,6 +589,7 @@ const STR = {
     live_play: '播放',
     live_fade: '淡出',
     drawer_tip: '项目 · 收藏库 · 音乐文件夹',
+    drawer_close: '关闭面板',
     drawer_library: '收藏库',
     drawer_folders: '文件夹',
     drawer_library_empty: '暂无内容 — 加载曲目，或在“文件夹”标签添加音乐文件夹。',
@@ -3472,8 +3475,12 @@ function App() {
   }, /*#__PURE__*/React.createElement("button", {
     className: 'drawer-btn' + (drawerOpen ? ' on' : ''),
     onClick: () => setDrawerOpen(o => !o),
-    title: t.drawer_tip
-  }, "\u2630"), /*#__PURE__*/React.createElement("h1", null, theme === 'tavern' ? 'Musslop' : 'musslop'), /*#__PURE__*/React.createElement("div", {
+    title: t.drawer_tip,
+    "aria-label": t.drawer_tip,
+    "aria-expanded": drawerOpen
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "burger"
+  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null))), /*#__PURE__*/React.createElement("h1", null, theme === 'tavern' ? 'Musslop' : 'musslop'), /*#__PURE__*/React.createElement("div", {
     className: "sub"
   }, t.tagline)), /*#__PURE__*/React.createElement("div", {
     className: "row",
@@ -4270,16 +4277,20 @@ function App() {
     className: 'drawer' + (drawerOpen ? ' open' : '')
   }, /*#__PURE__*/React.createElement("div", {
     className: "drawer-head"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "drawer-btn on",
+    onClick: () => setDrawerOpen(false),
+    title: t.drawer_close,
+    "aria-label": t.drawer_close
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "burger"
+  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null))), /*#__PURE__*/React.createElement("div", {
     className: "lang-switch"
   }, [['projects', t.project_title], ['library', t.drawer_library], ['folders', t.drawer_folders]].map(([k, lbl]) => /*#__PURE__*/React.createElement("button", {
     key: k,
     className: drawerTab === k ? 'on' : '',
     onClick: () => setDrawerTab(k)
-  }, lbl))), /*#__PURE__*/React.createElement("button", {
-    className: "ghost",
-    onClick: () => setDrawerOpen(false)
-  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
+  }, lbl)))), /*#__PURE__*/React.createElement("div", {
     className: "drawer-body"
   }, drawerTab === 'projects' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "drawer-section"
