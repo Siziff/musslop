@@ -39,6 +39,24 @@ models have been downloaded. This is a personal passion project, shared freely.
 
 **Read about the project:** [Article on Habr (in Russian)](https://habr.com/ru/articles/1086674/).
 
+## `dev` branch — what's new vs `main`
+
+> This is the development branch. Everything below is **not yet in `main`**; the list
+> is the changelog for the next release. Try it: `git checkout dev`, then `./run.sh`.
+
+| Feature | Status | Where |
+|---|---|---|
+| **Audition the seam** — ⟲♪ / →♪ on part chips: hear the loop seam or the transition into the next part in ~6 s; snippets highlighted on the waveform | ✅ done | player `previewSeam` / `previewTransition` |
+| **Cue any part** — click a part (or press **1–9, 0**) while playing to queue a transition into it; **natural / soon / now** urgency; cancel with Backspace; status shows `→ target · ETA` | ✅ done | player `cue` / `cancelCue` / `pendingTarget` |
+| **Scenes** — save the player state (part, layers, speed, crossfade, reverb, cue mode) as a named scene; **Shift+1–9** hotkeys; stored in the track markup and `*.musslop.json` | ✅ done | Scenes panel |
+| **Live mode** (`L`) — full-screen session desk: now / next with ETA, part & scene pads, Next, Cancel, **Fade out** (`F`); editing locked | ✅ done | Player → “Live mode” |
+| **Projects (set lists)** — groups of track / scene items with notes for a whole session or level; persisted server-side; items open in one click | ✅ done | Project panel, `/api/projects` |
+| **Export with `manifest.json`** — loop points, downbeats, phrase transition points, stingers, scenes, optional `*_tail.wav` | ✅ done | `/api/export`, `examples/godot` |
+| Godot 4 example — `MusslopPlayer.gd` plays the export with natural / soon / now cues | ✅ done | `examples/godot` |
+| Phone remote (LAN / QR) | 🔜 planned separately | — |
+
+When merging into `main`, move the finished rows into the release notes and clear this section.
+
 ## Two ways to use it
 
 | At your TTRPG table | While building your game |
