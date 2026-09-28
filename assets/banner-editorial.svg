@@ -17,10 +17,10 @@
 <path d="M829 197V211M841 185V223M853 191V217M865 179V229M877 187V221M889 195V213" stroke="#e9f3cd" stroke-width="5" stroke-linecap="round"/>
 <text x="861" y="298" text-anchor="middle" fill="#c7cfbd" font-family="Arial,Helvetica,sans-serif" font-size="17">Loop as long as you need</text>
 <path d="M998 205H1112M1101 195L1113 205L1101 215" fill="none" stroke="#d8ff3e" stroke-width="3"/>
-<rect x="1011" y="164" width="85" height="25" rx="12" fill="#d8ff3e"/>
+<rect x="1006" y="164" width="96" height="25" rx="12" fill="#d8ff3e"/>
 <text x="1054" y="181" text-anchor="middle" fill="#111419" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700">YOUR CUE</text>
 <rect x="1124" y="120" width="252" height="172" rx="24" fill="#222735" stroke="#59607b"/>
-<text x="1148" y="157" fill="#b9c6ff" font-family="monospace" font-size="12" letter-spacing="1">02 / MOVE THE STORY ON</text>
+<text x="1148" y="157" fill="#b9c6ff" font-family="monospace" font-size="11" letter-spacing="0.5">02 / MOVE THE STORY ON</text>
 <path d="M1173 202V228M1188 187V243M1203 193V237M1218 181V249M1233 192V238M1248 183V247M1263 193V237M1278 180V250M1293 196V234M1308 189V241M1323 202V228" stroke="#b9c6ff" stroke-width="6" stroke-linecap="round"/>
 <text x="1038" y="381" text-anchor="middle" fill="#7e8998" font-family="monospace" font-size="12" letter-spacing="2">EXISTING TRACKS. MANUAL CONTROL.</text>
 </svg>
