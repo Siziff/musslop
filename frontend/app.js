@@ -178,7 +178,7 @@ const STR = {
     drawer_library: 'Библиотека',
     drawer_folders: 'Папки',
     drawer_library_empty: 'Пока пусто — загрузите трек или добавьте папку с музыкой во вкладке «Папки».',
-    folders_hint: 'Укажите папку на этом компьютере — все аудиофайлы из неё (и вложенных папок) появятся списком. Клик по файлу импортирует его один раз и открывает как обычный трек.',
+    folders_hint: 'Укажите папку на этом компьютере — все аудиофайлы из неё (и вложенных папок) появятся списком с обложками. ▶ — послушать без импорта, → — взять в работу, галочки — собрать группу проекта.',
     folders_ph: '/путь/к/папке/с/музыкой',
     folders_add: 'Добавить',
     folders_err: 'Папка не найдена',
@@ -188,6 +188,14 @@ const STR = {
     folders_scanning: 'Сканирую…',
     folders_none: 'Аудиофайлов не найдено',
     folders_importing: 'Импортирую файл из папки…',
+    folders_browse: 'Выбрать…',
+    folders_browse_tip: 'Открыть системный диалог выбора папки (работает, когда браузер и сервер на одном компьютере)',
+    folders_listen: 'Послушать прямо из папки (без импорта)',
+    folders_stop: 'Остановить',
+    folders_take_tip: 'Взять в работу: импортировать, проанализировать и открыть в редакторе',
+    folders_select_tip: 'Отметить, чтобы добавить несколько треков в группу проекта',
+    folders_selected: 'выбрано →',
+    folders_to_group: 'в группу проекта…',
     scenes_this_track: 'Этот трек',
     scenes_other_track: 'Трек:',
     scene_remote_tip: 'Сцена другого трека: клик загрузит трек и запустит сцену',
@@ -385,7 +393,7 @@ const STR = {
     drawer_library: 'Library',
     drawer_folders: 'Folders',
     drawer_library_empty: 'Nothing here yet — load a track or add a music folder in the “Folders” tab.',
-    folders_hint: 'Point musslop at a folder on this computer — every audio file inside (including subfolders) is listed here. Clicking a file imports it once and opens it like any other track.',
+    folders_hint: 'Point musslop at a folder on this computer — every audio file inside (including subfolders) is listed with its cover. ▶ listens without importing, → takes the track to work, checkboxes build a project group.',
     folders_ph: '/path/to/your/music',
     folders_add: 'Add',
     folders_err: 'Folder not found',
@@ -395,6 +403,14 @@ const STR = {
     folders_scanning: 'Scanning…',
     folders_none: 'No audio files found',
     folders_importing: 'Importing file from folder…',
+    folders_browse: 'Browse…',
+    folders_browse_tip: 'Open the system folder dialog (works when the browser and the server run on the same computer)',
+    folders_listen: 'Listen straight from the folder (no import)',
+    folders_stop: 'Stop',
+    folders_take_tip: 'Take to work: import, analyse and open in the editor',
+    folders_select_tip: 'Tick to add several tracks to a project group',
+    folders_selected: 'selected →',
+    folders_to_group: 'to a project group…',
     scenes_this_track: 'This track',
     scenes_other_track: 'Track:',
     scene_remote_tip: 'Scene of another track: click loads the track and starts the scene',
@@ -593,7 +609,7 @@ const STR = {
     drawer_library: '收藏库',
     drawer_folders: '文件夹',
     drawer_library_empty: '暂无内容 — 加载曲目，或在“文件夹”标签添加音乐文件夹。',
-    folders_hint: '指定本机上的文件夹 — 其中（含子文件夹）的所有音频文件都会列出。点击文件会导入一次并像普通曲目一样打开。',
+    folders_hint: '指定本机上的文件夹 — 其中（含子文件夹）的所有音频文件会带封面列出。▶ 不导入直接试听，→ 开始处理，勾选可组成项目分组。',
     folders_ph: '/音乐/文件夹/路径',
     folders_add: '添加',
     folders_err: '未找到文件夹',
@@ -603,6 +619,14 @@ const STR = {
     folders_scanning: '扫描中…',
     folders_none: '未找到音频文件',
     folders_importing: '正在从文件夹导入…',
+    folders_browse: '浏览…',
+    folders_browse_tip: '打开系统文件夹对话框（浏览器与服务器在同一台电脑时可用）',
+    folders_listen: '直接从文件夹试听（不导入）',
+    folders_stop: '停止',
+    folders_take_tip: '开始处理：导入、分析并在编辑器中打开',
+    folders_select_tip: '勾选以将多个曲目加入项目分组',
+    folders_selected: '已选 →',
+    folders_to_group: '加入项目分组…',
     scenes_this_track: '当前曲目',
     scenes_other_track: '曲目：',
     scene_remote_tip: '其他曲目的场景：点击将加载该曲目并启动场景',
@@ -2835,8 +2859,8 @@ function App() {
     }));
     if (open && folderFiles[path] === undefined) scanFolder(path);
   };
-  const addFolder = async () => {
-    const path = folderInput.trim();
+  const addFolder = () => addFolderPath(folderInput.trim());
+  const addFolderPath = async path => {
     if (!path) return;
     setFolderError(null);
     try {
@@ -2904,6 +2928,182 @@ function App() {
     } catch (e) {
       setError(String(e.message || e));
       setLoading(null);
+    }
+  };
+  // quick listen straight from the folder (no import): one shared <audio>
+  const previewRef = useRef(null);
+  const [previewPath, setPreviewPath] = useState(null);
+  const [previewPos, setPreviewPos] = useState(0);
+  const stopFilePreview = () => {
+    const a = previewRef.current;
+    if (a) {
+      a.pause();
+      a.removeAttribute('src');
+      a.load();
+    }
+    setPreviewPath(null);
+    setPreviewPos(0);
+  };
+  const toggleFilePreview = file => {
+    if (previewPath === file.path) {
+      stopFilePreview();
+      return;
+    }
+    if (!previewRef.current) {
+      const a = new Audio();
+      a.preload = 'auto';
+      a.addEventListener('timeupdate', () => setPreviewPos(a.currentTime));
+      a.addEventListener('ended', () => stopFilePreview());
+      previewRef.current = a;
+    }
+    player.stop();
+    player.stopPreview();
+    const a = previewRef.current;
+    a.src = `/api/folders/stream?path=${encodeURIComponent(file.path)}`;
+    a.volume = volume;
+    a.play().catch(() => {});
+    setPreviewPath(file.path);
+  };
+  useEffect(() => {
+    if (previewRef.current) previewRef.current.volume = volume;
+  }, [volume]);
+  useEffect(() => {
+    if (!drawerOpen) stopFilePreview();
+  }, [drawerOpen]);
+  const seekFilePreview = (e, file) => {
+    const a = previewRef.current;
+    if (!a || previewPath !== file.path || !a.duration) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    a.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * a.duration;
+  };
+  // multi-select of folder files -> add to a project group
+  const [selectedFiles, setSelectedFiles] = useState({}); // path -> file
+  const toggleSelect = file => setSelectedFiles(sel => {
+    const n = {
+      ...sel
+    };
+    if (n[file.path]) delete n[file.path];else n[file.path] = file;
+    return n;
+  });
+  const selectedList = Object.values(selectedFiles);
+  // import (once) without opening; returns {track_id, name}
+  const importFile = async file => {
+    const r = await fetch('/api/folders/import', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        path: file.path
+      })
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || t.err_upload);
+    return await r.json();
+  };
+  const addSelectedToProject = async gid => {
+    if (!selectedList.length) return;
+    setError(null);
+    try {
+      setLoading(t.folders_importing);
+      const imported = [];
+      for (const f of selectedList) imported.push({
+        file: f,
+        ...(await importFile(f))
+      });
+      // update file rows (now imported) + history
+      setFolderFiles(ff => {
+        const n = {
+          ...ff
+        };
+        for (const k in n) n[k] = (n[k] || []).map(x => {
+          const hit = imported.find(i => i.file.path === x.path);
+          return hit ? {
+            ...x,
+            track_id: hit.track_id
+          } : x;
+        });
+        return n;
+      });
+      loadHistory();
+      let targetGid = gid;
+      let proj = project;
+      if (!proj) {
+        const r = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: t.project_new_name,
+            groups: [{
+              name: t.project_group_default,
+              items: []
+            }]
+          })
+        });
+        proj = await r.json();
+        setProject(proj);
+        localStorage.setItem('musslop_project', proj.id);
+        loadProjects();
+        targetGid = proj.groups[0].id;
+      }
+      if (targetGid === '__new__') {
+        const g = {
+          id: uid(),
+          name: `${t.project_group_default} ${proj.groups.length + 1}`,
+          items: []
+        };
+        proj = {
+          ...proj,
+          groups: [...proj.groups, g]
+        };
+        targetGid = g.id;
+      }
+      const items = imported.map(i => ({
+        id: uid(),
+        track_id: i.track_id,
+        scene_id: null,
+        note: '',
+        track_name: i.name,
+        scene_name: null,
+        available: true
+      }));
+      editProject(() => ({
+        ...proj,
+        groups: proj.groups.map(g => g.id === targetGid ? {
+          ...g,
+          items: [...g.items, ...items]
+        } : g)
+      }));
+      setSelectedFiles({});
+      showToast(`${t.project_item_added} (${items.length})`);
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setLoading(null);
+    }
+  };
+  // native folder dialog (server-side; works when the browser is on the same machine)
+  const [picking, setPicking] = useState(false);
+  const pickFolder = async () => {
+    setFolderError(null);
+    setPicking(true);
+    try {
+      const r = await fetch('/api/folders/pick', {
+        method: 'POST'
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || t.folders_err);
+      const {
+        path
+      } = await r.json();
+      if (path) {
+        setFolderInput(path);
+        await addFolderPath(path);
+      }
+    } catch (e) {
+      setFolderError(String(e.message || e));
+    } finally {
+      setPicking(false);
     }
   };
   const projSaveT = useRef(null);
@@ -4516,9 +4716,32 @@ function App() {
   }), /*#__PURE__*/React.createElement("button", {
     onClick: addFolder,
     disabled: !folderInput.trim()
-  }, "+ ", t.folders_add)), folderError && /*#__PURE__*/React.createElement("div", {
+  }, "+ ", t.folders_add), /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: pickFolder,
+    disabled: picking,
+    title: t.folders_browse_tip
+  }, picking ? '…' : '📂 ' + t.folders_browse)), folderError && /*#__PURE__*/React.createElement("div", {
     className: "error-box"
-  }, folderError), folders.map(f => /*#__PURE__*/React.createElement("div", {
+  }, folderError), selectedList.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "sel-bar"
+  }, /*#__PURE__*/React.createElement("b", null, selectedList.length), " ", t.folders_selected, /*#__PURE__*/React.createElement("select", {
+    className: "proj-select small",
+    value: "",
+    onChange: e => {
+      if (e.target.value) addSelectedToProject(e.target.value);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, t.folders_to_group), project && project.groups.map(g => /*#__PURE__*/React.createElement("option", {
+    key: g.id,
+    value: g.id
+  }, project.name, " \xB7 ", g.name)), /*#__PURE__*/React.createElement("option", {
+    value: "__new__"
+  }, "+ ", t.project_add_group, project ? '' : ` (${t.project_new})`)), /*#__PURE__*/React.createElement("span", {
+    className: "x",
+    onClick: () => setSelectedFiles({})
+  }, "\u2715")), folders.map(f => /*#__PURE__*/React.createElement("div", {
     key: f.path,
     className: "folder"
   }, /*#__PURE__*/React.createElement("div", {
@@ -4558,20 +4781,56 @@ function App() {
     className: "spinner"
   }), t.folders_scanning), folderFiles[f.path] && folderFiles[f.path].length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "hint"
-  }, t.folders_none), (folderFiles[f.path] || []).map(file => /*#__PURE__*/React.createElement("div", {
-    key: file.path,
-    className: 'folder-file' + (file.track_id && file.track_id === trackId ? ' active' : ''),
-    onClick: () => openFolderFile(f.path, file),
-    title: file.path
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13
-    }
-  }, file.has_markup ? '💾' : file.track_id ? '♫' : '·'), /*#__PURE__*/React.createElement("span", {
-    className: "folder-file-name"
-  }, file.rel), /*#__PURE__*/React.createElement("span", {
-    className: "time"
-  }, (file.size / 1048576).toFixed(1), " MB"))))))))), /*#__PURE__*/React.createElement("footer", null, t.footer, " \xB7 ", /*#__PURE__*/React.createElement("a", {
+  }, t.folders_none), (folderFiles[f.path] || []).map(file => {
+    const isPrev = previewPath === file.path;
+    const a = previewRef.current;
+    const prog = isPrev && a && a.duration ? previewPos / a.duration : 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: file.path,
+      className: 'folder-file' + (file.track_id && file.track_id === trackId ? ' active' : '') + (isPrev ? ' previewing' : '') + (selectedFiles[file.path] ? ' selected' : ''),
+      title: file.path
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      className: "ff-check",
+      checked: !!selectedFiles[file.path],
+      onChange: () => toggleSelect(file),
+      title: t.folders_select_tip
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "ff-cover",
+      onClick: () => toggleFilePreview(file),
+      title: isPrev ? t.folders_stop : t.folders_listen
+    }, file.has_cover && /*#__PURE__*/React.createElement("img", {
+      src: `/api/folders/cover?path=${encodeURIComponent(file.path)}`,
+      alt: "",
+      loading: "lazy"
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "ff-play"
+    }, isPrev ? '■' : '▶')), /*#__PURE__*/React.createElement("div", {
+      className: "ff-text",
+      onClick: () => toggleFilePreview(file)
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "ff-title"
+    }, file.title || file.name.replace(/\.[^.]+$/, '')), /*#__PURE__*/React.createElement("div", {
+      className: "ff-sub"
+    }, file.artist && /*#__PURE__*/React.createElement("span", null, file.artist, " \xB7 "), file.duration != null && /*#__PURE__*/React.createElement("span", null, fmt(file.duration), " \xB7 "), /*#__PURE__*/React.createElement("span", null, (file.size / 1048576).toFixed(1), " MB"), file.has_markup ? /*#__PURE__*/React.createElement("span", null, " \xB7 \uD83D\uDCBE") : file.track_id ? /*#__PURE__*/React.createElement("span", null, " \xB7 \u266B") : null), isPrev && /*#__PURE__*/React.createElement("div", {
+      className: "ff-bar",
+      onClick: e => {
+        e.stopPropagation();
+        seekFilePreview(e, file);
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: `${prog * 100}%`
+      }
+    }))), /*#__PURE__*/React.createElement("button", {
+      className: "ff-go",
+      onClick: () => {
+        stopFilePreview();
+        openFolderFile(f.path, file);
+      },
+      title: t.folders_take_tip
+    }, "\u2192"));
+  }))))))), /*#__PURE__*/React.createElement("footer", null, t.footer, " \xB7 ", /*#__PURE__*/React.createElement("a", {
     href: "https://github.com/Siziff/musslop",
     target: "_blank"
   }, "GitHub")), liveMode && analysis && (() => {

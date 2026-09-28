@@ -8,3 +8,4 @@ scipy
 numpy
 yt-dlp
 imageio-ffmpeg
+mutagen

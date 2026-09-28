@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import uuid
 
 log = logging.getLogger("musslop")
@@ -318,11 +319,14 @@ def _scan_folder(root: str, limit: int = 2000) -> list[dict]:
             except OSError:
                 continue
             tid = src.get(os.path.normpath(full))
+            tags = _audio_tags(full)
             out.append({
                 "path": full, "name": fn, "size": size,
                 "rel": os.path.relpath(full, root),
                 "track_id": tid,
                 "has_markup": bool(TRACKS.get(tid, {}).get("markup")) if tid else False,
+                "has_cover": _embedded_cover(full) is not None,
+                **tags,
             })
             if len(out) >= limit:
                 return out
@@ -375,12 +379,41 @@ def _resolve_folder(raw: str) -> tuple[str | None, list[str]]:
     return None, candidates
 
 
+def _folder_diagnosis(tried: list[str]) -> str:
+    """Explain why none of the candidates is a usable directory."""
+    import platform
+    for c in tried:
+        if os.path.exists(c) and not os.path.isdir(c):
+            return f"{c} is a file, not a folder"
+        if os.path.isdir(c):
+            try:
+                os.listdir(c)
+            except PermissionError:
+                mac = platform.system() == "Darwin"
+                return (f"{c} exists but the server is not allowed to read it"
+                        + (" — macOS: System Settings → Privacy & Security → Files and Folders → allow "
+                           "your Terminal/Python to access this folder, then restart musslop" if mac else ""))
+        parent = os.path.dirname(c.rstrip(os.sep)) or c
+        if os.path.isdir(parent):
+            try:
+                os.listdir(parent)
+            except PermissionError:
+                return f"{parent} is not readable by the server (permissions)"
+    host = platform.node()
+    return (f"Tried: {'; '.join(tried[:4])}. Note: the path must exist on the computer where the "
+            f"musslop server runs (this one is '{host}', {platform.system()}), not just in your browser.")
+
+
 @app.post("/api/folders")
 def add_folder(body: dict = Body(...)):
-    path, tried = _resolve_folder(str(body.get("path") or ""))
+    raw = str(body.get("path") or "")
+    path, tried = _resolve_folder(raw)
     if not path:
-        hint = "; ".join(tried[:4]) if tried else "empty path"
-        raise HTTPException(400, f"Folder not found. Tried: {hint}")
+        raise HTTPException(400, "Folder not found. " + (_folder_diagnosis(tried) if tried else "Empty path."))
+    try:
+        os.listdir(path)
+    except PermissionError:
+        raise HTTPException(400, "Folder not found. " + _folder_diagnosis([path]))
     folders = _load_folders()
     if path not in folders:
         folders.append(path)
@@ -399,6 +432,45 @@ def _registered(path: str) -> str | None:
     return None
 
 
+@app.post("/api/folders/pick")
+def pick_folder():
+    """Open the OS folder dialog on the server machine (works when the browser
+    runs on the same computer). Returns {"path": ...} or {"path": null}."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception:
+        raise HTTPException(501, "Folder dialog is not available on this server (no tkinter)")
+    result: dict = {}
+
+    def run():
+        try:
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            result["path"] = filedialog.askdirectory(title="musslop — choose a music folder") or None
+            root.destroy()
+        except Exception as e:  # headless, no display, ...
+            result["error"] = str(e)
+
+    # tk must run on the main thread on macOS; uvicorn's worker thread is fine on
+    # Linux/Windows, so try directly first and fall back to a subprocess.
+    import platform
+    if platform.system() == "Darwin":
+        code = ("import tkinter as tk,sys\nfrom tkinter import filedialog\nr=tk.Tk();r.withdraw();"
+                "r.attributes('-topmost',True);print(filedialog.askdirectory(title='musslop — choose a music folder') or '')")
+        try:
+            out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=300)
+            result["path"] = out.stdout.strip() or None
+        except Exception as e:
+            result["error"] = str(e)
+    else:
+        run()
+    if result.get("error"):
+        raise HTTPException(501, f"Folder dialog failed: {result['error']}")
+    return {"path": result.get("path")}
+
+
 @app.delete("/api/folders")
 def remove_folder(path: str = Query(...)):
     folders = [p for p in _load_folders() if not _same_path(p, path)]
@@ -412,6 +484,104 @@ def scan_folder(path: str = Query(...)):
     if not reg or not os.path.isdir(reg):
         raise HTTPException(404, "Folder not registered")
     return {"path": reg, "files": _scan_folder(reg)}
+
+
+def _in_registered_folder(full: str) -> bool:
+    full = os.path.normpath(full)
+    for root in _load_folders():
+        if not os.path.isdir(root):
+            continue
+        try:
+            r = os.path.normcase(os.path.normpath(root))
+            if os.path.commonpath([os.path.normcase(full), r]) == r:
+                return True
+        except ValueError:
+            pass
+    return False
+
+
+def _embedded_cover(path: str) -> tuple[bytes, str] | None:
+    """Return (bytes, mime) of the embedded artwork, if any (mutagen)."""
+    try:
+        import mutagen
+        from mutagen.id3 import ID3
+        from mutagen.flac import FLAC
+        from mutagen.mp4 import MP4
+        from mutagen.oggvorbis import OggVorbis
+        from mutagen.oggopus import OggOpus
+    except Exception:
+        return None
+    try:
+        f = mutagen.File(path)
+        if f is None:
+            return None
+        tags = getattr(f, "tags", None)
+        # MP3 / AIFF / WAV with ID3
+        if tags is not None and hasattr(tags, "getall"):
+            pics = tags.getall("APIC")
+            if pics:
+                pic = sorted(pics, key=lambda p: (getattr(p, "type", 0) != 3))[0]
+                return pic.data, pic.mime or "image/jpeg"
+        if isinstance(f, FLAC) and f.pictures:
+            pic = sorted(f.pictures, key=lambda p: (p.type != 3))[0]
+            return pic.data, pic.mime or "image/jpeg"
+        if isinstance(f, MP4):
+            covr = f.tags.get("covr") if f.tags else None
+            if covr:
+                c = covr[0]
+                mime = "image/png" if getattr(c, "imageformat", None) == 14 else "image/jpeg"
+                return bytes(c), mime
+        if isinstance(f, (OggVorbis, OggOpus)):
+            b64 = f.get("metadata_block_picture")
+            if b64:
+                import base64
+                from mutagen.flac import Picture
+                pic = Picture(base64.b64decode(b64[0]))
+                return pic.data, pic.mime or "image/jpeg"
+    except Exception:
+        return None
+    return None
+
+
+def _audio_tags(path: str) -> dict:
+    """title / artist / duration from tags (best effort)."""
+    out: dict = {}
+    try:
+        import mutagen
+        f = mutagen.File(path, easy=True)
+        if f is None:
+            return out
+        if f.info is not None and getattr(f.info, "length", None):
+            out["duration"] = round(float(f.info.length), 1)
+        for k in ("title", "artist", "album"):
+            v = f.get(k)
+            if v:
+                out[k] = str(v[0])
+    except Exception:
+        pass
+    return out
+
+
+@app.get("/api/folders/cover")
+def folder_cover(path: str = Query(...)):
+    if not _in_registered_folder(path) or not os.path.isfile(path):
+        raise HTTPException(404, "File not found")
+    cov = _embedded_cover(path)
+    if not cov:
+        raise HTTPException(404, "No embedded cover")
+    from fastapi.responses import Response
+    data, mime = cov
+    return Response(data, media_type=mime, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/api/folders/stream")
+def folder_stream(path: str = Query(...)):
+    """Serve the original file straight from the folder for a quick listen
+    (no import, no analysis). Browsers handle range requests via FileResponse."""
+    if not _in_registered_folder(path) or not os.path.isfile(path):
+        raise HTTPException(404, "File not found")
+    ext = os.path.splitext(path)[1].lower()
+    return FileResponse(path, media_type=MIME.get(ext, "application/octet-stream"))
 
 
 @app.post("/api/folders/import")
