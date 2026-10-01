@@ -1107,15 +1107,20 @@ def export_loops(track_id: str, body: dict | list = Body(...)):
     if not track:
         raise HTTPException(404, "Track not found")
     if isinstance(body, list):
-        segments, scenes, tempo, downbeats, tails = body, [], None, [], False
+        segments, scenes, tempo, downbeats, tails, target = body, [], None, [], False, "generic"
+        crossfade = 0.0
     else:
         segments = body.get("segments") or []
         scenes = body.get("scenes") or []
         tempo = body.get("tempo")
         downbeats = body.get("downbeats") or []
         tails = bool(body.get("tails"))
+        target = str(body.get("target") or "generic")   # generic | foundry
+        crossfade = float(body.get("crossfade") or 0.0)
     if not segments:
         raise HTTPException(400, "Empty segment list")
+    if target == "foundry":
+        tails = True  # the Foundry module uses post-exit tails
 
     import io
     import re
@@ -1217,14 +1222,82 @@ def export_loops(track_id: str, body: dict | list = Body(...)):
                 "follows the loop end in the original track — play it over the next loop's start."
             ),
         }
+        base = os.path.splitext(track["name"] or "loops")[0]
+        slug = re.sub(r"[^\w\-]+", "_", base).strip("_") or "track"
+        manifest["slug"] = slug
         zf.writestr("manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False))
+
+        if target == "foundry":
+            # A ready-to-import Foundry VTT Playlist document (right-click the
+            # Playlists sidebar -> Import Data). Every loop = one PlaylistSound
+            # with repeat on; scenes become extra playlists that point at the
+            # same files. Paths assume the zip is unpacked into
+            # <Foundry Data>/musslop/<slug>/ (what the musslop-foundry module
+            # does on "Import ZIP").
+            root = f"musslop/{slug}"
+            fade_ms = int(max(0.0, crossfade) * 1000)
+            def sound(i: int, L: dict, name: str | None = None) -> dict:
+                return {
+                    "name": name or L["name"],
+                    "path": f"{root}/{L['file']}",
+                    "channel": "music",
+                    "playing": False,
+                    "pausedTime": None,
+                    "repeat": bool(L["loop"]),
+                    "volume": 0.8,
+                    "fade": fade_ms,
+                    "sort": i * 100000,
+                    "flags": {"musslop": {"loop_index": L["index"], "stinger": L.get("stinger"),
+                                          "tail_file": (f"{root}/{L['tail_file']}" if L.get("tail_file") else None)}},
+                }
+            playlists = [{
+                "name": base,
+                "description": "Exported from musslop — each sound is a seamless loop. "
+                               "Loops marked repeat=false are build-ups (play once).",
+                "mode": -1,            # DISABLED: GM picks a sound, it loops on its own
+                "channel": "music",
+                "playing": False,
+                "fade": fade_ms,
+                "sorting": "m",
+                "sounds": [sound(i, L) for i, L in enumerate(manifest_loops)],
+                "flags": {"musslop": {"manifest": f"{root}/manifest.json", "slug": slug, "bpm": tempo}},
+            }]
+            if manifest["scenes"]:
+                by_index = {L["index"]: L for L in manifest_loops}
+                playlists.append({
+                    "name": f"{base} — scenes",
+                    "description": "musslop scenes: one entry per scene, pointing at that scene's loop.",
+                    "mode": -1, "channel": "music", "playing": False, "fade": fade_ms, "sorting": "m",
+                    "sounds": [sound(i, by_index[sc["loop_index"]], sc["name"])
+                               for i, sc in enumerate(manifest["scenes"]) if sc.get("loop_index") in by_index],
+                    "flags": {"musslop": {"manifest": f"{root}/manifest.json", "slug": slug}},
+                })
+            # Foundry's "Import Data" takes ONE document per file
+            zf.writestr("foundry-playlist.json", json.dumps(playlists[0], indent=2, ensure_ascii=False))
+            if len(playlists) > 1:
+                zf.writestr("foundry-playlist-scenes.json", json.dumps(playlists[1], indent=2, ensure_ascii=False))
+            zf.writestr("README-foundry.txt", (
+                "musslop -> Foundry VTT\n"
+                "======================\n"
+                f"1. Unpack this zip into <your Foundry user data>/Data/musslop/{slug}/\n"
+                "   (so that the .wav files sit next to this README).\n"
+                "   Tip: with the musslop-foundry module installed, use its 'Import ZIP' button instead.\n"
+                "2. Without the module: in Foundry, Playlists sidebar -> right-click -> Import Data ->\n"
+                "   choose foundry-playlist.json (and foundry-playlist-scenes.json if present).\n"
+                "   Each sound is a seamless loop; click one to play it, click another to switch\n"
+                "   (Foundry crossfades by the playlist 'fade' setting).\n"
+                "3. With the module: open the musslop desk (music-note button in the scene controls),\n"
+                "   pick this track -> transitions land on loop/phrase boundaries, scenes get hotkeys,\n"
+                "   and every connected player hears the same thing.\n"
+            ))
     buf.seek(0)
 
     base = os.path.splitext(track["name"] or "loops")[0]
+    suffix = "_foundry" if target == "foundry" else "_loops"
     from fastapi.responses import Response
     return Response(
         buf.read(), media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{base}_loops.zip"'},
+        headers={"Content-Disposition": f'attachment; filename="{base}{suffix}.zip"'},
     )
 
 

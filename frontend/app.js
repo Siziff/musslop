@@ -45,6 +45,9 @@ const STR = {
     export_markup: '⤓ Разметка',
     import_markup: '⤒ Разметка',
     export_loops: '⤓ Лупы (zip)',
+    export_foundry: '⤓ Foundry VTT (zip)',
+    export_foundry_tip: 'Лупы + готовый плейлист Foundry (Import Data) + manifest для модуля musslop-foundry',
+    export_foundry_done: 'Распакуйте zip в Data/musslop/<трек>/ и импортируйте foundry-playlist.json (или используйте модуль musslop-foundry)',
     exporting: 'Формирование zip с лупами…',
     export_downloading: 'Скачивание лупов:',
     err_export: 'Ошибка экспорта',
@@ -260,6 +263,9 @@ const STR = {
     export_markup: '⤓ Markup',
     import_markup: '⤒ Markup',
     export_loops: '⤓ Loops (zip)',
+    export_foundry: '⤓ Foundry VTT (zip)',
+    export_foundry_tip: 'Loops + a ready Foundry playlist (Import Data) + manifest for the musslop-foundry module',
+    export_foundry_done: 'Unpack the zip into Data/musslop/<track>/ and import foundry-playlist.json (or use the musslop-foundry module)',
     exporting: 'Building zip with loops…',
     export_downloading: 'Downloading loops:',
     err_export: 'Export failed',
@@ -475,6 +481,9 @@ const STR = {
     export_markup: '⤓ 标注',
     import_markup: '⤒ 标注',
     export_loops: '⤓ 循环片段 (zip)',
+    export_foundry: '⤓ Foundry VTT (zip)',
+    export_foundry_tip: '循环片段 + 可直接导入的 Foundry 播放列表 + 供 musslop-foundry 模块使用的 manifest',
+    export_foundry_done: '将 zip 解压到 Data/musslop/<曲目>/ 并导入 foundry-playlist.json（或使用 musslop-foundry 模块）',
     exporting: '正在打包循环片段…',
     export_downloading: '正在下载循环片段:',
     err_export: '导出失败',
@@ -2510,7 +2519,7 @@ function App() {
       setLoading(null);
     }
   };
-  const exportLoops = async () => {
+  const exportLoops = async (target = 'generic') => {
     if (!trackId) return;
     setError(null);
     setLoading(t.exporting);
@@ -2532,7 +2541,9 @@ function App() {
           scenes,
           tempo: analysis && analysis.tempo,
           downbeats: analysis && analysis.downbeats || [],
-          tails: tailOn
+          tails: tailOn,
+          target,
+          crossfade
         })
       });
       if (!r.ok) throw new Error(t.err_export);
@@ -2556,9 +2567,10 @@ function App() {
       });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = (trackName || 'track').replace(/\.[^.]+$/, '') + '_loops.zip';
+      a.download = (trackName || 'track').replace(/\.[^.]+$/, '') + (target === 'foundry' ? '_foundry.zip' : '_loops.zip');
       a.click();
       URL.revokeObjectURL(a.href);
+      if (target === 'foundry') showToast(t.export_foundry_done);
     } catch (e) {
       setError(String(e.message || e));
     } finally {
@@ -3882,8 +3894,12 @@ function App() {
     onClick: () => setExportOpen(false)
   }, /*#__PURE__*/React.createElement("div", {
     className: "dropdown-item",
-    onClick: exportLoops
+    onClick: () => exportLoops('generic')
   }, t.export_loops), /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-item",
+    onClick: () => exportLoops('foundry'),
+    title: t.export_foundry_tip
+  }, t.export_foundry), /*#__PURE__*/React.createElement("div", {
     className: "dropdown-item",
     onClick: exportMarkup
   }, t.export_markup), /*#__PURE__*/React.createElement("div", {
